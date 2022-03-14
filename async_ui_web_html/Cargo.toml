@@ -1,0 +1,15 @@
+[package]
+name = "async_ui_web_html"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async_ui_web = { path = "../async_ui_web/" }
+
+[dependencies.web-sys]
+version = "0.3.56"
+features = [
+	'Node',
+]
