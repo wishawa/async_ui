@@ -7,32 +7,28 @@ use std::{
 
 use smol::Task;
 
-use crate::shared::{SpawnContext, SpawnWrappedFuture};
+use crate::shared::SpawnWrappedFuture;
 
 use super::super::shared::DROP_GUARANTEED_SCOPED;
 
-use super::{spawn, BoxFuture, Send};
+use super::{spawn, BoxFuture};
 
 pin_project_lite::pin_project! {
-    pub struct SpawnedFuture<'a, C>
-    where C: SpawnContext, C: Send
+    pub struct SpawnedFuture<'a>
     {
-        state: SpawnedFutureState<'a, C>,
+        state: SpawnedFutureState<'a>,
         _phantom: PhantomPinned,
     }
 }
 
-enum SpawnedFutureState<'a, C: SpawnContext + Send> {
-    Created {
-        future: BoxFuture<'a, ()>,
-        context: C,
-    },
+enum SpawnedFutureState<'a> {
+    Created { future: BoxFuture<'a, ()> },
     Spawned,
 }
 
-impl<'a, C: SpawnContext + Send> SpawnedFuture<'a, C> {
-    pub fn new(future: BoxFuture<'a, ()>, context: C) -> Self {
-        let state = SpawnedFutureState::Created { future, context };
+impl<'a> SpawnedFuture<'a> {
+    pub fn new(future: BoxFuture<'a, ()>) -> Self {
+        let state = SpawnedFutureState::Created { future };
         Self {
             state,
             _phantom: PhantomPinned,
@@ -40,12 +36,12 @@ impl<'a, C: SpawnContext + Send> SpawnedFuture<'a, C> {
     }
 }
 
-impl<'a, C: SpawnContext + Send> Future for SpawnedFuture<'a, C> {
+impl<'a> Future for SpawnedFuture<'a> {
     type Output = Task<()>;
     fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         let self_loc = &*self as *const _ as *const ();
         let this = self.project();
-        if let SpawnedFutureState::Created { future, context } =
+        if let SpawnedFutureState::Created { future } =
             std::mem::replace(this.state, SpawnedFutureState::Spawned)
         {
             DROP_GUARANTEED_SCOPED.with(|&(target_start, target_end)| {
@@ -56,7 +52,7 @@ impl<'a, C: SpawnContext + Send> Future for SpawnedFuture<'a, C> {
                         let future = unsafe {
                             std::mem::transmute::<BoxFuture<'a, ()>, BoxFuture<'static, ()>>(future)
                         };
-                        let wrapped = SpawnWrappedFuture::new(future, context);
+                        let wrapped = SpawnWrappedFuture::new(future);
                         spawn(wrapped)
                     })
                 }

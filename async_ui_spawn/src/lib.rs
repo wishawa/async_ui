@@ -2,4 +2,4 @@
 pub mod multithread;
 mod shared;
 pub mod singlethread;
-pub use shared::{RootSpawnWrapperFuture, SpawnContext};
+pub use shared::RootSpawnWrappedFuture;

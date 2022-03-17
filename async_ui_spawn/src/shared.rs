@@ -4,31 +4,25 @@ use std::{
     task::{Context, Poll},
 };
 
-use scoped_tls::ScopedKey;
-
 scoped_tls::scoped_thread_local!(
     pub(crate) static DROP_GUARANTEED_SCOPED: (*const (), *const ())
 );
-pub trait SpawnContext: Sized + 'static {
-    fn get_tls() -> &'static ScopedKey<Self>;
-}
 
 pin_project_lite::pin_project! {
-    pub(crate) struct SpawnWrappedFuture<F, C>
-    where F: ?Sized, F: 'static, C: SpawnContext
+    pub(crate) struct SpawnWrappedFuture<F>
+    where F: ?Sized, F: 'static
     {
         future: Pin<Box<F>>,
-        context: C,
     }
 }
 
-impl<F: ?Sized, C: SpawnContext> SpawnWrappedFuture<F, C> {
-    pub fn new(future: Pin<Box<F>>, context: C) -> Self {
-        Self { future, context }
+impl<F: ?Sized> SpawnWrappedFuture<F> {
+    pub fn new(future: Pin<Box<F>>) -> Self {
+        Self { future }
     }
 }
 
-impl<'a, F: ?Sized + Future + 'static, C: SpawnContext> Future for SpawnWrappedFuture<F, C> {
+impl<'a, F: ?Sized + Future + 'static> Future for SpawnWrappedFuture<F> {
     type Output = F::Output;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
@@ -37,13 +31,13 @@ impl<'a, F: ?Sized + Future + 'static, C: SpawnContext> Future for SpawnWrappedF
         let size = std::mem::size_of_val(target);
         let target_end = target_start.wrapping_add(size);
         DROP_GUARANTEED_SCOPED.set(&(target_start, target_end), || {
-            C::get_tls().set(this.context, || this.future.as_mut().poll(cx))
+            this.future.as_mut().poll(cx)
         })
     }
 }
 
 pin_project_lite::pin_project! {
-    pub struct RootSpawnWrapperFuture<F>
+    pub struct RootSpawnWrappedFuture<F>
     where F: Future, F: 'static
     {
         #[pin]
@@ -51,7 +45,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<F: Future + 'static> Future for RootSpawnWrapperFuture<F> {
+impl<F: Future + 'static> Future for RootSpawnWrappedFuture<F> {
     type Output = F::Output;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
@@ -61,7 +55,7 @@ impl<F: Future + 'static> Future for RootSpawnWrapperFuture<F> {
     }
 }
 
-impl<F: Future + 'static> RootSpawnWrapperFuture<F> {
+impl<F: Future + 'static> RootSpawnWrappedFuture<F> {
     pub fn new(future: F) -> Self {
         Self { future }
     }
