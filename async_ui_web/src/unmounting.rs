@@ -10,7 +10,7 @@ pub struct UntilUnmountFuture;
 impl Future for UntilUnmountFuture {
     type Output = ();
 
-    fn poll(self: std::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: std::pin::Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
         UNMOUNTING.with(|unmounting| {
             if *unmounting {
                 Poll::Ready(())

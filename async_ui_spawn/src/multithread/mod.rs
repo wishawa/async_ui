@@ -15,4 +15,4 @@ where
 
 use std::marker::Send;
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
-pub use spawner::SpawnedFuture;
+pub use spawner::*;

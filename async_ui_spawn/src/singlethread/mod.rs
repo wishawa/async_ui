@@ -15,4 +15,4 @@ where
 }
 
 type BoxFuture<'a, T> = Pin<Box<dyn Future<Output = T> + 'a>>;
-pub use spawner::SpawnedFuture;
+pub use spawner::*;

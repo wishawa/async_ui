@@ -10,9 +10,12 @@ smol = "1.2.5"
 pin-project-lite = "0.2.8"
 sealed = "0.4"
 async_ui_spawn = { path = "../async_ui_spawn/" }
+async_ui_reactive = { path = "../async_ui_reactive/" }
+async_ui_utils = { path = "../async_ui_utils/" }
 smallvec = { version = "1.8.0", features = ["const_generics", "const_new", "union"] }
 scoped-tls = "1.0.0"
 lazy_static = "1.4.0"
+enum_dispatch = "0.3.8"
 
 [dependencies.web-sys]
 version = "0.3.56"

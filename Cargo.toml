@@ -1,6 +1,8 @@
 [workspace]
 members = [
 	"async_ui_spawn/",
+	"async_ui_reactive/",
 	"async_ui_web/",
-	"async_ui_web_html/"
+	"async_ui_web_html/",
+	"async_ui_utils/",
 ]
