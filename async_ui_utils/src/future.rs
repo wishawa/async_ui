@@ -1,10 +1,10 @@
-pub use futures::{join, try_join};
+pub use futures::{join as join_macro, try_join as try_join_macro};
 use std::future::Future;
 
 #[macro_export]
-macro_rules! race {
+macro_rules! race_macro {
 	($($e:expr),*) => {
-		($crate::future::try_join! (
+		($crate::future::try_join_macro! (
 			$(async {
 				::std::result::Result::<(), _>::Err(($e).await)
 			}),*
@@ -16,11 +16,11 @@ macro_rules! make_race_fn {
 		pub async fn $name <$($tn,)+ R> ($($an : $tn,)+) -> R
 		where $($tn: Future<Output = R>,)+
 		{
-			race!($($an),+)
+			race_macro!($($an),+)
 		}
 	};
 }
-make_race_fn!(race2, (fut1, F1), (fut2, F2),);
+make_race_fn!(race, (fut1, F1), (fut2, F2),);
 make_race_fn!(race3, (fut1, F1), (fut2, F2), (fut3, F3),);
 make_race_fn!(race4, (fut1, F1), (fut2, F2), (fut3, F3), (fut4, F4),);
 make_race_fn!(

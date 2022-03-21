@@ -1,8 +1,10 @@
+pub mod channel;
 pub mod reactive;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug)]
-pub struct IMCell<T>(Mutex<T>);
+struct IMCell<T>(Mutex<T>);
+type Shared<T> = Arc<T>;
 type LockReadGuard<'l, T> = MutexGuard<'l, T>;
 type LockWriteGuard<'l, T> = MutexGuard<'l, T>;
 impl<T> IMCell<T> {

@@ -6,6 +6,7 @@ use crate::control::position::PositionIndices;
 
 use super::VNodeHandler;
 
+#[derive(Debug)]
 pub(crate) struct NodeVNode {
     node: Node,
     children: RefCell<BTreeMap<PositionIndices, Node>>,

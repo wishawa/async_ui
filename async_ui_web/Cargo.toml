@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-smol = "1.2.5"
 pin-project-lite = "0.2.8"
 sealed = "0.4"
 async_ui_spawn = { path = "../async_ui_spawn/" }
@@ -16,6 +17,7 @@ smallvec = { version = "1.8.0", features = ["const_generics", "const_new", "unio
 scoped-tls = "1.0.0"
 lazy_static = "1.4.0"
 enum_dispatch = "0.3.8"
+wasm-bindgen-futures = "0.4.29"
 
 [dependencies.web-sys]
 version = "0.3.56"

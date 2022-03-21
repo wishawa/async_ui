@@ -1,8 +1,13 @@
+pub mod channel;
 pub mod reactive;
-use std::cell::{Ref, RefCell, RefMut};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    rc::Rc,
+};
 
 #[derive(Debug)]
-pub struct IMCell<T>(RefCell<T>);
+struct IMCell<T>(RefCell<T>);
+type Shared<T> = Rc<T>;
 type LockReadGuard<'l, T> = Ref<'l, T>;
 type LockWriteGuard<'l, T> = RefMut<'l, T>;
 impl<T> IMCell<T> {

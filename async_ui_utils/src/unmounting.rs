@@ -3,20 +3,19 @@ use std::{
     task::{Context, Poll},
 };
 
-scoped_tls::scoped_thread_local! {
-    pub(crate) static UNMOUNTING: bool
-}
+pub use async_ui_spawn::is_unmounting;
+
 pub struct UntilUnmountFuture;
+pub fn until_unmount() -> UntilUnmountFuture {
+    UntilUnmountFuture
+}
 impl Future for UntilUnmountFuture {
     type Output = ();
 
     fn poll(self: std::pin::Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-        UNMOUNTING.with(|unmounting| {
-            if *unmounting {
-                Poll::Ready(())
-            } else {
-                Poll::Pending
-            }
-        })
+        match is_unmounting() {
+            true => Poll::Ready(()),
+            false => Poll::Pending,
+        }
     }
 }

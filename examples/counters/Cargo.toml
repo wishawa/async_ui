@@ -1,0 +1,24 @@
+[package]
+name = "examples_counters"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+wasm-bindgen = "0.2.74"
+async_ui_reactive = { path = "../../async_ui_reactive/" }
+async_ui_utils = { path = "../../async_ui_utils/" }
+async_ui_web = { path = "../../async_ui_web/" }
+async_ui_web_html = { path = "../../async_ui_web_html/" }
+console_error_panic_hook = "0.1.6"
+wasm-bindgen-futures = "0.4.29"
+async-executor = "1.4.1"
+
+[dependencies.web-sys]
+version = "0.3.56"
+features = [
+	'console'
+]

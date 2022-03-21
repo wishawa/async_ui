@@ -1,38 +1,58 @@
 use std::{
     future::Future,
+    marker::PhantomPinned,
     pin::Pin,
-    task::{Context, Poll},
+    task::{Context, Poll, Waker},
 };
 
 scoped_tls::scoped_thread_local!(
     pub(crate) static DROP_GUARANTEED_SCOPED: (*const (), *const ())
 );
+scoped_tls::scoped_thread_local!(
+    pub(crate) static UNMOUNTING: bool
+);
 
-pin_project_lite::pin_project! {
-    pub(crate) struct SpawnWrappedFuture<F>
-    where F: ?Sized, F: 'static
-    {
-        future: Pin<Box<F>>,
-    }
+pub(crate) struct SpawnWrappedFuture<F>
+where
+    F: ?Sized + Future + 'static,
+{
+    future: Pin<Box<F>>,
 }
 
-impl<F: ?Sized> SpawnWrappedFuture<F> {
+impl<F: ?Sized + Future + 'static> SpawnWrappedFuture<F> {
     pub fn new(future: Pin<Box<F>>) -> Self {
         Self { future }
     }
+}
+thread_local! {
+    static DUMMY_WAKER: Waker = waker_fn::waker_fn(|| {})
+}
+impl<F: ?Sized + Future + 'static> Drop for SpawnWrappedFuture<F> {
+    fn drop(&mut self) {
+        // DUMMY_WAKER.with(|wk| {
+        //     let mut cx = Context::from_waker(wk);
+        //     UNMOUNTING.set(&true, || {
+        //         let _ = self.future.as_mut().poll(&mut cx);
+        //     });
+        // });
+    }
+}
+pub fn is_unmounting() -> bool {
+    UNMOUNTING.is_set()
 }
 
 impl<'a, F: ?Sized + Future + 'static> Future for SpawnWrappedFuture<F> {
     type Output = F::Output;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        let target = &**this.future;
-        let target_start = target as *const _ as *const ();
+        let mut this = self;
+        let target = &*this.future;
+        let target_start = target as *const F as *const () as usize;
         let size = std::mem::size_of_val(target);
-        let target_end = target_start.wrapping_add(size);
-        DROP_GUARANTEED_SCOPED.set(&(target_start, target_end), || {
-            this.future.as_mut().poll(cx)
-        })
+        let target_end = target_start + size;
+        DROP_GUARANTEED_SCOPED.set(
+            &(target_start as *const (), target_end as *const ()),
+            || this.future.as_mut().poll(cx),
+        )
     }
 }
 
@@ -49,9 +69,12 @@ impl<F: Future + 'static> Future for RootSpawnWrappedFuture<F> {
     type Output = F::Output;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        let target_start = &*this.future as *const F as *const ();
-        let target_end = target_start.wrapping_add(std::mem::size_of::<F>());
-        DROP_GUARANTEED_SCOPED.set(&(target_start, target_end), || this.future.poll(cx))
+        let target_start = &*this.future as *const F;
+        let target_end = target_start.wrapping_add(1);
+        DROP_GUARANTEED_SCOPED.set(
+            &(target_start as *const (), target_end as *const ()),
+            || this.future.poll(cx),
+        )
     }
 }
 
@@ -59,4 +82,25 @@ impl<F: Future + 'static> RootSpawnWrappedFuture<F> {
     pub fn new(future: F) -> Self {
         Self { future }
     }
+}
+
+pub fn check_drop_guarantee<T>(ptr: &Pin<&mut T>) {
+    let self_loc = &**ptr as *const T as *const ();
+    DROP_GUARANTEED_SCOPED.with(|&(low, high)| {
+        if low > self_loc || high <= self_loc {
+            panic!("drop guarantee violated");
+        }
+    });
+}
+pub async fn check_drop_guarantee_async() {
+    struct Fut(PhantomPinned);
+    impl Future for Fut {
+        type Output = ();
+
+        fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+            check_drop_guarantee(&self);
+            Poll::Ready(())
+        }
+    }
+    (Fut(PhantomPinned)).await
 }

@@ -2,7 +2,7 @@ pub mod reactive;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 #[derive(Debug)]
-pub struct IMCell<T>(RwLock<T>);
+struct IMCell<T>(RwLock<T>);
 type LockReadGuard<'l, T> = RwLockReadGuard<'l, T>;
 type LockWriteGuard<'l, T> = RwLockWriteGuard<'l, T>;
 impl<T> IMCell<T> {

@@ -4,6 +4,7 @@ use crate::control::position::PositionIndices;
 
 use super::VNodeHandler;
 
+#[derive(Debug)]
 pub(crate) struct NullVNode;
 impl VNodeHandler for NullVNode {
     fn ins_node(&self, _position: PositionIndices, _node: Node) {

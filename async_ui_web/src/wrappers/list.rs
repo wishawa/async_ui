@@ -1,7 +1,10 @@
 use std::{collections::HashMap, hash::Hash};
 
-use async_ui_reactive::SRefCell;
-use async_ui_spawn::singlethread::{SpawnedFuture, TaskWrapper};
+use async_ui_reactive::singlethread::ReactiveRefCell;
+use async_ui_spawn::{
+    check_drop_guarantee_async,
+    wasm::{SpawnedFuture, TaskWrapper},
+};
 
 use crate::{
     control::element_control::{ElementControl, ELEMENT_CONTROL},
@@ -10,7 +13,9 @@ use crate::{
     PortalExit,
 };
 
-pub async fn list<'a, K: Eq + Hash + Clone>(children: &'a SRefCell<Vec<(K, Option<Element<'a>>)>>) {
+pub async fn list<'a, K: Eq + Hash + Clone>(
+    children: &'a ReactiveRefCell<Vec<(K, Option<Element<'a>>)>>,
+) {
     struct ChildTask<'a> {
         _entry_task: TaskWrapper<'a>,
         exit_task: Option<TaskWrapper<'a>>,
@@ -29,12 +34,13 @@ pub async fn list<'a, K: Eq + Hash + Clone>(children: &'a SRefCell<Vec<(K, Optio
         let exit_task = unsafe { exit_future.launch_and_get_task() };
         exit_task
     }
+    check_drop_guarantee_async().await;
     let parent_control = ELEMENT_CONTROL.with(Clone::clone);
 
     let mut tasks: HashMap<K, ChildTask> = HashMap::new();
     let mut new_tasks: Vec<(K, ChildTask)> = Vec::new();
 
-    let mut list = children.get_mut();
+    let mut list = children.borrow_mut();
     loop {
         for (index, (k, v)) in list.iter_mut().enumerate() {
             if let Some(element) = v.take() {
@@ -70,6 +76,6 @@ pub async fn list<'a, K: Eq + Hash + Clone>(children: &'a SRefCell<Vec<(K, Optio
             (k, child)
         }));
         std::mem::drop(list);
-        list = children.get_next_mut().await;
+        list = children.borrow_next_mut().await;
     }
 }

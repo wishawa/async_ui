@@ -9,6 +9,7 @@ pub(crate) use portal::PortalVNode;
 use super::position::PositionIndices;
 
 #[enum_dispatch::enum_dispatch]
+#[derive(Debug)]
 pub(crate) enum VNode {
     NodeVNode,
     PortalVNode,

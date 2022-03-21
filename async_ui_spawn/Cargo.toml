@@ -4,9 +4,21 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-smol = "1.2.5"
 pin-project-lite = "0.2.8"
 sealed = "0.4"
 scoped-tls = "1.0.0"
+waker-fn = "1.1.0"
+async-executor = "1.4.1"
+slab = "0.4.5"
+wasm-bindgen = "0.2.74"
+
+[dependencies.web-sys]
+version = "0.3.56"
+features = [
+	'console',
+	'Window'
+]

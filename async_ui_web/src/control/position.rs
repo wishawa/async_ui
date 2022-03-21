@@ -2,7 +2,7 @@ use smallvec::SmallVec;
 use std::cmp::Ordering;
 type PositionIndex = usize;
 
-#[derive(Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub(crate) struct PositionIndices(SmallVec<[PositionIndex; 8]>);
 impl PartialOrd for PositionIndices {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {

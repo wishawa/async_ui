@@ -1,6 +1,6 @@
-use std::{future::pending, rc::Rc};
+use std::rc::Rc;
 
-use async_ui_utils::run_on_drop::RunOnDrop;
+use async_ui_utils::unmounting::until_unmount;
 
 use crate::{
     control::{
@@ -29,7 +29,11 @@ pub fn create_portal() -> (PortalEntry, PortalExit) {
 }
 impl PortalEntry {
     pub async fn render_borrowed(&mut self, children: Vec<Element<'_>>) {
-        render_with_control(children, ElementControl::new_with_vnode(self.vnode.clone())).await
+        render_with_control(
+            children,
+            Some(ElementControl::new_with_vnode(self.vnode.clone())),
+        )
+        .await
     }
     pub async fn render(mut self, children: Vec<Element<'_>>) {
         self.render_borrowed(children).await
@@ -45,16 +49,11 @@ impl PortalExit {
         match &*self.vnode {
             VNode::PortalVNode(portal) => {
                 ELEMENT_CONTROL.with(|control| portal.set_target(control));
-            }
-            _ => panic!("unexpected vnode type in portal token"),
-        }
-        let _guard = RunOnDrop::new(|| match &*self.vnode {
-            VNode::PortalVNode(portal) => {
+                until_unmount().await;
                 portal.unset_target();
             }
             _ => panic!("unexpected vnode type in portal token"),
-        });
-        pending().await
+        }
     }
     pub async fn render(mut self) {
         self.render_borrowed().await

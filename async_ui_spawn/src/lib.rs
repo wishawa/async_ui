@@ -2,4 +2,7 @@
 pub mod multithread;
 mod shared;
 pub mod singlethread;
-pub use shared::RootSpawnWrappedFuture;
+pub mod wasm;
+pub use shared::{
+    check_drop_guarantee, check_drop_guarantee_async, is_unmounting, RootSpawnWrappedFuture,
+};

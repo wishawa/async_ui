@@ -10,6 +10,7 @@ use crate::control::{element_control::ElementControl, position::PositionIndices}
 
 use super::{VNode, VNodeHandler};
 
+#[derive(Debug)]
 pub(crate) struct PortalVNode {
     inner: RefCell<PortalVNodeInner>,
 }
@@ -43,6 +44,7 @@ impl PortalVNode {
         }
     }
 }
+#[derive(Debug)]
 struct PortalVNodeInner {
     children: BTreeMap<PositionIndices, Node>,
     target: Option<(Weak<VNode>, PositionIndices)>,

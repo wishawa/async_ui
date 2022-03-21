@@ -46,24 +46,24 @@ impl<T> Reactive<T> {
     pub fn new(value: T) -> Self {
         Self(IMCell::new(ReactiveInner::new(value)))
     }
-    pub fn get(&self) -> ReactiveGuard<'_, T> {
+    pub fn borrow(&self) -> ReactiveGuard<'_, T> {
         ReactiveGuard {
             guard: self.0.lock_read(),
         }
     }
-    pub fn get_mut(&self) -> ReactiveGuardMut<'_, T> {
+    pub fn borrow_mut(&self) -> ReactiveGuardMut<'_, T> {
         ReactiveGuardMut {
             guard: self.0.lock_write(),
         }
     }
-    pub fn get_next(&self) -> ReactiveNextFuture<'_, T> {
+    pub fn borrow_next(&self) -> ReactiveNextFuture<'_, T> {
         ReactiveNextFuture {
             reactive: self,
             subscribed: None,
             version: 0,
         }
     }
-    pub fn get_next_mut(&self) -> ReactiveNextMutFuture<'_, T> {
+    pub fn borrow_next_mut(&self) -> ReactiveNextMutFuture<'_, T> {
         ReactiveNextMutFuture {
             reactive: self,
             subscribed: None,
@@ -79,17 +79,20 @@ pub struct ReactiveNextFuture<'a, T> {
 impl<'a, T> Future for ReactiveNextFuture<'a, T> {
     type Output = ReactiveGuard<'a, T>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        if self.subscribed.is_none() {
-            let mut locked = self.reactive.0.lock_write();
-            self.subscribed = Some(locked.add_subscription(cx.waker().to_owned()));
-        } else {
-            let locked = self.reactive.0.lock_read();
+        let mut locked = self.reactive.0.lock_write();
+        self.subscribed = if let Some(key) = self.subscribed.take() {
             let lv = locked.get_version();
             if lv > self.version {
                 self.version = lv;
-                return Poll::Ready(ReactiveGuard { guard: locked });
+                locked.remove_subscription(key);
+                drop(locked);
+                let guard = self.reactive.0.lock_read();
+                return Poll::Ready(ReactiveGuard { guard });
             }
-        }
+            Some(key)
+        } else {
+            Some(locked.add_subscription(cx.waker().to_owned()))
+        };
         Poll::Pending
     }
 }
@@ -110,15 +113,17 @@ impl<'a, T> Future for ReactiveNextMutFuture<'a, T> {
     type Output = ReactiveGuardMut<'a, T>;
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut locked = self.reactive.0.lock_write();
-        if self.subscribed.is_none() {
-            self.subscribed = Some(locked.add_subscription(cx.waker().to_owned()));
-        } else {
+        self.subscribed = if let Some(key) = self.subscribed.take() {
             let lv = locked.get_version();
             if lv > self.version {
                 self.version = lv;
+                locked.remove_subscription(key);
                 return Poll::Ready(ReactiveGuardMut { guard: locked });
             }
-        }
+            Some(key)
+        } else {
+            Some(locked.add_subscription(cx.waker().to_owned()))
+        };
         Poll::Pending
     }
 }

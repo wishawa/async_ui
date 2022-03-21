@@ -13,7 +13,7 @@ thread_local! {
 scoped_tls::scoped_thread_local! {
     pub(crate) static ELEMENT_CONTROL: ElementControl
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct ElementControl {
     pub(in crate::control) vnode: Rc<VNode>,
     pub(in crate::control) position: PositionIndices,

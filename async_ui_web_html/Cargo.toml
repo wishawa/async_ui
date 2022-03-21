@@ -4,12 +4,40 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 async_ui_web = { path = "../async_ui_web/" }
+async_ui_reactive = { path = "../async_ui_reactive/" }
+async_ui_utils = { path = "../async_ui_utils/" }
+async_ui_spawn = { path = "../async_ui_spawn/" }
+futures = "0.3.21"
+paste = "1.0"
+wasm-bindgen = "0.2.79"
+js-sys = "0.3.56"
+pin-project-lite = "0.2.8"
 
 [dependencies.web-sys]
 version = "0.3.56"
 features = [
+	'Document',
+	'Window',
+	'HtmlElement',
+	'Element',
 	'Node',
+	'Event',
+	'MouseEvent',
+	'FocusEvent',
+	'InputEvent',
+	'KeyboardEvent',
+	'UiEvent',
+	'WheelEvent',
+	'HtmlDivElement',
+	'HtmlInputElement',
+	'HtmlButtonElement',
+	'HtmlSpanElement',
+	'HtmlParagraphElement',
+	'HtmlAnchorElement',
+	'Text',
 ]
