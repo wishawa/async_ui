@@ -1,7 +1,5 @@
-use std::borrow::Cow;
-
 use crate::elem::{Elem, HtmlTag};
-use async_ui_reactive::singlethread::ReactiveRefCell;
+use async_ui_reactive::Rx;
 use web_sys::HtmlElement;
 
 impl<'a, H: HtmlTag + 'a> Elem<'a, H> {
@@ -10,17 +8,16 @@ impl<'a, H: HtmlTag + 'a> Elem<'a, H> {
         elem.set_class_name(&classes.join(" "));
         self
     }
-    pub fn class_reactive(mut self, classes: &'a ReactiveRefCell<Vec<Cow<'static, str>>>) -> Self {
+    pub fn class_reactive<S: AsRef<str> + 'a>(mut self, classes: &'a Rx<Vec<S>>) -> Self {
         let elem: &HtmlElement = self.elem.as_ref();
         let node = elem.clone();
-        self.asyncs.push(Box::pin(async move {
-            let mut b = classes.borrow();
-            loop {
-                node.set_class_name(&b.join(" "));
-                drop(b);
-                b = classes.borrow_next().await;
-            }
-        }));
+        self.asyncs.push(Box::pin(classes.for_each(move |c| {
+            let new_class_str: String = c.iter().fold(String::new(), |mut acc, s| {
+                acc.push_str(s.as_ref());
+                acc
+            });
+            node.set_class_name(&new_class_str);
+        })));
         self
     }
 }

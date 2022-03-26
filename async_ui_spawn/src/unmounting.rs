@@ -3,7 +3,11 @@ use std::{
     task::{Context, Poll},
 };
 
-pub use async_ui_spawn::is_unmounting;
+use crate::shared::UNMOUNTING;
+
+pub fn is_unmounting() -> bool {
+    UNMOUNTING.is_set()
+}
 
 pub struct UntilUnmountFuture;
 pub fn until_unmount() -> UntilUnmountFuture {

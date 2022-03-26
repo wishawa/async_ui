@@ -1,6 +1,4 @@
-use std::rc::Rc;
-
-use async_ui_utils::unmounting::until_unmount;
+use std::{future::pending, rc::Rc};
 
 use crate::{
     control::{
@@ -28,15 +26,15 @@ pub fn create_portal() -> (PortalEntry, PortalExit) {
     )
 }
 impl PortalEntry {
-    pub async fn render_borrowed(&mut self, children: Vec<Element<'_>>) {
+    pub fn to_element_borrowed<'e>(&mut self, children: Vec<Element<'e>>) -> Element<'e> {
         render_with_control(
             children,
             Some(ElementControl::new_with_vnode(self.vnode.clone())),
         )
-        .await
+        .into()
     }
-    pub async fn render(mut self, children: Vec<Element<'_>>) {
-        self.render_borrowed(children).await
+    pub fn to_element<'e>(mut self, children: Vec<Element<'e>>) -> Element<'e> {
+        self.to_element_borrowed(children)
     }
     pub fn carefully_clone(&self) -> Self {
         Self {
@@ -44,19 +42,24 @@ impl PortalEntry {
         }
     }
 }
+
 impl PortalExit {
-    pub async fn render_borrowed(&mut self) {
-        match &*self.vnode {
-            VNode::PortalVNode(portal) => {
-                ELEMENT_CONTROL.with(|control| portal.set_target(control));
-                until_unmount().await;
-                portal.unset_target();
-            }
-            _ => panic!("unexpected vnode type in portal token"),
-        }
+    pub fn to_element_borrowed<'s>(&'s mut self) -> Element<'static> {
+        let vnd = self.vnode.clone();
+        let block = async move {
+            let _guard: scopeguard::ScopeGuard<_, _> = match &*vnd {
+                VNode::PortalVNode(portal) => {
+                    ELEMENT_CONTROL.with(|control| portal.set_target(control));
+                    scopeguard::guard((), |_| portal.unset_target())
+                }
+                _ => panic!("unexpected vnode type in portal token"),
+            };
+            pending().await
+        };
+        block.into()
     }
-    pub async fn render(mut self) {
-        self.render_borrowed().await
+    pub fn to_element(mut self) -> Element<'static> {
+        self.to_element_borrowed()
     }
     pub fn carefully_clone(&self) -> Self {
         Self {

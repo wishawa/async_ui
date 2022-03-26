@@ -2,15 +2,17 @@ use async_ui_web::{
     manual_apis::{put_node, render_in_node, NodeGuard, RenderFuture},
     Element,
 };
-use std::{any::Any, future::Future, pin::Pin, task::Poll};
+use std::{future::Future, pin::Pin, task::Poll};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, Node};
+
+pub(crate) trait Nothing {}
+impl<T> Nothing for T {}
 
 pin_project_lite::pin_project! {
     pub struct Elem<'a, H: 'a> {
         pub(crate) elem: H,
         pub(crate) asyncs: Vec<Pin<Box<dyn Future<Output = ()> + 'a>>>,
-        pub(crate) extras: Vec<Box<dyn Any>>,
         #[pin]
         rendered: Option<Rendered<'a>>,
         children: Vec<Element<'a>>
@@ -29,7 +31,6 @@ impl<'a, H> Elem<'a, H> {
         Self {
             elem,
             asyncs: Vec::new(),
-            extras: Vec::new(),
             rendered: None,
             children: Vec::new(),
         }

@@ -65,12 +65,11 @@ impl WebExecutor {
     fn schedule(&self) {
         if !ACTIVE.is_set() && !self.scheduled.get() {
             if let Some(window) = web_sys::window() {
-                let closure = Closure::once(start_executor);
+                let closure = Closure::once_into_js(start_executor);
                 window
                     .set_timeout_with_callback(&closure.as_ref().unchecked_ref())
                     .ok();
                 self.scheduled.set(true);
-                closure.forget();
             }
         }
     }
@@ -101,11 +100,13 @@ pub(super) fn spawn(fut: SpawnJob) -> Task {
 pub fn start_executor() {
     WEB_EXECUTOR.with(|exe| exe.run_queued());
 }
+
 pub struct Task {
     key: usize,
 }
 impl Drop for Task {
     fn drop(&mut self) {
+        web_sys::console::log_1(&"dropping task".into());
         WEB_EXECUTOR.with(|exe| exe.drop_task(self.key))
     }
 }

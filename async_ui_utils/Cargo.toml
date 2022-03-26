@@ -9,4 +9,3 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 futures = "0.3.21"
-async_ui_spawn = { path = "../async_ui_spawn/" }

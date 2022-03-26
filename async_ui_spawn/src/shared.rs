@@ -1,6 +1,5 @@
 use std::{
     future::Future,
-    marker::PhantomPinned,
     pin::Pin,
     task::{Context, Poll, Waker},
 };
@@ -29,16 +28,14 @@ thread_local! {
 }
 impl<F: ?Sized + Future + 'static> Drop for SpawnWrappedFuture<F> {
     fn drop(&mut self) {
-        // DUMMY_WAKER.with(|wk| {
-        //     let mut cx = Context::from_waker(wk);
-        //     UNMOUNTING.set(&true, || {
-        //         let _ = self.future.as_mut().poll(&mut cx);
-        //     });
-        // });
+        DUMMY_WAKER.with(|wk| {
+            let mut cx = Context::from_waker(wk);
+            web_sys::console::log_1(&"last poll!".into());
+            UNMOUNTING.set(&true, || {
+                let _ = self.future.as_mut().poll(&mut cx);
+            });
+        });
     }
-}
-pub fn is_unmounting() -> bool {
-    UNMOUNTING.is_set()
 }
 
 impl<'a, F: ?Sized + Future + 'static> Future for SpawnWrappedFuture<F> {
@@ -84,23 +81,11 @@ impl<F: Future + 'static> RootSpawnWrappedFuture<F> {
     }
 }
 
-pub fn check_drop_guarantee<T>(ptr: &Pin<&mut T>) {
+pub(crate) fn check_drop_guarantee<T>(ptr: &Pin<&mut T>) {
     let self_loc = &**ptr as *const T as *const ();
     DROP_GUARANTEED_SCOPED.with(|&(low, high)| {
         if low > self_loc || high <= self_loc {
             panic!("drop guarantee violated");
         }
     });
-}
-pub async fn check_drop_guarantee_async() {
-    struct Fut(PhantomPinned);
-    impl Future for Fut {
-        type Output = ();
-
-        fn poll(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
-            check_drop_guarantee(&self);
-            Poll::Ready(())
-        }
-    }
-    (Fut(PhantomPinned)).await
 }

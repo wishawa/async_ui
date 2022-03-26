@@ -1,6 +1,4 @@
-use std::borrow::Cow;
-
-use async_ui_reactive::singlethread::ReactiveRefCell;
+use async_ui_reactive::Rx;
 use web_sys::Text;
 
 use crate::elem::Elem;
@@ -14,16 +12,11 @@ impl<'a> Elem<'a, Text> {
         self.elem.set_data(content);
         self
     }
-    pub fn content_reactive(mut self, content: &'a ReactiveRefCell<Cow<'static, str>>) -> Self {
+    pub fn content_reactive<S: AsRef<str> + 'a>(mut self, content: &'a Rx<S>) -> Self {
         let node_cpy = self.elem.clone();
-        self.asyncs.push(Box::pin(async move {
-            let mut ctn = content.borrow();
-            loop {
-                node_cpy.set_data(&*ctn);
-                drop(ctn);
-                ctn = content.borrow_next().await;
-            }
-        }));
+        self.asyncs.push(Box::pin(content.for_each(move |s| {
+            node_cpy.set_data(s.as_ref());
+        })));
         self
     }
 }

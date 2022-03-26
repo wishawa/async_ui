@@ -15,6 +15,7 @@ waker-fn = "1.1.0"
 async-executor = "1.4.1"
 slab = "0.4.5"
 wasm-bindgen = "0.2.74"
+smallvec = { version = "1.8.0", features = ["const_generics", "const_new", "union"] }
 
 [dependencies.web-sys]
 version = "0.3.56"
