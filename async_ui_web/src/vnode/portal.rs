@@ -4,11 +4,12 @@ use std::{
     rc::{Rc, Weak},
 };
 
+use async_ui_core::control::{position::PositionIndices, vnode::VNode as VNodeTrait, Control};
 use web_sys::Node;
 
-use crate::control::{element_control::ElementControl, position::PositionIndices};
+use crate::backend::WebBackend;
 
-use super::{VNode, VNodeHandler};
+use super::{VNodeDispatch, VNodeEnum};
 
 #[derive(Debug)]
 pub(crate) struct PortalVNode {
@@ -23,14 +24,14 @@ impl PortalVNode {
             }),
         }
     }
-    pub fn set_target(&self, control: &ElementControl) {
+    pub fn set_target(&self, target: &Control<WebBackend>) {
         let mut bm = self.inner.borrow_mut();
         if bm.target.is_some() {
             panic!("portal has more than one active exits");
         }
-        let parent = &control.vnode;
-        let position = control.position.clone();
-        bm.target = Some((Rc::downgrade(parent), position.clone()));
+        let parent = target.get_vnode();
+        let position = target.get_position();
+        bm.target = Some((Rc::downgrade(&parent.0), position.clone()));
         for (pos, nod) in bm.children.iter() {
             parent.ins_node(position.clone().merge(pos.clone()), nod.clone());
         }
@@ -38,19 +39,19 @@ impl PortalVNode {
     pub fn unset_target(&self) {
         let mut bm = self.inner.borrow_mut();
         let (parent, position) = bm.target.take().expect("unset empty portal target");
-        let parent = parent.upgrade().expect("portal target dropped prematurely");
+        let target = parent.upgrade().expect("portal target dropped prematurely");
         for pos in bm.children.keys() {
-            parent.del_node(position.clone().merge(pos.clone()));
+            target.dispatch_del_node(position.clone().merge(pos.clone()));
         }
     }
 }
 #[derive(Debug)]
 struct PortalVNodeInner {
     children: BTreeMap<PositionIndices, Node>,
-    target: Option<(Weak<VNode>, PositionIndices)>,
+    target: Option<(Weak<VNodeEnum>, PositionIndices)>,
 }
 impl PortalVNodeInner {
-    fn get_target(&self, position: PositionIndices) -> Option<(Rc<VNode>, PositionIndices)> {
+    fn get_target(&self, position: PositionIndices) -> Option<(Rc<VNodeEnum>, PositionIndices)> {
         if let Some((wr, id)) = self.target.as_ref() {
             if let Some(parent) = wr.upgrade() {
                 let new_pos = id.clone().merge(position);
@@ -60,8 +61,8 @@ impl PortalVNodeInner {
         None
     }
 }
-impl VNodeHandler for PortalVNode {
-    fn ins_node(&self, position: PositionIndices, node: Node) {
+impl VNodeDispatch for PortalVNode {
+    fn dispatch_ins_node(&self, position: PositionIndices, node: Node) {
         let mut inner = self.inner.borrow_mut();
         if inner
             .children
@@ -71,17 +72,17 @@ impl VNodeHandler for PortalVNode {
             panic!("more than one node added");
         }
         if let Some((parent, id)) = inner.get_target(position) {
-            parent.ins_node(id, node);
+            parent.dispatch_ins_node(id, node);
         }
     }
-    fn del_node(&self, position: PositionIndices) -> Node {
+    fn dispatch_del_node(&self, position: PositionIndices) -> Node {
         let mut inner = self.inner.borrow_mut();
         let node = inner
             .children
             .remove(&position)
             .expect("node not found for removal");
         if let Some((parent, id)) = inner.get_target(position) {
-            parent.del_node(id);
+            parent.dispatch_del_node(id);
         }
         node
     }

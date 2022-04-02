@@ -1,23 +1,22 @@
 use std::{future::pending, rc::Rc};
 
+use async_ui_core::{backend::Backend, control::Control, render::render_with_control};
+
 use crate::{
-    control::{
-        element_control::{ElementControl, ELEMENT_CONTROL},
-        vnode::{PortalVNode, VNode},
-    },
-    element::Element,
-    render::render_with_control,
+    backend::WebBackend,
+    vnode::{PortalVNode, VNode, VNodeEnum},
+    Element,
 };
 
 pub struct PortalEntry {
-    vnode: Rc<VNode>,
+    vnode: Rc<VNodeEnum>,
 }
 pub struct PortalExit {
-    vnode: Rc<VNode>,
+    vnode: Rc<VNodeEnum>,
 }
 
 pub fn create_portal() -> (PortalEntry, PortalExit) {
-    let vnode = Rc::new(VNode::from(PortalVNode::new()));
+    let vnode = Rc::new(VNodeEnum::from(PortalVNode::new()));
     (
         PortalEntry {
             vnode: vnode.clone(),
@@ -29,7 +28,7 @@ impl PortalEntry {
     pub fn to_element_borrowed<'e>(&mut self, children: Vec<Element<'e>>) -> Element<'e> {
         render_with_control(
             children,
-            Some(ElementControl::new_with_vnode(self.vnode.clone())),
+            Some(Control::new_with_vnode(VNode(self.vnode.clone()))),
         )
         .into()
     }
@@ -48,8 +47,8 @@ impl PortalExit {
         let vnd = self.vnode.clone();
         let block = async move {
             let _guard: scopeguard::ScopeGuard<_, _> = match &*vnd {
-                VNode::PortalVNode(portal) => {
-                    ELEMENT_CONTROL.with(|control| portal.set_target(control));
+                VNodeEnum::PortalVNode(portal) => {
+                    WebBackend::get_tls().with(|ctr| portal.set_target(ctr));
                     scopeguard::guard((), |_| portal.unset_target())
                 }
                 _ => panic!("unexpected vnode type in portal token"),

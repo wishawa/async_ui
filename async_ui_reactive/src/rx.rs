@@ -121,7 +121,7 @@ impl<'a, T, const SILENT: bool> Drop for RxGuardMutBase<'a, T, SILENT> {
     }
 }
 
-mod awaitable {
+mod stream {
     use std::{
         pin::Pin,
         sync::atomic::Ordering,
@@ -201,4 +201,4 @@ mod awaitable {
     }
 }
 
-pub use awaitable::RxChangeStream;
+pub use stream::RxChangeStream;

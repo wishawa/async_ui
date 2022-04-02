@@ -1,5 +1,6 @@
 use crate::elem::{Elem, HtmlTag};
-use async_ui_spawn::wasm::start_executor;
+use async_ui_core::backend::{Backend, Spawner};
+use async_ui_web::manual_apis::WebBackend;
 use futures::Future;
 use js_sys::Function;
 use std::{
@@ -19,7 +20,7 @@ macro_rules! impl_event_handler {
                     let (tx, rx) = create_channel();
                     let clos: Closure<dyn FnMut(_)> = Closure::wrap(Box::new(move |e: web_sys::$evtype| {
                         tx.send(e);
-                        start_executor();
+                        <<WebBackend as Backend>::Spawner as Spawner>::wake_now();
                     }) as Box<dyn FnMut(_)>);
                     let func: &Function = clos.as_ref().unchecked_ref();
                     let elem: &HtmlElement = self.elem.as_ref();

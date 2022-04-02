@@ -1,18 +1,17 @@
 use std::{cell::RefCell, collections::BTreeMap};
 
+use async_ui_core::control::position::PositionIndices;
 use web_sys::Node;
 
-use crate::control::position::PositionIndices;
-
-use super::VNodeHandler;
+use super::VNodeDispatch;
 
 #[derive(Debug)]
 pub(crate) struct NodeVNode {
     node: Node,
     children: RefCell<BTreeMap<PositionIndices, Node>>,
 }
-impl VNodeHandler for NodeVNode {
-    fn ins_node(&self, position: PositionIndices, node: Node) {
+impl VNodeDispatch for NodeVNode {
+    fn dispatch_ins_node(&self, position: PositionIndices, node: Node) {
         let mut bm = self.children.borrow_mut();
         let next_node = bm.range(position.clone()..).next().map(|(_k, v)| v);
         self.node
@@ -22,7 +21,7 @@ impl VNodeHandler for NodeVNode {
             panic!("more than one node added");
         }
     }
-    fn del_node(&self, position: PositionIndices) -> Node {
+    fn dispatch_del_node(&self, position: PositionIndices) -> Node {
         let mut bm = self.children.borrow_mut();
         let node = bm.remove(&position).expect("node not found for removal");
         self.node.remove_child(&node).expect("node removal failed");
