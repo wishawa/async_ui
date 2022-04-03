@@ -1,30 +1,30 @@
 use std::{collections::HashMap, hash::Hash};
 
-use async_ui_core::local::{
+use super::super::{
     backend::{Backend, Spawner},
     drop_check::check_drop_scope,
+    element::Element,
     render::spawn_with_control,
 };
+use super::portal::{create_portal, PortalExit};
 use async_ui_reactive::Rx;
 use futures::StreamExt;
 
-use crate::{
-    backend::WebBackend, create_portal, element::Element, executor::WebSpawner, PortalExit,
-};
-
-pub async fn list<'a, K: Eq + Hash + Clone>(children: &Rx<Vec<(K, Option<Element<'a>>)>>) {
-    struct ChildTask {
-        exit_portal: PortalExit,
-        exit_task: Option<<WebSpawner as Spawner>::Task>,
-        _entry_task: <WebSpawner as Spawner>::Task,
+pub async fn list<'a, B: Backend, K: Eq + Hash + Clone>(
+    children: &Rx<Vec<(K, Option<Element<'a, B>>)>>,
+) {
+    struct ChildTask<B: Backend> {
+        exit_portal: PortalExit<B>,
+        exit_task: Option<<B::Spawner as Spawner>::Task>,
+        _entry_task: <B::Spawner as Spawner>::Task,
         index: usize,
     }
-    let parent_control = WebBackend::get_tls().with(Clone::clone);
+    let parent_control = B::get_tls().with(Clone::clone);
     check_drop_scope(&parent_control as *const _ as *const ());
 
     let num_initial_children = children.visit(Vec::len);
-    let mut tasks: HashMap<K, ChildTask> = HashMap::with_capacity(num_initial_children);
-    let mut new_tasks: Vec<(K, ChildTask)> = Vec::new();
+    let mut tasks: HashMap<K, ChildTask<B>> = HashMap::with_capacity(num_initial_children);
+    let mut new_tasks: Vec<(K, ChildTask<B>)> = Vec::new();
     let mut stream = children.listen();
     loop {
         children.visit_mut_silent(|children| {

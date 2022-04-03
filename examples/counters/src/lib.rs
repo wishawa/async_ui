@@ -27,7 +27,7 @@ async fn my_component() {
             text().content("bye")
         ]),
         p_ent.to_element(vec_into![
-            text().content("oh my god"),
+            text().content("oh my"),
             text().content("confusion"),
             anchor()
                 .href("https://example.com")

@@ -1,12 +1,11 @@
 use std::rc::Rc;
 
-use crate::{
-    executor::WebSpawner,
-    vnode::{NullVNode, VNodeEnum},
+use crate::executor::WebSpawner;
+use async_ui_core::local::{
+    backend::Backend,
+    control::{vnode::null::NullVNode, Control},
 };
-use async_ui_core::local::{backend::Backend, control::Control};
-
-use super::vnode::VNode;
+use web_sys::Node;
 
 pub struct WebBackend;
 
@@ -14,13 +13,12 @@ scoped_tls::scoped_thread_local!(
     static CONTROL: Control<WebBackend>
 );
 thread_local! {
-    static DUMMY_CONTROL: Control<WebBackend> = Control::new_with_vnode(VNode(Rc::new(VNodeEnum::from(NullVNode))));
+    static DUMMY_CONTROL: Control<WebBackend> = Control::new_with_vnode(Rc::new(NullVNode));
 }
 
 impl Backend for WebBackend {
-    type VNode = VNode;
-
     type Spawner = WebSpawner;
+    type NodeType = Node;
 
     fn get_tls() -> &'static scoped_tls::ScopedKey<Control<Self>> {
         &CONTROL

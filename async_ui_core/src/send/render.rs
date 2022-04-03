@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 pub use super::control::node_guard::NodeGuard;
 use super::{
     backend::{Backend, Spawner},
-    control::{vnode::VNode, Control},
+    control::Control,
     drop_check::check_drop_scope,
     element::Element,
 };
@@ -66,6 +66,6 @@ pub unsafe fn spawn_with_control<'e, B: Backend>(
     unsafe { child.spawn() }
 }
 
-pub fn put_node<B: Backend>(node: <B::VNode as VNode>::Node) -> NodeGuard<B> {
+pub fn put_node<B: Backend>(node: B::NodeType) -> NodeGuard<B> {
     B::get_tls().with(|vn| vn.put_node(node))
 }

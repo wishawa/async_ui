@@ -1,9 +1,10 @@
 use super::super::backend::Backend;
 
-use super::{position::PositionIndices, vnode::VNode};
+use super::position::PositionIndices;
+use super::VNodeWrap;
 
 pub struct NodeGuard<B: Backend> {
-    vnode: B::VNode,
+    vnode: VNodeWrap<B>,
     position: PositionIndices,
 }
 impl<B: Backend> Drop for NodeGuard<B> {
@@ -12,7 +13,7 @@ impl<B: Backend> Drop for NodeGuard<B> {
     }
 }
 impl<B: Backend> NodeGuard<B> {
-    pub(crate) fn new(vnode: B::VNode, position: PositionIndices) -> Self {
+    pub(crate) fn new(vnode: VNodeWrap<B>, position: PositionIndices) -> Self {
         Self { vnode, position }
     }
 }

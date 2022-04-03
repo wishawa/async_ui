@@ -8,19 +8,12 @@ use async_ui_core::local::{
 };
 use web_sys::Node;
 
-use crate::{
-    backend::WebBackend,
-    executor::WebSpawner,
-    vnode::{NodeVNode, VNode, VNodeEnum},
-    Element,
-};
+use crate::{backend::WebBackend, executor::WebSpawner, vnode::NodeVNode, Element};
 
 pub fn render_in_node<'e>(children: Vec<Element<'e>>, node: Node) -> RenderFuture<'e, WebBackend> {
     render_with_control(
         children,
-        Some(Control::new_with_vnode(VNode(Rc::new(VNodeEnum::from(
-            NodeVNode::new(node),
-        ))))),
+        Some(Control::new_with_vnode(Rc::new(NodeVNode::new(node)))),
     )
 }
 pub fn render<'e>(children: Vec<Element<'e>>) -> RenderFuture<'e, WebBackend> {

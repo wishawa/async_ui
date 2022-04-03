@@ -4,11 +4,11 @@ mod element;
 mod executor;
 mod render;
 mod vnode;
-// mod wrappers;
+mod wrappers;
 
 pub use element::Element;
 pub use render::{mount, render};
-// pub use wrappers::*;
+pub use wrappers::*;
 pub mod manual_apis {
     pub use super::backend::GtkBackend;
     pub use super::executor::GtkSpawner;

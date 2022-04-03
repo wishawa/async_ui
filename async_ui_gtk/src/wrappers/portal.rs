@@ -1,22 +1,21 @@
 use std::{future::pending, rc::Rc};
 
-use async_ui_core::local::{backend::Backend, control::Control, render::render_with_control};
-
-use crate::{
-    backend::WebBackend,
-    vnode::{PortalVNode, VNode, VNodeEnum},
-    Element,
+use async_ui_core::local::{
+    control::{vnode::portal::PortalVNode, Control},
+    render::render_with_control,
 };
 
+use crate::{manual_apis::GtkBackend, Element};
+
 pub struct PortalEntry {
-    vnode: Rc<VNodeEnum>,
+    vnode: Rc<PortalVNode<GtkBackend>>,
 }
 pub struct PortalExit {
-    vnode: Rc<VNodeEnum>,
+    vnode: Rc<PortalVNode<GtkBackend>>,
 }
 
 pub fn create_portal() -> (PortalEntry, PortalExit) {
-    let vnode = Rc::new(VNodeEnum::from(PortalVNode::new()));
+    let vnode = Rc::new(PortalVNode::new());
     (
         PortalEntry {
             vnode: vnode.clone(),
@@ -26,11 +25,7 @@ pub fn create_portal() -> (PortalEntry, PortalExit) {
 }
 impl PortalEntry {
     pub fn to_element_borrowed<'e>(&mut self, children: Vec<Element<'e>>) -> Element<'e> {
-        render_with_control(
-            children,
-            Some(Control::new_with_vnode(VNode(self.vnode.clone()))),
-        )
-        .into()
+        render_with_control(children, Some(Control::new_with_vnode(self.vnode.clone()))).into()
     }
     pub fn to_element<'e>(mut self, children: Vec<Element<'e>>) -> Element<'e> {
         self.to_element_borrowed(children)
@@ -46,13 +41,7 @@ impl PortalExit {
     pub fn to_element_borrowed<'s>(&'s mut self) -> Element<'static> {
         let vnd = self.vnode.clone();
         let block = async move {
-            let _guard: scopeguard::ScopeGuard<_, _> = match &*vnd {
-                VNodeEnum::PortalVNode(portal) => {
-                    WebBackend::get_tls().with(|ctr| portal.set_target(ctr));
-                    scopeguard::guard((), |_| portal.unset_target())
-                }
-                _ => panic!("unexpected vnode type in portal token"),
-            };
+            let _guard = scopeguard::guard((), |_| vnd.unset_target());
             pending().await
         };
         block.into()
