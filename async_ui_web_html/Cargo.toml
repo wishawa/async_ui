@@ -8,7 +8,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-async_ui_core = { path = "../async_ui_core/" }
 async_ui_web = { path = "../async_ui_web/" }
 async_ui_utils = { path = "../async_ui_utils/" }
 async_ui_reactive = { path = "../async_ui_reactive/" }

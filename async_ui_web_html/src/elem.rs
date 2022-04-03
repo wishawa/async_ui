@@ -1,6 +1,5 @@
-use async_ui_core::local::render::{NodeGuard, RenderFuture};
 use async_ui_web::{
-    manual_apis::{put_node, render_in_node, WebBackend},
+    manual_apis::{put_node, render_in_node, NodeGuard, RenderFuture},
     Element,
 };
 use std::{future::Future, pin::Pin, task::Poll};
@@ -22,8 +21,8 @@ pin_project_lite::pin_project! {
 pin_project_lite::pin_project! {
     struct Rendered<'a> {
         #[pin]
-        future: RenderFuture<'a, WebBackend>,
-        guard: NodeGuard<WebBackend>
+        future: RenderFuture<'a>,
+        guard: NodeGuard
     }
 }
 

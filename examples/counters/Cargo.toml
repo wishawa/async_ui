@@ -15,7 +15,6 @@ async_ui_web_html = { path = "../../async_ui_web_html/" }
 async_ui_reactive = { path = "../../async_ui_reactive/" }
 console_error_panic_hook = "0.1.6"
 wasm-bindgen-futures = "0.4.29"
-async-executor = "1.4.1"
 
 [dependencies.web-sys]
 version = "0.3.56"

@@ -1,0 +1,13 @@
+[package]
+name = "gtk_counters"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async_ui_gtk = { path = "../../async_ui_gtk/" }
+async_ui_gtk_widgets = { path = "../../async_ui_gtk_widgets/" }
+async_ui_utils = { path = "../../async_ui_utils/" }
+async_ui_reactive = { path = "../../async_ui_reactive/" }
+smol = "1.2.5"
