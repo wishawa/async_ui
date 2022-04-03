@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use async_ui_core::{
+use async_ui_core::local::{
     backend::Spawner,
     control::Control,
     drop_check::PropagateDropScope,

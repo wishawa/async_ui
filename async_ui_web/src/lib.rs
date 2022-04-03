@@ -11,5 +11,6 @@ pub use render::{mount, render};
 pub use wrappers::*;
 pub mod manual_apis {
     pub use super::backend::WebBackend;
+    pub use super::executor::WebSpawner;
     pub use super::render::{put_node, render_in_node};
 }

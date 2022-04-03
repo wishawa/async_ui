@@ -1,8 +1,7 @@
-use std::{future::Future, marker::PhantomData, pin::Pin};
-
 use scoped_tls::ScopedKey;
+use std::future::Future;
 
-use crate::control::{vnode::VNode, Control};
+use super::control::{vnode::VNode, Control};
 
 pub trait Backend: Sized + 'static {
     type VNode: VNode;
@@ -13,6 +12,4 @@ pub trait Backend: Sized + 'static {
 pub unsafe trait Spawner: 'static {
     type Task;
     fn spawn<'a, F: Future<Output = ()> + 'static>(future: F) -> Self::Task;
-    fn wake_now();
-    fn schedule_now();
 }

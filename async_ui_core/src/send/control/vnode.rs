@@ -1,6 +1,7 @@
+use super::super::MaybeSend;
 use super::position::PositionIndices;
 
-pub trait VNode: Clone + 'static {
+pub trait VNode: Clone + MaybeSend + 'static {
     type Node;
     fn ins_node(&self, position: PositionIndices, node: Self::Node);
     fn del_node(&self, position: PositionIndices) -> Self::Node;

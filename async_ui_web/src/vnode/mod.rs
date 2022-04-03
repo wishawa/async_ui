@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use async_ui_core::control::{position::PositionIndices, vnode::VNode as VNodeTrait};
+use async_ui_core::local::control::{position::PositionIndices, vnode::VNode as VNodeTrait};
 use web_sys::Node;
 mod node;
 mod null;

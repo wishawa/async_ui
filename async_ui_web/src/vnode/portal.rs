@@ -4,7 +4,9 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use async_ui_core::control::{position::PositionIndices, vnode::VNode as VNodeTrait, Control};
+use async_ui_core::local::control::{
+    position::PositionIndices, vnode::VNode as VNodeTrait, Control,
+};
 use web_sys::Node;
 
 use crate::backend::WebBackend;

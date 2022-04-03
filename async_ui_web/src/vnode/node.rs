@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::BTreeMap};
 
-use async_ui_core::control::position::PositionIndices;
+use async_ui_core::local::control::position::PositionIndices;
 use web_sys::Node;
 
 use super::VNodeDispatch;

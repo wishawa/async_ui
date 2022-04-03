@@ -8,11 +8,10 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-pin-project-lite = "0.2.8"
-sealed = "0.4"
 async_ui_core = { path = "../async_ui_core/" }
 async_ui_utils = { path = "../async_ui_utils/" }
 async_ui_reactive = { path = "../async_ui_reactive/" }
+pin-project-lite = "0.2.8"
 smallvec = { version = "1.8.0", features = ["const_generics", "const_new", "union"] }
 scoped-tls = "1.0.0"
 lazy_static = "1.4.0"

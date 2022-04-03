@@ -1,6 +1,6 @@
 use std::{collections::HashMap, hash::Hash};
 
-use async_ui_core::{
+use async_ui_core::local::{
     backend::{Backend, Spawner},
     drop_check::check_drop_scope,
     render::spawn_with_control,

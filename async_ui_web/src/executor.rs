@@ -1,7 +1,7 @@
 use std::{cell::Cell, future::Future, pin::Pin, task::Context};
 
 use async_executor::{LocalExecutor, Task};
-use async_ui_core::backend::Spawner;
+use async_ui_core::local::backend::Spawner;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::Window;
 
@@ -36,8 +36,9 @@ unsafe impl Spawner for WebSpawner {
         let task = EXECUTOR.with(|e| e.executor.spawn(WakerHookWrap { future }));
         task
     }
-
-    fn wake_now() {
+}
+impl WebSpawner {
+    pub fn wake_now() {
         EXECUTOR.with(|e| {
             e.scheduled.set(false);
             if !e.active.replace(true) {
@@ -47,7 +48,7 @@ unsafe impl Spawner for WebSpawner {
         })
     }
 
-    fn schedule_now() {
+    pub fn schedule_now() {
         EXECUTOR.with(|e| {
             if !e.active.get() && !e.scheduled.replace(true) {
                 let closure = Closure::once_into_js(Self::wake_now);

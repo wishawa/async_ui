@@ -1,7 +1,6 @@
-use crate::backend::Backend;
-
 use self::{node_guard::NodeGuard, position::PositionIndices, vnode::VNode};
 
+use super::backend::Backend;
 pub mod node_guard;
 pub mod position;
 pub mod vnode;

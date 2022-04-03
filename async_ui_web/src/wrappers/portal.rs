@@ -1,6 +1,6 @@
 use std::{future::pending, rc::Rc};
 
-use async_ui_core::{backend::Backend, control::Control, render::render_with_control};
+use async_ui_core::local::{backend::Backend, control::Control, render::render_with_control};
 
 use crate::{
     backend::WebBackend,

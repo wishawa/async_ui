@@ -1,4 +1,4 @@
-use async_ui_core::element::Element as ElementBase;
+use async_ui_core::local::element::Element as ElementBase;
 
 use crate::backend::WebBackend;
 

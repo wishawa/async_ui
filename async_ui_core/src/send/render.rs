@@ -2,8 +2,8 @@ use std::{future::Future, marker::PhantomPinned, pin::Pin, task::Poll};
 
 use smallvec::SmallVec;
 
-pub use crate::control::node_guard::NodeGuard;
-use crate::{
+pub use super::control::node_guard::NodeGuard;
+use super::{
     backend::{Backend, Spawner},
     control::{vnode::VNode, Control},
     drop_check::check_drop_scope,

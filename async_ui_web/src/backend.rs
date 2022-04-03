@@ -4,7 +4,7 @@ use crate::{
     executor::WebSpawner,
     vnode::{NullVNode, VNodeEnum},
 };
-use async_ui_core::{backend::Backend, control::Control};
+use async_ui_core::local::{backend::Backend, control::Control};
 
 use super::vnode::VNode;
 
@@ -22,7 +22,7 @@ impl Backend for WebBackend {
 
     type Spawner = WebSpawner;
 
-    fn get_tls() -> &'static scoped_tls::ScopedKey<async_ui_core::control::Control<Self>> {
+    fn get_tls() -> &'static scoped_tls::ScopedKey<Control<Self>> {
         &CONTROL
     }
 

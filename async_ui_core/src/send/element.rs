@@ -1,9 +1,10 @@
 use std::{future::Future, marker::PhantomData, pin::Pin};
 
-use crate::{
+use super::{
     backend::{Backend, Spawner},
     control::Control,
     drop_check::PropagateDropScope,
+    MaybeSend,
 };
 
 pin_project_lite::pin_project! {
@@ -15,7 +16,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-trait ElementTrait<B: Backend>: Future<Output = ()> {
+trait ElementTrait<B: Backend>: Future<Output = ()> + MaybeSend {
     fn set_control(self: Pin<&mut Self>, control: Control<B>);
 }
 
@@ -48,14 +49,16 @@ impl<'e, B: Backend + 'e, F: Future<Output = ()>> Future for ElementInner<'e, B,
         B::get_tls().set(this.control, || this.future.poll(cx))
     }
 }
-impl<'e, B: Backend + 'e, F: Future<Output = ()>> ElementTrait<B> for ElementInner<'e, B, F> {
+impl<'e, B: Backend + 'e, F: Future<Output = ()> + MaybeSend> ElementTrait<B>
+    for ElementInner<'e, B, F>
+{
     fn set_control(self: Pin<&mut Self>, control: Control<B>) {
         let this = self.project();
         *this.control = control;
     }
 }
 
-impl<'e, F: Future<Output = ()> + 'e, B: Backend> From<F> for Element<'e, B> {
+impl<'e, F: Future<Output = ()> + MaybeSend + 'e, B: Backend> From<F> for Element<'e, B> {
     fn from(future: F) -> Self {
         Element(Box::pin(ElementInner {
             control: B::get_dummy_control(),

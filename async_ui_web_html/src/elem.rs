@@ -1,4 +1,4 @@
-use async_ui_core::render::{NodeGuard, RenderFuture};
+use async_ui_core::local::render::{NodeGuard, RenderFuture};
 use async_ui_web::{
     manual_apis::{put_node, render_in_node, WebBackend},
     Element,
