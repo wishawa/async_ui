@@ -6,10 +6,11 @@ use async_ui_core::{
     render::spawn_with_control,
 };
 use async_ui_reactive::Rx;
-use async_ui_spawners::web::WebSpawner;
 use futures::StreamExt;
 
-use crate::{backend::WebBackend, create_portal, element::Element, PortalExit};
+use crate::{
+    backend::WebBackend, create_portal, element::Element, executor::WebSpawner, PortalExit,
+};
 
 pub async fn list<'a, K: Eq + Hash + Clone>(children: &Rx<Vec<(K, Option<Element<'a>>)>>) {
     struct ChildTask {

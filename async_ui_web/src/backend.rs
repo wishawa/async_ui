@@ -1,8 +1,10 @@
 use std::rc::Rc;
 
-use crate::vnode::{NullVNode, VNodeEnum};
+use crate::{
+    executor::WebSpawner,
+    vnode::{NullVNode, VNodeEnum},
+};
 use async_ui_core::{backend::Backend, control::Control};
-use async_ui_spawners::web::WebSpawner;
 
 use super::vnode::VNode;
 

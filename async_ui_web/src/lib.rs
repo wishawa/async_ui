@@ -1,6 +1,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 mod backend;
 mod element;
+mod executor;
 mod render;
 mod vnode;
 mod wrappers;

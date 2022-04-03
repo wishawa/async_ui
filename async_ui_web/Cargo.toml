@@ -13,7 +13,6 @@ sealed = "0.4"
 async_ui_core = { path = "../async_ui_core/" }
 async_ui_utils = { path = "../async_ui_utils/" }
 async_ui_reactive = { path = "../async_ui_reactive/" }
-async_ui_spawners = { path = "../async_ui_spawners/" }
 smallvec = { version = "1.8.0", features = ["const_generics", "const_new", "union"] }
 scoped-tls = "1.0.0"
 lazy_static = "1.4.0"
@@ -21,6 +20,7 @@ enum_dispatch = "0.3.8"
 futures = "0.3.21"
 scopeguard = "1.1.0"
 
+async-executor = "1.4.1"
 waker-fn = "1.1.0"
 wasm-bindgen = "0.2.74"
 

@@ -6,11 +6,11 @@ use async_ui_core::{
     drop_check::PropagateDropScope,
     render::{put_node as base_put_node, render_with_control, NodeGuard, RenderFuture},
 };
-use async_ui_spawners::web::WebSpawner;
 use web_sys::Node;
 
 use crate::{
     backend::WebBackend,
+    executor::WebSpawner,
     vnode::{NodeVNode, VNode, VNodeEnum},
     Element,
 };
