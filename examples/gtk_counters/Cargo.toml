@@ -11,3 +11,4 @@ async_ui_gtk_widgets = { path = "../../async_ui_gtk_widgets/" }
 async_ui_utils = { path = "../../async_ui_utils/" }
 async_ui_reactive = { path = "../../async_ui_reactive/" }
 smol = "1.2.5"
+gtk = { package = "gtk4", version = "0.4" }

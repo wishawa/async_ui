@@ -113,7 +113,11 @@ impl VNode<GtkBackend> for ContainerVNode {
             .children
             .remove(&position)
             .expect("node not found for removal");
-        inner.handler.remove_child(&inner.widget, &child);
+        if inner.handler.get_support_multichild() {
+            inner.handler.remove_child(&inner.widget, &child);
+        } else {
+            inner.handler.set_single_child(&inner.widget, None);
+        }
         child
     }
 }

@@ -1,15 +1,12 @@
-use std::future::pending;
+mod connect;
+mod containers;
+mod elem;
+pub use elem::{Wrappable, WrappedWidget};
+// use std::future::pending;
 
-use async_ui_gtk::manual_apis::put_node;
-use glib::Cast;
-use gtk::{Label, Widget};
-
-pub async fn label(text: &str) {
-    let label = Label::new(Some(text));
-    let widget: Widget = label.upcast();
-    let _guard = put_node(widget);
-    pending().await
-}
+// use async_ui_gtk::manual_apis::put_node;
+// use glib::Cast;
+// use gtk::{Label, Widget};
 
 #[cfg(test)]
 mod tests {

@@ -6,9 +6,6 @@ use std::{future::Future, pin::Pin, task::Poll};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, Node};
 
-pub(crate) trait Nothing {}
-impl<T> Nothing for T {}
-
 pin_project_lite::pin_project! {
     pub struct Elem<'a, H: 'a> {
         pub(crate) elem: H,

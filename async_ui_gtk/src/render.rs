@@ -6,11 +6,11 @@ use async_ui_core::local::{
     drop_check::PropagateDropScope,
     render::{put_node as base_put_node, render_with_control, NodeGuard, RenderFuture},
 };
-use glib::Cast;
+use glib::{Cast, IsA};
 use gtk::{
     prelude::{ApplicationExt, ApplicationExtManual},
     traits::GtkWindowExt,
-    Application, ApplicationWindow, Widget,
+    Application, ApplicationWindow, Widget, Window,
 };
 
 use crate::{
@@ -43,30 +43,21 @@ struct WindowHandler;
 static WINDOW_HANDLER: WindowHandler = WindowHandler;
 impl ContainerHandler for WindowHandler {
     fn get_support_multichild(&self) -> bool {
-        true
+        false
     }
-
     fn set_single_child(&self, this: &Widget, child: Option<&Widget>) {
-        let downcasted: &ApplicationWindow = this.downcast_ref().unwrap();
+        let downcasted: &Window = this.downcast_ref().unwrap();
         downcasted.set_child(child);
     }
 }
-pub fn mount(root: Element<'static>, app_id: &str) {
-    let app = Application::builder().application_id(app_id).build();
-    let root = RefCell::new(Some(root));
-    let build_ui = move |app: &Application| {
-        if let Some(root) = root.borrow_mut().take() {
-            let window = ApplicationWindow::new(app);
-            let fut = PropagateDropScope::new(Box::pin(render_in_node(
-                vec![root],
-                window.clone().upcast(),
-                &WINDOW_HANDLER,
-            )));
-            let task = GtkSpawner::spawn(fut);
-            window.present();
-            task.detach();
-        }
-    };
-    app.connect_activate(build_ui);
-    app.run();
+pub fn mount_and_present<W: IsA<Window> + IsA<Widget>>(root: Element<'static>, window: W) {
+    let widget: Widget = window.clone().upcast();
+    let fut = PropagateDropScope::new(Box::pin(render_in_node(
+        vec![root],
+        widget,
+        &WINDOW_HANDLER,
+    )));
+    let task = GtkSpawner::spawn(fut);
+    window.present();
+    task.detach();
 }

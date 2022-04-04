@@ -1,2 +1,3 @@
 mod container;
-pub(crate) use container::{ContainerHandler, ContainerVNode};
+pub use container::ContainerHandler;
+pub(crate) use container::ContainerVNode;
