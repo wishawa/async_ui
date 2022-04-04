@@ -1,7 +1,7 @@
 use std::{borrow::Cow, cell::Cell, future::Future, rc::Rc, task::Poll};
 
 use async_ui_reactive::Rx;
-use async_ui_utils::{join, vec_into};
+use async_ui_utils::{join2, vec_into};
 use async_ui_web::{create_portal, hidable, list, mount, render};
 use async_ui_web_html::{anchor, button, div, span, text};
 use wasm_bindgen::{
@@ -41,7 +41,7 @@ async fn my_component() {
 }
 async fn hidable_test() {
     let switch = Rx::new(true);
-    join(
+    join2(
         hidable(&switch, vec_into![text().content("i may be hidden")]),
         async {
             Timeout::new(1000).await;
@@ -55,7 +55,7 @@ async fn hidable_test() {
 async fn counter() {
     let value = Rx::new(0);
     let content = Rx::new(Cow::from("0"));
-    join(
+    join2(
         render(vec_into![
             button()
                 .on_click(|_ev| {
@@ -81,7 +81,7 @@ async fn list_test() {
         (2, Some(text().content("3").into())),
         (4, Some(text().content("5").into())),
     ]);
-    join(list(&children), async {
+    join2(list(&children), async {
         Timeout::new(1000).await;
         children
             .borrow_mut()

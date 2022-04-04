@@ -20,7 +20,7 @@ macro_rules! make_race_fn {
 		}
 	};
 }
-make_race_fn!(race, (fut1, F1), (fut2, F2),);
+make_race_fn!(race2, (fut1, F1), (fut2, F2),);
 make_race_fn!(race3, (fut1, F1), (fut2, F2), (fut3, F3),);
 make_race_fn!(race4, (fut1, F1), (fut2, F2), (fut3, F3), (fut4, F4),);
 make_race_fn!(
@@ -44,4 +44,4 @@ where
     .await
     .unwrap_err()
 }
-pub use futures::future::{join, join3, join4, join5, join_all};
+pub use futures::future::{join as join2, join3, join4, join5, join_all};

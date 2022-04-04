@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use async_ui_core::local::{
     backend::Spawner,
@@ -7,11 +7,7 @@ use async_ui_core::local::{
     render::{put_node as base_put_node, render_with_control, NodeGuard, RenderFuture},
 };
 use glib::{Cast, IsA};
-use gtk::{
-    prelude::{ApplicationExt, ApplicationExtManual},
-    traits::GtkWindowExt,
-    Application, ApplicationWindow, Widget, Window,
-};
+use gtk::{traits::GtkWindowExt, Widget, Window};
 
 use crate::{
     backend::GtkBackend,
