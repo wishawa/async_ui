@@ -1,9 +1,9 @@
 use std::time::Duration;
 
-use async_ui_gtk::{list, mount_and_present, render};
+use async_ui_gtk::{list, mount_and_present, Render};
 use async_ui_gtk_widgets::Wrappable;
-use async_ui_reactive::Rx;
-use async_ui_utils::{join2, race2, vec_into};
+use async_ui_reactive::local::Rx;
+use async_ui_utils::{Join, Race};
 use gtk::{
     prelude::{ApplicationExt, ApplicationExtManual},
     Application, ApplicationWindow,
@@ -19,7 +19,7 @@ fn main() {
             .application(app)
             .title("My GTK App")
             .build();
-        mount_and_present(my_component().into(), window);
+        mount_and_present((my_component(),), window);
     };
     app.connect_activate(build_ui);
     app.run();
@@ -27,7 +27,7 @@ fn main() {
 async fn my_component() {
     let label = gtk::Label::new(Some("hello world. please wait 3 secs."));
     let mut remaining_time = 3f32;
-    race2(render(vec_into![label.clone().wrap()]), async {
+    Race::from((Render::from((label.clone().wrap(),)), async {
         while remaining_time > 0.0 {
             smol::Timer::after(Duration::from_secs_f32(0.1)).await;
             remaining_time -= 0.1;
@@ -35,14 +35,14 @@ async fn my_component() {
                 "hello world. please wait {remaining_time:.1} secs."
             ));
         }
-    })
+    }))
     .await;
     let count = Rx::new(0);
     let label = gtk::Label::new(None);
-    join2(
-        render(vec_into![gtk::Box::new(gtk::Orientation::Vertical, 4)
+    Race::from((
+        Render::from((gtk::Box::new(gtk::Orientation::Vertical, 4)
             .wrap()
-            .children(vec_into![
+            .children((
                 gtk::Button::with_label("-").wrap().on_clicked(|_| {
                     count.visit_mut(|v| *v -= 1);
                 }),
@@ -50,8 +50,8 @@ async fn my_component() {
                 gtk::Button::with_label("+").wrap().on_clicked(|_| {
                     count.visit_mut(|v| *v += 1);
                 }),
-                list_test()
-            ])]),
+                list_test(),
+            )),)),
         async {
             count
                 .for_each(|v| {
@@ -59,28 +59,30 @@ async fn my_component() {
                 })
                 .await
         },
-    )
+    ))
     .await;
 }
 async fn list_test() {
     let children = Rx::new(vec![
-        (1, Some(gtk::Label::new(Some("1")).wrap().into())),
-        (2, Some(gtk::Label::new(Some("2")).wrap().into())),
-        (4, Some(gtk::Label::new(Some("4")).wrap().into())),
+        (1, Some(Render::from((gtk::Label::new(Some("1")).wrap(),)))),
+        (2, Some(Render::from((gtk::Label::new(Some("2")).wrap(),)))),
+        (4, Some(Render::from((gtk::Label::new(Some("4")).wrap(),)))),
     ]);
-    join2(
-        gtk::Box::new(gtk::Orientation::Horizontal, 4)
+    Join::from((
+        Render::from((gtk::Box::new(gtk::Orientation::Horizontal, 4)
             .wrap()
-            .children(vec_into![list(&children)]),
+            .children((list(&children),)),)),
         async {
             for top in 10..20 {
                 smol::Timer::after(Duration::from_secs(1)).await;
                 children.borrow_mut().push((
                     top,
-                    Some(gtk::Label::new(Some(&top.to_string())).wrap().into()),
+                    Some(Render::from((
+                        gtk::Label::new(Some(&top.to_string())).wrap(),
+                    ))),
                 ));
             }
         },
-    )
+    ))
     .await;
 }

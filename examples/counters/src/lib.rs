@@ -19,38 +19,26 @@ pub fn run() -> Result<(), JsValue> {
 async fn my_component() {
     let (p_ent, p_ext) = create_portal();
     Render::from((
-        div().children((
-            text().content("hello world"),
-        )),
+        div().children((text().content("hello world"),)),
         counter(),
-        div().children((
-            text().content("hi"),
-            p_ext.render(),
-            text().content("bye")
-        )),
+        div().children((text().content("hi"), p_ext.render(), text().content("bye"))),
         p_ent.render((
             text().content("oh my"),
             text().content("confusion"),
             anchor()
                 .href("https://example.com")
                 .on_click(|ev| ev.prevent_default())
-                .children((
-                    text().content("qwerqwer"),
-                )),
+                .children((text().content("qwerqwer"),)),
         )),
         list_test(),
-        take_children((
-            hidable_test(),
-        ))
+        take_children((hidable_test(),)),
     ))
     .await;
 }
 async fn hidable_test() {
     let switch = Rx::new(true);
     Join::from((
-        hidable(&switch, (
-            text().content("i may be hidden"),
-        )),
+        hidable(&switch, (text().content("i may be hidden"),)),
         async {
             Timeout::new(1000).await;
             *switch.borrow_mut() = false;
@@ -69,19 +57,13 @@ async fn counter() {
                 .on_click(|_ev| {
                     value.visit_mut(|m| *m -= 1);
                 })
-                .children((
-                    text().content("-"),
-                )),
-            span().children((
-                text().content_reactive(&content),
-            )),
+                .children((text().content("-"),)),
+            span().children((text().content_reactive(&content),)),
             button()
                 .on_click(|_ev| {
                     value.visit_mut(|m| *m += 1);
                 })
-                .children((
-                    text().content("+"),
-                )),
+                .children((text().content("+"),)),
         )),
         value.for_each(|n| {
             content.replace(n.to_string().into());
@@ -109,14 +91,11 @@ async fn list_test() {
 }
 
 async fn take_children(children: impl Into<Render<'_>>) {
-    Render::from((
-        div().children((
-            text().content("below is my children"),
-            div().children((
-                children.into(),
-            ))
-        )),
-    )).await
+    Render::from((div().children((
+        text().content("below is my children"),
+        div().children((children.into(),)),
+    )),))
+    .await
 }
 
 struct Timeout {

@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::BTreeMap};
 
-use async_ui_core::local::control::{position::PositionIndices, vnode::VNode};
+use async_ui_core::control::{position::PositionIndices, vnode::VNode};
 use glib::Cast;
 use gtk::{traits::BoxExt, Widget};
 

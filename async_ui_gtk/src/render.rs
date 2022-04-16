@@ -1,39 +1,20 @@
 use std::rc::Rc;
 
-use async_ui_core::local::{
-    backend::Spawner,
+use async_ui_core::{
     control::Control,
-    drop_check::PropagateDropScope,
-    render::{put_node as base_put_node, render_with_control, NodeGuard, RenderFuture},
+    render::{
+        put_node as base_put_node, set_render_control as base_set_render_control, spawn_root,
+    },
+    runtime::drive_runtime,
 };
-use glib::{Cast, IsA};
+use glib::{Cast, IsA, MainContext};
 use gtk::{traits::GtkWindowExt, Widget, Window};
 
 use crate::{
     backend::GtkBackend,
-    executor::GtkSpawner,
+    manual_apis::NodeGuard,
     vnode::{ContainerHandler, ContainerVNode},
-    Element,
 };
-
-pub fn render_in_node<'e>(
-    children: Vec<Element<'e>>,
-    widget: Widget,
-    handler: &'static dyn ContainerHandler,
-) -> RenderFuture<'e, GtkBackend> {
-    render_with_control(
-        children,
-        Some(Control::new_with_vnode(Rc::new(ContainerVNode::new(
-            widget, handler,
-        )))),
-    )
-}
-pub fn render<'e>(children: Vec<Element<'e>>) -> RenderFuture<'e, GtkBackend> {
-    render_with_control(children, None)
-}
-pub fn put_node(node: Widget) -> NodeGuard<GtkBackend> {
-    base_put_node::<GtkBackend>(node)
-}
 
 struct WindowHandler;
 static WINDOW_HANDLER: WindowHandler = WindowHandler;
@@ -46,14 +27,30 @@ impl ContainerHandler for WindowHandler {
         downcasted.set_child(child);
     }
 }
-pub fn mount_and_present<W: IsA<Window> + IsA<Widget>>(root: Element<'static>, window: W) {
+pub fn control_from_node(
+    widget: Widget,
+    handler: &'static dyn ContainerHandler,
+) -> Control<GtkBackend> {
+    Control::new_with_vnode(Rc::new(ContainerVNode::new(widget, handler)))
+}
+pub fn set_render_control<'e>(render: &mut Render<'e>, control: Control<GtkBackend>) {
+    base_set_render_control(render, control);
+}
+pub type Render<'e> = async_ui_core::render::Render<'e, GtkBackend>;
+pub fn mount_and_present<W: IsA<Window> + IsA<Widget>>(
+    root: impl Into<Render<'static>>,
+    window: W,
+) {
     let widget: Widget = window.clone().upcast();
-    let fut = PropagateDropScope::new(Box::pin(render_in_node(
-        vec![root],
-        widget,
-        &WINDOW_HANDLER,
-    )));
-    let task = GtkSpawner::spawn(fut);
-    window.present();
+    let control = control_from_node(widget, &WINDOW_HANDLER);
+    let mut children = root.into();
+    set_render_control(&mut children, control);
+    let task = spawn_root(children);
     task.detach();
+    window.present();
+    MainContext::default().spawn_local(drive_runtime());
+}
+
+pub fn put_node(widget: Widget) -> NodeGuard {
+    base_put_node(widget)
 }

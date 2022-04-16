@@ -1,6 +1,6 @@
 use async_ui_gtk::{
-    manual_apis::{put_node, render_in_node, ContainerHandler, NodeGuard, RenderFuture},
-    render, Element,
+    manual_apis::{control_from_node, put_node, set_render_control, ContainerHandler, NodeGuard},
+    Render,
 };
 use glib::{Cast, IsA};
 use gtk::Widget;
@@ -13,13 +13,13 @@ pin_project_lite::pin_project! {
         pub(crate) asyncs: Vec<Pin<Box<dyn Future<Output = ()> + 'a>>>,
         #[pin]
         rendered: Option<Rendered<'a>>,
-        pub(crate) children: Option<(Vec<Element<'a>>, &'static dyn ContainerHandler)>
+        pub(crate) children: Option<(Render<'a>, &'static dyn ContainerHandler)>
     }
 }
 pin_project_lite::pin_project! {
     struct Rendered<'a> {
         #[pin]
-        future: RenderFuture<'a>,
+        future: Render<'a>,
         guard: NodeGuard
     }
 }
@@ -54,11 +54,12 @@ where
         let mut this = self.project();
         if this.rendered.is_none() {
             let widget: Widget = this.widget.clone().upcast();
-            let future = if let Some((children, handler)) = this.children.take() {
-                let future = render_in_node(children, widget.clone(), handler);
-                future
+            let future = if let Some((mut children, handler)) = this.children.take() {
+                let control = control_from_node(widget.clone(), handler);
+                set_render_control(&mut children, control);
+                children
             } else {
-                render(vec![])
+                Render::from(())
             };
             let guard = put_node(widget);
             this.rendered.set(Some(Rendered { future, guard }));

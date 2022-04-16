@@ -1,12 +1,10 @@
 use std::rc::Rc;
 
-use async_ui_core::local::{
+use async_ui_core::{
     backend::Backend,
     control::{vnode::null::NullVNode, Control},
 };
 use gtk::Widget;
-
-use crate::executor::GtkSpawner;
 
 scoped_tls::scoped_thread_local!(
     static CONTROL: Control<GtkBackend>
@@ -17,7 +15,6 @@ thread_local! {
 
 pub struct GtkBackend;
 impl Backend for GtkBackend {
-    type Spawner = GtkSpawner;
     type NodeType = Widget;
 
     fn get_tls() -> &'static scoped_tls::ScopedKey<Control<Self>> {

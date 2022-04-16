@@ -1,4 +1,4 @@
-use async_ui_gtk::{manual_apis::ContainerHandler, Element};
+use async_ui_gtk::{manual_apis::ContainerHandler, Render};
 use glib::{Cast, IsA};
 use gtk::{
     traits::{BoxExt, ButtonExt},
@@ -21,8 +21,8 @@ pub trait GtkContainerWidget: IsA<Widget> {
 }
 
 impl<'a, H: GtkContainerWidget + 'a> WrappedWidget<'a, H> {
-    pub fn children(mut self, children: Vec<Element<'a>>) -> Self {
-        self.children = Some((children, H::get_handler()));
+    pub fn children(mut self, children: impl Into<Render<'a>>) -> Self {
+        self.children = Some((children.into(), H::get_handler()));
         self
     }
 }
