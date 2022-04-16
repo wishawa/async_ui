@@ -13,6 +13,6 @@ pub mod manual_apis {
     pub use super::backend::WebBackend;
     pub use super::executor::WebSpawner;
     pub use super::render::{put_node, render_in_node};
-    pub type NodeGuard = async_ui_core::local::control::node_guard::NodeGuard<WebBackend>;
-    pub type RenderFuture<'e> = async_ui_core::local::render::RenderFuture<'e, WebBackend>;
+    pub type NodeGuard = async_ui_core::control::node_guard::NodeGuard<WebBackend>;
+    pub type RenderFuture<'e> = async_ui_core::render::Render<'e, WebBackend>;
 }

@@ -26,10 +26,10 @@ pub fn create_portal<B: Backend>() -> (PortalEntry<B>, PortalExit<B>) {
     )
 }
 impl<B: Backend> PortalEntry<B> {
-    pub fn render_borrowed<'e, C: TupleOfFutures<'e, B>>(&mut self, children: C) -> Render<'e, B> {
+    pub fn render_borrowed<'e, C: TupleOfFutures<'e>>(&mut self, children: C) -> Render<'e, B> {
         render_with_control(children, Some(Control::new_with_vnode(self.vnode.clone())))
     }
-    pub fn render<'e, C: TupleOfFutures<'e, B>>(mut self, children: C) -> Render<'e, B> {
+    pub fn render<'e, C: TupleOfFutures<'e>>(mut self, children: C) -> Render<'e, B> {
         self.render_borrowed(children)
     }
     pub fn carefully_clone(&self) -> Self {

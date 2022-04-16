@@ -2,7 +2,7 @@ use std::{future::Future, marker::PhantomPinned, pin::Pin, task::Poll};
 
 use smallvec::SmallVec;
 
-use crate::{element::Element, tuple::TupleInto};
+use crate::{element::Element, tuple::TupleOfFutures};
 
 pub use super::control::node_guard::NodeGuard;
 use super::{backend::Backend, control::Control, drop_check::check_drop_scope};
@@ -13,7 +13,7 @@ pin_project_lite::pin_project! {
     {
         control: Option<Control<B>>,
         has_rendered: bool,
-        children: SmallVec<[Element<'e, B>; 2]>,
+        children: SmallVec<[Element<'e, B>; 4]>,
         _pin: PhantomPinned
     }
 }
@@ -46,11 +46,11 @@ impl<'e, B: Backend> Future for Render<'e, B> {
     }
 }
 
-pub fn render_with_control<'e, B: Backend, C: TupleInto<Element<'e, B>>>(
+pub fn render_with_control<'e, B: Backend, C: TupleOfFutures<'e>>(
     children: C,
     control: Option<Control<B>>,
 ) -> Render<'e, B> {
-    let children = children.convert_to_slice().into_iter().collect();
+    let children = children.internal_convert_to_smallvec_element();
     Render {
         control,
         has_rendered: false,

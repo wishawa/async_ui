@@ -4,7 +4,7 @@ use crate::render::Render;
 
 use super::super::{backend::Backend, drop_check::check_drop_scope, element::Element};
 use super::portal::{create_portal, PortalExit};
-use async_ui_reactive::Rx;
+use async_ui_reactive::local::Rx;
 use futures::StreamExt;
 
 pub async fn list<'a, B: Backend, K: Eq + Hash + Clone>(

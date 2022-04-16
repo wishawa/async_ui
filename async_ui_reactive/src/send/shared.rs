@@ -1,47 +1,6 @@
-use std::{
-    ops::{Deref, DerefMut},
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError,
-    },
-};
-
-use super::subscriptions::Subscriptions;
-
-pub struct Rx<T> {
-    data: RwLock<T>,
-    subscriptions: Mutex<Subscriptions>,
-    version: AtomicUsize,
-}
-
+use super::{RefRead, RefWrite, Rx};
+use std::ops::{Deref, DerefMut};
 impl<T> Rx<T> {
-    pub fn new(value: T) -> Self {
-        Self {
-            data: RwLock::new(value),
-            subscriptions: Mutex::new(Subscriptions::new()),
-            version: AtomicUsize::new(0),
-        }
-    }
-    pub fn try_borrow<'a>(&'a self) -> Result<RxGuard<'a, T>, TryLockError<RwLockReadGuard<T>>> {
-        let guard = self.data.try_read()?;
-        Ok(RxGuard { guard })
-    }
-    fn try_borrow_mut_base<'a, const SILENT: bool>(
-        &'a self,
-    ) -> Result<RxGuardMutBase<'a, T, SILENT>, TryLockError<RwLockWriteGuard<T>>> {
-        let guard = self.data.try_write()?;
-        Ok(RxGuardMutBase { guard, rx: self })
-    }
-    pub fn try_borrow_mut<'a>(
-        &'a self,
-    ) -> Result<RxGuardMut<'a, T>, TryLockError<RwLockWriteGuard<T>>> {
-        self.try_borrow_mut_base()
-    }
-    pub fn try_borrow_mut_silent<'a>(
-        &'a self,
-    ) -> Result<RxGuardMutSilent<'a, T>, TryLockError<RwLockWriteGuard<T>>> {
-        self.try_borrow_mut_base()
-    }
     pub fn borrow<'a>(&'a self) -> RxGuard<'a, T> {
         self.try_borrow().expect("Rx borrow failed")
     }
@@ -82,7 +41,7 @@ impl<T: Copy> Rx<T> {
     }
 }
 pub struct RxGuard<'a, T> {
-    guard: RwLockReadGuard<'a, T>,
+    pub(super) guard: RefRead<'a, T>,
 }
 impl<'a, T> Deref for RxGuard<'a, T> {
     type Target = T;
@@ -92,8 +51,8 @@ impl<'a, T> Deref for RxGuard<'a, T> {
     }
 }
 pub struct RxGuardMutBase<'a, T, const SILENT: bool> {
-    guard: RwLockWriteGuard<'a, T>,
-    rx: &'a Rx<T>,
+    pub(super) guard: RefWrite<'a, T>,
+    pub(super) rx: &'a Rx<T>,
 }
 pub type RxGuardMut<'a, T> = RxGuardMutBase<'a, T, false>;
 pub type RxGuardMutSilent<'a, T> = RxGuardMutBase<'a, T, true>;
@@ -113,10 +72,8 @@ impl<'a, T, const SILENT: bool> DerefMut for RxGuardMutBase<'a, T, SILENT> {
 impl<'a, T, const SILENT: bool> Drop for RxGuardMutBase<'a, T, SILENT> {
     fn drop(&mut self) {
         if !SILENT {
-            // TODO: Use less strict ordering if possible
-            self.rx.version.fetch_add(1, Ordering::SeqCst);
-            let locked = self.rx.subscriptions.lock().unwrap();
-            locked.wake_all();
+            self.rx.increment_version();
+            self.rx.with_subscriptions(|subs| subs.wake_all());
         }
     }
 }
@@ -124,7 +81,6 @@ impl<'a, T, const SILENT: bool> Drop for RxGuardMutBase<'a, T, SILENT> {
 mod stream {
     use std::{
         pin::Pin,
-        sync::atomic::Ordering,
         task::{Context, Poll},
     };
 
@@ -142,7 +98,7 @@ mod stream {
             RxChangeStream {
                 key: None,
                 rx: self,
-                version: self.version.load(Ordering::SeqCst),
+                version: self.get_version(),
             }
         }
         pub async fn for_each_async<'a, R: Future<Output = ()>, F: FnMut(&T) -> R>(
@@ -168,13 +124,10 @@ mod stream {
             if self.key.is_none() {
                 let key = self
                     .rx
-                    .subscriptions
-                    .lock()
-                    .unwrap()
-                    .add(cx.waker().to_owned());
+                    .with_subscriptions(|subs| subs.add(cx.waker().to_owned()));
                 self.key = Some(key);
             }
-            let version = self.rx.version.load(Ordering::SeqCst);
+            let version = self.rx.get_version();
             if version > self.version {
                 self.version = version;
                 Poll::Ready(Some(()))
@@ -195,7 +148,7 @@ mod stream {
     impl<'a, T> Drop for RxChangeStream<'a, T> {
         fn drop(&mut self) {
             if let Some(key) = self.key.take() {
-                self.rx.subscriptions.lock().unwrap().remove(key)
+                self.rx.with_subscriptions(move |subs| subs.remove(key));
             }
         }
     }

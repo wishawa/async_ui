@@ -7,7 +7,6 @@ use std::{
 };
 
 use async_executor::{LocalExecutor, Task};
-use async_ui_core::local::backend::Spawner;
 use futures::FutureExt;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::Window;
@@ -49,14 +48,6 @@ impl WebSpawnerInner {
     }
 }
 
-unsafe impl Spawner for WebSpawner {
-    type Task = Task<()>;
-
-    fn spawn<'a, F: Future<Output = ()> + 'static>(future: F) -> Self::Task {
-        let task = EXECUTOR.with(|e| e.executor.spawn(future));
-        task
-    }
-}
 impl WebSpawner {
     pub fn wake_now() {
         EXECUTOR.with(|e| {
