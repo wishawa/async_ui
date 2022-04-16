@@ -14,3 +14,7 @@ scopeguard = "1.1.0"
 async_ui_reactive = { path = "../async_ui_reactive/" }
 async_ui_utils = { path = "../async_ui_utils/" }
 futures = "0.3.21"
+pin-cell = "0.2.0"
+pin-weak = "1.1.0"
+
+async-executor = "1.4.1"

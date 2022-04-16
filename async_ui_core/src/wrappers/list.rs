@@ -1,22 +1,19 @@
 use std::{collections::HashMap, hash::Hash};
 
-use super::super::{
-    backend::{Backend, Spawner},
-    drop_check::check_drop_scope,
-    element::Element,
-    render::spawn_with_control,
-};
+use crate::render::Render;
+
+use super::super::{backend::Backend, drop_check::check_drop_scope, element::Element};
 use super::portal::{create_portal, PortalExit};
 use async_ui_reactive::Rx;
 use futures::StreamExt;
 
 pub async fn list<'a, B: Backend, K: Eq + Hash + Clone>(
-    children: &Rx<Vec<(K, Option<Element<'a, B>>)>>,
+    children: &Rx<Vec<(K, Option<Render<'a, B>>)>>,
 ) {
-    struct ChildTask<B: Backend> {
+    struct ChildTask<'e, B: Backend> {
         exit_portal: PortalExit<B>,
-        exit_task: Option<<B::Spawner as Spawner>::Task>,
-        _entry_task: <B::Spawner as Spawner>::Task,
+        exit_task: Option<Element<'e, B>>,
+        _entry_task: Element<'e, B>,
         index: usize,
     }
     let parent_control = B::get_tls().with(Clone::clone);
@@ -31,8 +28,9 @@ pub async fn list<'a, B: Backend, K: Eq + Hash + Clone>(
             children.iter_mut().enumerate().for_each(|(idx, (k, opt))| {
                 if let Some(elem) = opt.take() {
                     let (entry, exit) = create_portal();
-                    let entry_task =
-                        unsafe { spawn_with_control(entry.to_element(vec![elem]), None) };
+                    let entry_render = entry.render((elem,));
+                    let mut entry_task: Element<'a, B> = entry_render.into();
+                    unsafe { entry_task.mount(B::get_dummy_control()) };
                     new_tasks.push((
                         k.clone(),
                         ChildTask {
@@ -55,10 +53,11 @@ pub async fn list<'a, B: Backend, K: Eq + Hash + Clone>(
             tasks.clear();
             tasks.extend(new_tasks.drain(..).map(|(k, mut child)| {
                 if child.exit_task.is_none() {
-                    let exit_elem = child.exit_portal.carefully_clone().to_element();
+                    let exit_render = child.exit_portal.carefully_clone().render();
+                    let mut exit_task: Element<'static, B> = exit_render.into();
                     let control = parent_control.nest(child.index);
-                    let task = unsafe { spawn_with_control(exit_elem, Some(control)) };
-                    child.exit_task = Some(task);
+                    unsafe { exit_task.mount(control) };
+                    child.exit_task = Some(exit_task);
                 }
                 (k, child)
             }));

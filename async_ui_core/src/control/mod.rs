@@ -1,15 +1,17 @@
+use std::rc::Rc;
+
 use self::{node_guard::NodeGuard, position::PositionIndices, vnode::VNode};
 
-use super::{backend::Backend, Shared};
+use super::backend::Backend;
 pub mod node_guard;
 pub mod position;
 pub mod vnode;
 
-pub type VNodeWrap<B> = Shared<dyn VNode<B>>;
+pub type VNodeWrap<B> = Rc<dyn VNode<B>>;
 
 #[derive(Debug)]
 pub struct Control<B: Backend> {
-    vnode: Shared<dyn VNode<B>>,
+    vnode: VNodeWrap<B>,
     position: PositionIndices,
 }
 
