@@ -9,14 +9,13 @@ use async_executor::Task;
 use pin_cell::{PinCell, PinMut};
 use pin_weak::rc::PinWeak;
 
-use crate::{drop_check::PropagateDropScope, executor::LOCAL_EXECUTOR};
+use crate::{drop_check::PropagateDropScope, runtime::RUNTIME};
 
 use super::{backend::Backend, control::Control};
 
 pin_project_lite::pin_project! {
     struct ElementInner<B: Backend, F: Future<Output = ()>> {
-        control: Control<B>,
-        task: Option<Task<()>>,
+        spawned: Option<(Control<B>, Task<()>)>,
         #[pin]
         future: Option<F>
     }
@@ -47,7 +46,6 @@ impl<B: Backend, F: Future<Output = ()>> ElementTrait<B> for PinCell<ElementInne
         let mut inner = self.as_ref().borrow_mut();
         let weakened = PinWeak::downgrade((self.clone() as Pin<Rc<dyn ElementTrait<B>>>).clone());
         let this = PinMut::as_mut(&mut inner).project();
-        *this.control = control;
         let lifetime_extended = unsafe {
             std::mem::transmute::<
                 PinWeak<dyn ElementTrait<B>>,
@@ -55,19 +53,19 @@ impl<B: Backend, F: Future<Output = ()>> ElementTrait<B> for PinCell<ElementInne
             >(weakened)
         };
         let wrapped = WeakElement(lifetime_extended);
-        let task = LOCAL_EXECUTOR.with(|exe| exe.spawn(wrapped));
-        *this.task = Some(task);
+        let task = RUNTIME.with(|runtime| runtime.spawn(wrapped));
+        *this.spawned = Some((control, task));
     }
     fn update(self: Pin<&Self>, cx: &mut Context<'_>) {
         let mut inner = self.borrow_mut();
         let this = PinMut::as_mut(&mut inner).project();
         let fut = this.future.as_pin_mut().expect("polled after unmount");
-        let _ = B::get_tls().set(this.control, || fut.poll(cx));
+        let _ = B::get_tls().set(&this.spawned.as_ref().unwrap().0, || fut.poll(cx));
     }
     fn unmount(self: Pin<Rc<Self>>) {
         let mut inner = self.as_ref().borrow_mut();
         let mut this = PinMut::as_mut(&mut inner).project();
-        *this.task = None;
+        *this.spawned = None;
         this.future.set(None);
     }
 }
@@ -86,9 +84,8 @@ impl<'e, B: Backend, F: Future<Output = ()> + 'e> From<F> for Element<'e, B> {
     fn from(fut: F) -> Self {
         let fut = PropagateDropScope::new(fut);
         let ptr = Rc::pin(PinCell::new(ElementInner {
-            control: B::get_dummy_control(),
             future: Some(fut),
-            task: None,
+            spawned: None,
         }));
         Self(ptr as _)
     }

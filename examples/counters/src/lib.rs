@@ -1,8 +1,8 @@
 use std::{borrow::Cow, cell::Cell, future::Future, rc::Rc, task::Poll};
 
-use async_ui_reactive::Rx;
-use async_ui_utils::{join2, vec_into};
-use async_ui_web::{create_portal, hidable, list, mount, render};
+use async_ui_reactive::local::Rx;
+use async_ui_utils::Join;
+use async_ui_web::{create_portal, hidable, list, mount, Render};
 use async_ui_web_html::{anchor, button, div, span, text};
 use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
@@ -13,85 +13,110 @@ use wasm_bindgen::{
 pub fn run() -> Result<(), JsValue> {
     use std::panic;
     panic::set_hook(Box::new(console_error_panic_hook::hook));
-    mount(my_component().into());
+    mount((my_component(),));
     Ok(())
 }
 async fn my_component() {
     let (p_ent, p_ext) = create_portal();
-    render(vec_into![
-        div().children(vec_into![text().content("hello world")]),
+    Render::from((
+        div().children((
+            text().content("hello world"),
+        )),
         counter(),
-        div().children(vec_into![
+        div().children((
             text().content("hi"),
-            p_ext.to_element(),
+            p_ext.render(),
             text().content("bye")
-        ]),
-        p_ent.to_element(vec_into![
+        )),
+        p_ent.render((
             text().content("oh my"),
             text().content("confusion"),
             anchor()
                 .href("https://example.com")
                 .on_click(|ev| ev.prevent_default())
-                .children(vec_into![text().content("link")])
-        ]),
+                .children((
+                    text().content("qwerqwer"),
+                )),
+        )),
         list_test(),
-        hidable_test()
-    ])
+        take_children((
+            hidable_test(),
+        ))
+    ))
     .await;
 }
 async fn hidable_test() {
     let switch = Rx::new(true);
-    join2(
-        hidable(&switch, vec_into![text().content("i may be hidden")]),
+    Join::from((
+        hidable(&switch, (
+            text().content("i may be hidden"),
+        )),
         async {
             Timeout::new(1000).await;
             *switch.borrow_mut() = false;
             Timeout::new(1000).await;
             *switch.borrow_mut() = true;
         },
-    )
+    ))
     .await;
 }
 async fn counter() {
     let value = Rx::new(0);
     let content = Rx::new(Cow::from("0"));
-    join2(
-        render(vec_into![
+    Join::from((
+        Render::from((
             button()
                 .on_click(|_ev| {
                     value.visit_mut(|m| *m -= 1);
                 })
-                .children(vec_into![text().content("-")]),
-            span().children(vec_into![text().content_reactive(&content)]),
+                .children((
+                    text().content("-"),
+                )),
+            span().children((
+                text().content_reactive(&content),
+            )),
             button()
                 .on_click(|_ev| {
                     value.visit_mut(|m| *m += 1);
                 })
-                .children(vec_into![text().content("+")]),
-        ]),
+                .children((
+                    text().content("+"),
+                )),
+        )),
         value.for_each(|n| {
             content.replace(n.to_string().into());
         }),
-    )
+    ))
     .await;
 }
 async fn list_test() {
     let children = Rx::new(vec![
-        (1, Some(text().content("1").into())),
-        (2, Some(text().content("3").into())),
-        (4, Some(text().content("5").into())),
+        (1, Some(Render::from((text().content("1"),)))),
+        (2, Some(Render::from((text().content("2"),)))),
+        (4, Some(Render::from((text().content("4"),)))),
     ]);
-    join2(list(&children), async {
+    Join::from((list(&children), async {
         Timeout::new(1000).await;
         children
             .borrow_mut()
-            .push((5, Some(text().content("this is new!").into())));
+            .push((5, Some(Render::from((text().content("new!"),)))));
         Timeout::new(1000).await;
         children
             .borrow_mut()
-            .insert(1, (3, Some(text().content("inserted").into())));
-    })
+            .insert(1, (3, Some(Render::from((text().content("inserted"),)))));
+    }))
     .await;
+}
+
+async fn take_children(children: impl Into<Render<'_>>) {
+    Render::from((
+        div().children((
+            text().content("below is my children"),
+            div().children((
+                children.into(),
+            ))
+        )),
+    )).await
 }
 
 struct Timeout {

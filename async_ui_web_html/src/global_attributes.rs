@@ -1,5 +1,5 @@
 use crate::elem::{Elem, HtmlTag};
-use async_ui_reactive::Rx;
+use async_ui_reactive::local::Rx;
 use web_sys::HtmlElement;
 
 impl<'a, H: HtmlTag + 'a> Elem<'a, H> {

@@ -1,4 +1,4 @@
-use async_ui_reactive::Rx;
+use async_ui_reactive::local::Rx;
 use web_sys::HtmlAnchorElement;
 
 use crate::elem::Elem;

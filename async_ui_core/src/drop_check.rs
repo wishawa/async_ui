@@ -5,7 +5,7 @@ scoped_tls::scoped_thread_local!(
 );
 
 pin_project_lite::pin_project! {
-    pub struct PropagateDropScope<F: Future<Output = ()>> {
+    pub(crate) struct PropagateDropScope<F: Future<Output = ()>> {
         #[pin]
         future: F,
     }

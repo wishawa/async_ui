@@ -28,7 +28,7 @@ pub async fn list<'a, B: Backend, K: Eq + Hash + Clone>(
             children.iter_mut().enumerate().for_each(|(idx, (k, opt))| {
                 if let Some(elem) = opt.take() {
                     let (entry, exit) = create_portal();
-                    let entry_render = entry.render((elem,));
+                    let entry_render = entry.render(elem);
                     let mut entry_task: Element<'a, B> = entry_render.into();
                     unsafe { entry_task.mount(B::get_dummy_control()) };
                     new_tasks.push((

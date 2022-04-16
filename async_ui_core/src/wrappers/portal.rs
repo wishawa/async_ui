@@ -1,9 +1,6 @@
 use std::{future::pending, rc::Rc};
 
-use crate::{
-    render::{render_with_control, Render},
-    tuple::TupleOfFutures,
-};
+use crate::render::Render;
 
 use super::super::{
     backend::Backend,
@@ -26,10 +23,12 @@ pub fn create_portal<B: Backend>() -> (PortalEntry<B>, PortalExit<B>) {
     )
 }
 impl<B: Backend> PortalEntry<B> {
-    pub fn render_borrowed<'e, C: TupleOfFutures<'e>>(&mut self, children: C) -> Render<'e, B> {
-        render_with_control(children, Some(Control::new_with_vnode(self.vnode.clone())))
+    pub fn render_borrowed<'e>(&mut self, render: impl Into<Render<'e, B>>) -> Render<'e, B> {
+        let mut render = render.into();
+        render.set_control(Control::new_with_vnode(self.vnode.clone()));
+        render
     }
-    pub fn render<'e, C: TupleOfFutures<'e>>(mut self, children: C) -> Render<'e, B> {
+    pub fn render<'e>(mut self, children: impl Into<Render<'e, B>>) -> Render<'e, B> {
         self.render_borrowed(children)
     }
     pub fn carefully_clone(&self) -> Self {
@@ -47,7 +46,7 @@ impl<B: Backend> PortalExit<B> {
             let _guard = scopeguard::guard((), |_| vnd.unset_target());
             pending().await
         };
-        render_with_control((block,), None)
+        Render::from((block,))
     }
     pub fn render(mut self) -> Render<'static, B> {
         self.render_borrowed()

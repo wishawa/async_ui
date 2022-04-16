@@ -2,23 +2,20 @@ use std::{
     cell::{Cell, RefCell},
     future::Future,
     pin::Pin,
-    rc::Rc,
     task::{Context, Waker},
 };
 
-use async_executor::{LocalExecutor, Task};
 use futures::FutureExt;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::Window;
 
 thread_local! {
-    static EXECUTOR: WebSpawnerInner = WebSpawnerInner::new()
+    static RUNTIME: WebRuntime = WebRuntime::new()
 }
 
 pub struct WebSpawner;
 
-struct WebSpawnerInner {
-    executor: Rc<LocalExecutor<'static>>,
+struct WebRuntime {
     waker: Waker,
     future: RefCell<Pin<Box<dyn Future<Output = ()>>>>,
     scheduled: Cell<bool>,
@@ -26,19 +23,11 @@ struct WebSpawnerInner {
     window: Window,
 }
 
-impl WebSpawnerInner {
+impl WebRuntime {
     fn new() -> Self {
-        let executor = Rc::new(LocalExecutor::new());
-        let executor_cpy = executor.clone();
-        let future = async move {
-            loop {
-                executor_cpy.tick().await
-            }
-        };
-        let future = RefCell::new(Box::pin(future) as Pin<Box<_>>);
+        let future = RefCell::new(Box::pin(async {}) as Pin<Box<dyn Future<Output = ()>>>);
         let waker = waker_fn::waker_fn(move || WebSpawner::schedule_now());
         Self {
-            executor,
             waker,
             future,
             scheduled: Cell::new(false),
@@ -49,8 +38,13 @@ impl WebSpawnerInner {
 }
 
 impl WebSpawner {
+    pub(crate) fn set_future<F: Future<Output = ()> + 'static>(future: F) {
+        RUNTIME.with(|rt| {
+            *rt.future.borrow_mut() = Box::pin(future) as Pin<Box<dyn Future<Output = ()>>>;
+        });
+    }
     pub fn wake_now() {
-        EXECUTOR.with(|e| {
+        RUNTIME.with(|e| {
             e.scheduled.set(false);
             if !e.active.replace(true) {
                 let mut cx = Context::from_waker(&e.waker);
@@ -59,9 +53,8 @@ impl WebSpawner {
             }
         })
     }
-
     pub fn schedule_now() {
-        EXECUTOR.with(|e| {
+        RUNTIME.with(|e| {
             if !e.active.get() && !e.scheduled.replace(true) {
                 let closure = Closure::once_into_js(Self::wake_now);
                 e.window

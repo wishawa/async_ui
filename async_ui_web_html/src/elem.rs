@@ -1,6 +1,6 @@
 use async_ui_web::{
-    manual_apis::{put_node, render_in_node, NodeGuard, RenderFuture},
-    Element,
+    manual_apis::{control_from_node, put_node, set_render_control, NodeGuard},
+    Render,
 };
 use std::{future::Future, pin::Pin, task::Poll};
 use wasm_bindgen::JsCast;
@@ -12,13 +12,13 @@ pin_project_lite::pin_project! {
         pub(crate) asyncs: Vec<Pin<Box<dyn Future<Output = ()> + 'a>>>,
         #[pin]
         rendered: Option<Rendered<'a>>,
-        children: Vec<Element<'a>>
+        children: Option<Render<'a>>
     }
 }
 pin_project_lite::pin_project! {
     struct Rendered<'a> {
         #[pin]
-        future: RenderFuture<'a>,
+        future: Render<'a>,
         guard: NodeGuard
     }
 }
@@ -29,7 +29,7 @@ impl<'a, H> Elem<'a, H> {
             elem,
             asyncs: Vec::new(),
             rendered: None,
-            children: Vec::new(),
+            children: None,
         }
     }
 }
@@ -47,8 +47,8 @@ impl<'a, H> Elem<'a, H>
 where
     H: HtmlTag + 'a,
 {
-    pub fn children(mut self, children: Vec<Element<'a>>) -> Self {
-        self.children = children;
+    pub fn children(mut self, children: impl Into<Render<'a>>) -> Self {
+        self.children = Some(children.into());
         self
     }
 }
@@ -63,11 +63,15 @@ where
         let mut this = self.project();
         if this.rendered.is_none() {
             let node: &Node = this.elem.as_ref();
-            let node = node.clone();
             let children = std::mem::take(this.children);
-            let future = render_in_node(children, node.clone());
-            let guard = put_node(node);
-            this.rendered.set(Some(Rendered { future, guard }));
+            let guard = put_node(node.clone());
+            let control = control_from_node(node.clone());
+            let mut children = children.unwrap_or_else(|| Render::from(()));
+            set_render_control(&mut children, control);
+            this.rendered.set(Some(Rendered {
+                future: children,
+                guard,
+            }));
         }
         let rendered = this.rendered.as_pin_mut().unwrap().project();
         let _ = rendered.future.poll(cx);

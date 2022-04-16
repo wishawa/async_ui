@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
-use crate::executor::WebSpawner;
-use async_ui_core::local::{
+use async_ui_core::{
     backend::Backend,
     control::{vnode::null::NullVNode, Control},
 };
@@ -17,7 +16,6 @@ thread_local! {
 }
 
 impl Backend for WebBackend {
-    type Spawner = WebSpawner;
     type NodeType = Node;
 
     fn get_tls() -> &'static scoped_tls::ScopedKey<Control<Self>> {

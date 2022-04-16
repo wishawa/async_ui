@@ -1,41 +1,45 @@
 use std::rc::Rc;
 
-use async_ui_core::local::{
-    backend::Spawner,
+use async_ui_core::{
     control::Control,
-    drop_check::PropagateDropScope,
-    render::{put_node as base_put_node, render_with_control, NodeGuard, RenderFuture},
+    render::{
+        put_node as base_put_node, set_render_control as base_set_render_control, spawn_root,
+        NodeGuard,
+    },
+    runtime::drive_runtime,
 };
 use web_sys::Node;
 
-use crate::{backend::WebBackend, executor::WebSpawner, vnode::NodeVNode, Element};
+use crate::{backend::WebBackend, executor::WebSpawner, vnode::NodeVNode};
 
-pub fn render_in_node<'e>(children: Vec<Element<'e>>, node: Node) -> RenderFuture<'e, WebBackend> {
-    render_with_control(
-        children,
-        Some(Control::new_with_vnode(Rc::new(NodeVNode::new(node)))),
-    )
-}
-pub fn render<'e>(children: Vec<Element<'e>>) -> RenderFuture<'e, WebBackend> {
-    render_with_control(children, None)
-}
+pub type Render<'e> = async_ui_core::render::Render<'e, WebBackend>;
+
 pub fn put_node(node: Node) -> NodeGuard<WebBackend> {
     base_put_node::<WebBackend>(node)
 }
+pub fn control_from_node(node: Node) -> Control<WebBackend> {
+    Control::new_with_vnode(Rc::new(NodeVNode::new(node)))
+}
+pub fn set_render_control<'e>(render: &mut Render<'e>, control: Control<WebBackend>) {
+    base_set_render_control(render, control);
+}
 
-pub fn mount_at(root: Element<'static>, node: Node) {
-    let fut = PropagateDropScope::new(Box::pin(render_in_node(vec![root], node)));
-    let task = WebSpawner::spawn(fut);
+pub fn mount_at(children: impl Into<Render<'static>>, node: Node) {
+    let control = Control::new_with_vnode(Rc::new(NodeVNode::new(node)));
+    let mut children = children.into();
+    set_render_control(&mut children, control);
+    let task = spawn_root(children);
     task.detach();
+    WebSpawner::set_future(drive_runtime());
     WebSpawner::schedule_now();
 }
 
-pub fn mount(root: Element<'static>) {
+pub fn mount(children: impl Into<Render<'static>>) {
     let node = web_sys::window()
         .unwrap()
         .document()
         .unwrap()
         .body()
         .unwrap();
-    mount_at(root, node.into());
+    mount_at(children, node.into());
 }
