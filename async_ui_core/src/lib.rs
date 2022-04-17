@@ -6,4 +6,5 @@ pub mod drop_check;
 pub mod element;
 pub mod render;
 pub mod runtime;
+pub mod unmounting;
 pub mod wrappers;

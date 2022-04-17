@@ -9,7 +9,7 @@ use async_executor::Task;
 use pin_cell::{PinCell, PinMut};
 use pin_weak::rc::PinWeak;
 
-use crate::{drop_check::PropagateDropScope, runtime::RUNTIME};
+use crate::{drop_check::PropagateDropScope, runtime::RUNTIME, unmounting::UNMOUNTING};
 
 use super::{backend::Backend, control::Control};
 
@@ -20,7 +20,7 @@ pin_project_lite::pin_project! {
         future: Option<F>
     }
 }
-pub struct Element<'e, B: Backend>(Pin<Rc<dyn ElementTrait<B> + 'e>>);
+pub(crate) struct Element<'e, B: Backend>(Pin<Rc<dyn ElementTrait<B> + 'e>>);
 struct WeakElement<B: Backend>(PinWeak<dyn ElementTrait<B> + 'static>);
 
 trait ElementTrait<B: Backend> {
@@ -39,6 +39,9 @@ impl<'e, B: Backend> Drop for Element<'e, B> {
     fn drop(&mut self) {
         self.0.clone().unmount();
     }
+}
+thread_local! {
+    static DUMMY_WAKER: std::task::Waker = waker_fn::waker_fn(|| {});
 }
 
 impl<B: Backend, F: Future<Output = ()>> ElementTrait<B> for PinCell<ElementInner<B, F>> {
@@ -64,8 +67,16 @@ impl<B: Backend, F: Future<Output = ()>> ElementTrait<B> for PinCell<ElementInne
     }
     fn unmount(self: Pin<Rc<Self>>) {
         let mut inner = self.as_ref().borrow_mut();
+        let this = PinMut::as_mut(&mut inner).project();
+        if let Some((control, _)) = this.spawned.take() {
+            DUMMY_WAKER.with(|waker| {
+                let mut cx = Context::from_waker(waker);
+                let _ = B::get_tls().set(&control, || {
+                    UNMOUNTING.set(&true, || this.future.as_pin_mut().unwrap().poll(&mut cx))
+                });
+            });
+        }
         let mut this = PinMut::as_mut(&mut inner).project();
-        *this.spawned = None;
         this.future.set(None);
     }
 }

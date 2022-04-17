@@ -6,6 +6,7 @@ use async_ui_reactive::local::Rx;
 use async_ui_utils::{Join, Race};
 use gtk::{
     prelude::{ApplicationExt, ApplicationExtManual},
+    traits::WidgetExt,
     Application, ApplicationWindow,
 };
 
@@ -26,7 +27,7 @@ fn main() {
 }
 async fn my_component() {
     let label = gtk::Label::new(Some("hello world. please wait 3 secs."));
-    let mut remaining_time = 3f32;
+    let mut remaining_time = 1f32;
     Race::from((Render::from((label.clone().wrap(),)), async {
         while remaining_time > 0.0 {
             smol::Timer::after(Duration::from_secs_f32(0.1)).await;
@@ -52,35 +53,27 @@ async fn my_component() {
                 }),
                 list_test(),
             )),)),
-        async {
-            count
-                .for_each(|v| {
-                    label.set_text(&v.to_string());
-                })
-                .await
-        },
+        count.for_each(|v| {
+            label.set_text(&v.to_string());
+        }),
     ))
     .await;
 }
 async fn list_test() {
-    let children = Rx::new(vec![
-        (1, Some(Render::from((gtk::Label::new(Some("1")).wrap(),)))),
-        (2, Some(Render::from((gtk::Label::new(Some("2")).wrap(),)))),
-        (4, Some(Render::from((gtk::Label::new(Some("4")).wrap(),)))),
-    ]);
+    let children = Rx::new(vec![1, 2, 3]);
+    let scroll = gtk::ScrolledWindow::new();
+    scroll.set_height_request(128);
+    let child_factory = |key: &i32| Render::from((gtk::Label::new(Some(&key.to_string())).wrap(),));
     Join::from((
-        Render::from((gtk::Box::new(gtk::Orientation::Horizontal, 4)
+        Render::from((scroll
             .wrap()
-            .children((list(&children),)),)),
+            .children((gtk::Box::new(gtk::Orientation::Vertical, 4)
+                .wrap()
+                .children((list(&children, child_factory),)),)),)),
         async {
-            for top in 10..20 {
+            for top in 1..50 {
                 smol::Timer::after(Duration::from_secs(1)).await;
-                children.borrow_mut().push((
-                    top,
-                    Some(Render::from((
-                        gtk::Label::new(Some(&top.to_string())).wrap(),
-                    ))),
-                ));
+                children.borrow_mut().push(top);
             }
         },
     ))

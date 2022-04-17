@@ -9,6 +9,7 @@ pub use super::control::node_guard::NodeGuard;
 use super::{backend::Backend, control::Control, drop_check::check_drop_scope};
 
 pin_project_lite::pin_project! {
+    #[must_use = "Render is a Future and should be awaited"]
     pub struct Render<'e, B>
     where B: Backend
     {

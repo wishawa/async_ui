@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::Cell, future::Future, rc::Rc, task::Poll};
+use std::{cell::Cell, future::Future, rc::Rc, task::Poll};
 
 use async_ui_reactive::local::Rx;
 use async_ui_utils::Join;
@@ -50,42 +50,32 @@ async fn hidable_test() {
 }
 async fn counter() {
     let value = Rx::new(0);
-    let content = Rx::new(Cow::from("0"));
-    Join::from((
-        Render::from((
-            button()
-                .on_click(|_ev| {
-                    value.visit_mut(|m| *m -= 1);
-                })
-                .children((text().content("-"),)),
-            span().children((text().content_reactive(&content),)),
-            button()
-                .on_click(|_ev| {
-                    value.visit_mut(|m| *m += 1);
-                })
-                .children((text().content("+"),)),
-        )),
-        value.for_each(|n| {
-            content.replace(n.to_string().into());
-        }),
+    let content = Rx::new("0".into());
+    Render::from((
+        button()
+            .on_click(|_ev| {
+                value.visit_mut(|m| *m -= 1);
+                content.replace(value.get().to_string());
+            })
+            .children((text().content("-"),)),
+        span().children((text().content_reactive(&content),)),
+        button()
+            .on_click(|_ev| {
+                value.visit_mut(|m| *m += 1);
+                content.replace(value.get().to_string());
+            })
+            .children((text().content("+"),)),
     ))
     .await;
 }
 async fn list_test() {
-    let children = Rx::new(vec![
-        (1, Some(Render::from((text().content("1"),)))),
-        (2, Some(Render::from((text().content("2"),)))),
-        (4, Some(Render::from((text().content("4"),)))),
-    ]);
-    Join::from((list(&children), async {
+    let children = Rx::new(vec![0, 2, 3]);
+    let child_factory = |key: &i32| Render::from((text().content(&key.to_string()),));
+    Join::from((list(&children, child_factory), async {
         Timeout::new(1000).await;
-        children
-            .borrow_mut()
-            .push((5, Some(Render::from((text().content("new!"),)))));
+        children.borrow_mut().push(4);
         Timeout::new(1000).await;
-        children
-            .borrow_mut()
-            .insert(1, (3, Some(Render::from((text().content("inserted"),)))));
+        children.borrow_mut().insert(1, 1);
     }))
     .await;
 }
@@ -147,14 +137,5 @@ impl Future for Timeout {
             null => null,
         };
         Poll::Pending
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
     }
 }
