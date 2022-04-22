@@ -47,7 +47,7 @@ thread_local! {
 impl<B: Backend, F: Future<Output = ()>> ElementTrait<B> for PinCell<ElementInner<B, F>> {
     fn mount(self: Pin<Rc<Self>>, control: Control<B>) {
         let mut inner = self.as_ref().borrow_mut();
-        let weakened = PinWeak::downgrade((self.clone() as Pin<Rc<dyn ElementTrait<B>>>).clone());
+        let weakened = PinWeak::downgrade(self.clone() as Pin<Rc<dyn ElementTrait<B>>>);
         let this = PinMut::as_mut(&mut inner).project();
         let lifetime_extended = unsafe {
             std::mem::transmute::<

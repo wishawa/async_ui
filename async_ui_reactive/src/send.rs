@@ -1,9 +1,11 @@
-mod shared;
+mod channel;
+mod rx;
+pub use channel::*;
 use std::sync::{
     atomic::AtomicUsize, Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard, TryLockError,
 };
 
-use self::shared::{RxGuard, RxGuardMut, RxGuardMutBase, RxGuardMutSilent};
+use self::rx::{RxGuard, RxGuardMut, RxGuardMutBase, RxGuardMutSilent};
 
 use super::subscriptions::Subscriptions;
 
@@ -54,5 +56,8 @@ impl<T> Rx<T> {
     fn with_subscriptions<U, F: FnOnce(&mut Subscriptions) -> U>(&self, func: F) -> U {
         let mut locked = self.subscriptions.lock().unwrap();
         func(&mut *locked)
+    }
+    pub fn into_inner(self) -> T {
+        self.data.into_inner().unwrap()
     }
 }

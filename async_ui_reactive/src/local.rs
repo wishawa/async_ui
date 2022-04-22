@@ -1,7 +1,9 @@
-mod shared;
+mod channel;
+mod rx;
+pub use channel::*;
 use std::cell::{BorrowError, BorrowMutError, Cell, Ref, RefCell, RefMut};
 
-use self::shared::{RxGuard, RxGuardMut, RxGuardMutBase, RxGuardMutSilent};
+use self::rx::{RxGuard, RxGuardMut, RxGuardMutBase, RxGuardMutSilent};
 
 use super::subscriptions::Subscriptions;
 
@@ -48,5 +50,8 @@ impl<T> Rx<T> {
     fn with_subscriptions<U, F: FnOnce(&mut Subscriptions) -> U>(&self, func: F) -> U {
         let mut locked = self.subscriptions.borrow_mut();
         func(&mut *locked)
+    }
+    pub fn into_inner(self) -> T {
+        self.data.into_inner()
     }
 }

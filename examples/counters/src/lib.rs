@@ -20,7 +20,7 @@ async fn my_component() {
     let (p_ent, p_ext) = create_portal();
     Render::from((
         div().children((text().content("hello world"),)),
-        counter(),
+        counter(&5),
         div().children((text().content("hi"), p_ext.render(), text().content("bye"))),
         p_ent.render((
             text().content("oh my"),
@@ -48,34 +48,42 @@ async fn hidable_test() {
     ))
     .await;
 }
-async fn counter() {
+async fn counter(step: &i32) {
     let value = Rx::new(0);
     let content = Rx::new("0".into());
     Render::from((
         button()
             .on_click(|_ev| {
-                value.visit_mut(|m| *m -= 1);
+                value.visit_mut(|m| *m -= *step);
                 content.replace(value.get().to_string());
             })
             .children((text().content("-"),)),
         span().children((text().content_reactive(&content),)),
         button()
             .on_click(|_ev| {
-                value.visit_mut(|m| *m += 1);
+                value.visit_mut(|m| *m += *step);
                 content.replace(value.get().to_string());
             })
             .children((text().content("+"),)),
     ))
     .await;
 }
+
+// async fn sooidsfjasoife() {
+//     loop {
+//         play_game().await;
+//         show_game_over().await;
+//     }
+// }
+
 async fn list_test() {
-    let children = Rx::new(vec![0, 2, 3]);
+    let children = Rx::new(vec![]);
     let child_factory = |key: &i32| Render::from((text().content(&key.to_string()),));
     Join::from((list(&children, child_factory), async {
-        Timeout::new(1000).await;
-        children.borrow_mut().push(4);
-        Timeout::new(1000).await;
-        children.borrow_mut().insert(1, 1);
+        for i in 0..20 {
+            Timeout::new(1000).await;
+            children.borrow_mut().push(i);
+        }
     }))
     .await;
 }

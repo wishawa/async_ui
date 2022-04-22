@@ -35,6 +35,7 @@ macro_rules! make_connect {
 }
 make_connect!(gtk::Button, clicked, gtk::prelude::ButtonExt);
 make_connect!(gtk::Entry, changed, gtk::prelude::EditableExt);
+make_connect!(gtk::Entry, activate, gtk::prelude::EntryExt);
 make_connect!(gtk::SpinButton, value_changed,);
 
 type ChannelInner<E> = Rc<RefCell<(Option<E>, Option<Waker>)>>;

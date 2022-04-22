@@ -44,6 +44,13 @@ impl<'a, H: IsA<Widget>> Wrappable<'a> for H {
     }
 }
 
+impl<'a, H> WrappedWidget<'a, H> {
+    pub fn visit_mut<F: FnOnce(&mut H)>(mut self, func: F) -> Self {
+        func(&mut self.widget);
+        self
+    }
+}
+
 impl<'a, H> Future for WrappedWidget<'a, H>
 where
     H: IsA<Widget>,
@@ -55,7 +62,7 @@ where
         if this.rendered.is_none() {
             let widget: Widget = this.widget.clone().upcast();
             let future = if let Some((mut children, handler)) = this.children.take() {
-                let control = control_from_node(widget.clone(), handler);
+                let control = control_from_node(widget.clone().upcast(), handler);
                 set_render_control(&mut children, control);
                 children
             } else {

@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::BTreeMap};
 
 use async_ui_core::control::{position::PositionIndices, vnode::VNode};
-use glib::Cast;
+use glib::{Cast, Object};
 use gtk::{traits::BoxExt, Widget};
 
 use crate::manual_apis::GtkBackend;
@@ -11,25 +11,25 @@ pub(crate) struct ContainerVNode {
     inner: RefCell<Inner>,
 }
 struct Inner {
-    widget: Widget,
+    widget: Object,
     children: BTreeMap<PositionIndices, Widget>,
     handler: &'static dyn ContainerHandler,
 }
 #[allow(unused_variables)]
 pub trait ContainerHandler {
     fn get_support_multichild(&self) -> bool;
-    fn set_single_child(&self, this: &Widget, child: Option<&Widget>) {
+    fn set_single_child(&self, this: &Object, child: Option<&Widget>) {
         todo!()
     }
-    fn insert_child_after(&self, this: &Widget, child: &Widget, previous_sibling: Option<&Widget>) {
+    fn insert_child_after(&self, this: &Object, child: &Widget, previous_sibling: Option<&Widget>) {
         todo!()
     }
-    fn remove_child(&self, this: &Widget, child: &Widget) {
+    fn remove_child(&self, this: &Object, child: &Widget) {
         todo!()
     }
     fn reorder_child_after(
         &self,
-        this: &Widget,
+        this: &Object,
         child: &Widget,
         new_previous_sibling: Option<&Widget>,
     ) {
@@ -52,19 +52,19 @@ impl ContainerHandler for BoxHandler {
         true
     }
 
-    fn insert_child_after(&self, this: &Widget, child: &Widget, previous_sibling: Option<&Widget>) {
+    fn insert_child_after(&self, this: &Object, child: &Widget, previous_sibling: Option<&Widget>) {
         let downcasted: &gtk::Box = this.downcast_ref().unwrap();
         downcasted.insert_child_after(child, previous_sibling);
     }
 
-    fn remove_child(&self, this: &Widget, child: &Widget) {
+    fn remove_child(&self, this: &Object, child: &Widget) {
         let downcasted: &gtk::Box = this.downcast_ref().unwrap();
         downcasted.remove(child);
     }
 
     fn reorder_child_after(
         &self,
-        this: &Widget,
+        this: &Object,
         child: &Widget,
         new_previous_sibling: Option<&Widget>,
     ) {
@@ -72,7 +72,6 @@ impl ContainerHandler for BoxHandler {
         downcasted.reorder_child_after(child, new_previous_sibling);
     }
 }
-static BOX_HANDLER: BoxHandler = BoxHandler;
 
 impl VNode<GtkBackend> for ContainerVNode {
     fn ins_node(&self, position: PositionIndices, new_node: Widget) {
@@ -90,7 +89,7 @@ impl VNode<GtkBackend> for ContainerVNode {
                     wrapper.append(v);
                 });
                 inner.widget = wrapper.upcast();
-                inner.handler = &BOX_HANDLER;
+                inner.handler = &BoxHandler;
             }
         } else {
             let previous_sibling = inner
@@ -123,7 +122,7 @@ impl VNode<GtkBackend> for ContainerVNode {
 }
 
 impl ContainerVNode {
-    pub fn new(widget: Widget, handler: &'static dyn ContainerHandler) -> Self {
+    pub fn new(widget: Object, handler: &'static dyn ContainerHandler) -> Self {
         let children = BTreeMap::new();
         Self {
             inner: RefCell::new(Inner {

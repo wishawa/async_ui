@@ -19,6 +19,8 @@ pub async fn list<'a, K: Eq + Hash + Clone, F: FnMut(&K) -> Render<'a>>(
 ) {
     base::list::list(children, factory).await
 }
+pub type ManyRender<'e> = base::collection::ManyRender<'e, GtkBackend>;
+pub use base::collection::ManyRenderKey;
 pub async fn hidable(is_visible: &Rx<bool>, children: impl Into<Render<'_>>) {
     base::hidable::hidable(is_visible, children).await
 }

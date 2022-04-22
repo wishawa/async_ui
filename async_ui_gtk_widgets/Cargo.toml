@@ -15,3 +15,4 @@ paste = "1.0"
 pin-project-lite = "0.2.8"
 gtk = { package = "gtk4", version = "0.4" }
 glib = "0.15"
+slab = "0.4.5"

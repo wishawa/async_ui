@@ -9,4 +9,5 @@ members = [
 	"async_ui_gtk_widgets",
 	"examples/counters",
 	"examples/gtk_counters",
+	"examples/todomvc_gtk",
 ]

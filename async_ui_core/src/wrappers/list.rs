@@ -28,19 +28,8 @@ pub async fn list_by_renders<'a, B: Backend, K: Eq + Hash + Clone>(
         children.visit_mut_silent(|children| {
             children.iter_mut().enumerate().for_each(|(idx, (k, opt))| {
                 if let Some(elem) = opt.take() {
-                    let (entry, exit) = create_portal();
-                    let entry_render = entry.render(elem);
-                    let mut entry_task: Element<'a, B> = entry_render.into();
-                    unsafe { entry_task.mount(B::get_dummy_control()) };
-                    new_tasks.push((
-                        k.clone(),
-                        ChildTask {
-                            exit_portal: exit,
-                            exit_task: None,
-                            _entry_task: entry_task,
-                            index: idx,
-                        },
-                    ))
+                    let child = unsafe { create_child_task(elem, idx) };
+                    new_tasks.push((k.clone(), child));
                 } else {
                     if let Some((k, mut child)) = tasks.remove_entry(&k) {
                         if child.index != idx {
@@ -51,7 +40,7 @@ pub async fn list_by_renders<'a, B: Backend, K: Eq + Hash + Clone>(
                     }
                 }
             });
-            update_tasks(&mut tasks, &mut new_tasks, &parent_control);
+            unsafe { update_tasks(&mut tasks, &mut new_tasks, &parent_control) };
         });
         stream.next().await;
     }
@@ -77,25 +66,27 @@ pub async fn list<'a, B: Backend, K: Eq + Hash + Clone, F: FnMut(&K) -> Render<'
                     }
                     new_tasks.push((k, child));
                 } else {
-                    let (entry, exit) = create_portal();
-                    let entry_render = entry.render(factory(k));
-                    let mut entry_task: Element<'a, B> = entry_render.into();
-                    unsafe { entry_task.mount(B::get_dummy_control()) };
-                    let child = ChildTask {
-                        _entry_task: entry_task,
-                        exit_portal: exit,
-                        exit_task: None,
-                        index: idx,
-                    };
+                    let child = unsafe { create_child_task(factory(k), idx) };
                     new_tasks.push((k.clone(), child));
                 }
             });
-            update_tasks(&mut tasks, &mut new_tasks, &parent_control);
+            unsafe { update_tasks(&mut tasks, &mut new_tasks, &parent_control) };
         })
         .await;
 }
-
-fn update_tasks<'a, B: Backend, K: Eq + Clone + Hash>(
+unsafe fn create_child_task<'a, B: Backend>(render: Render<'a, B>, idx: usize) -> ChildTask<'a, B> {
+    let (entry, exit) = create_portal();
+    let entry_render = entry.render(render);
+    let mut entry_task: Element<'a, B> = entry_render.into();
+    unsafe { entry_task.mount(B::get_dummy_control()) };
+    ChildTask {
+        _entry_task: entry_task,
+        exit_portal: exit,
+        exit_task: None,
+        index: idx,
+    }
+}
+unsafe fn update_tasks<'a, B: Backend, K: Eq + Clone + Hash>(
     tasks: &mut HashMap<K, ChildTask<'a, B>>,
     new_tasks: &mut Vec<(K, ChildTask<'a, B>)>,
     parent_control: &'a Control<B>,

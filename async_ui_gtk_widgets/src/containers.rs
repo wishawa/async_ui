@@ -1,5 +1,5 @@
 use async_ui_gtk::{manual_apis::ContainerHandler, Render};
-use glib::{Cast, IsA};
+use glib::{Cast, IsA, Object};
 use gtk::{
     traits::{BoxExt, ButtonExt},
     Widget,
@@ -35,17 +35,17 @@ macro_rules! make_handler_multi {
 				fn get_support_multichild(&self) -> bool {
 					true
 				}
-				fn insert_child_after(&self, this: &Widget, child: &Widget, previous_sibling: Option<&Widget>) {
+				fn insert_child_after(&self, this: &Object, child: &Widget, previous_sibling: Option<&Widget>) {
 					let downcasted: &gtk::$name = this.downcast_ref().unwrap();
 					MultiChildContainer::insert_child_after(downcasted, child, previous_sibling);
 				}
-				fn remove_child(&self, this: &Widget, child: &Widget) {
+				fn remove_child(&self, this: &Object, child: &Widget) {
 					let downcasted: &gtk::$name = this.downcast_ref().unwrap();
 					MultiChildContainer::remove_child(downcasted, child);
 				}
 				fn reorder_child_after(
 					&self,
-					this: &Widget,
+					this: &Object,
 					child: &Widget,
 					new_previous_sibling: Option<&Widget>,
 				) {
@@ -76,7 +76,7 @@ macro_rules! make_handler_single {
                 fn get_support_multichild(&self) -> bool {
                     false
                 }
-                fn set_single_child(&self, this: &Widget, child: Option<&Widget>) {
+                fn set_single_child(&self, this: &Object, child: Option<&Widget>) {
                     let downcasted: &gtk::$name = this.downcast_ref().unwrap();
                     SingleChildContainer::set_single_child(downcasted, child);
                 }
@@ -87,10 +87,9 @@ macro_rules! make_handler_single {
     ($name:ident, $handler:ident, _) => {
         make_handler_single!($name, $handler);
         paste::paste! {
-            static [<$name:snake:upper _HANDLER>]: [<$handler>] = [<$handler>];
             impl GtkContainerWidget for gtk::$name {
                 fn get_handler() -> &'static dyn ContainerHandler {
-                    &[<$name:snake:upper _HANDLER>]
+                    &$handler
                 }
             }
         }
