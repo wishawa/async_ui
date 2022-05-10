@@ -5,6 +5,7 @@ members = [
 	"async_ui_web_html/",
 	"async_ui_utils/",
 	"async_ui_reactive/",
+	"async_ui_signals/",
 	"async_ui_gtk/",
 	"async_ui_gtk_widgets",
 	"examples/counters",
