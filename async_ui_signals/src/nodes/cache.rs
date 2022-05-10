@@ -1,46 +1,61 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, marker::PhantomPinned};
 
-use crate::{
-	sub::{ParentSub, SubManager},
-	Visitable,
-};
+use crate::{Listenable, Pushable};
 
-pub struct SignalCached<'p, C> {
-	parent: &'p dyn for<'k> Visitable<dyn FnMut(C) + 'k>,
-	value: RefCell<Option<C>>,
-	parent_sub: ParentSub<'p>,
-	my_sub: SubManager,
+pub struct SignalCache<'p, C> {
+	parent: &'p (dyn Listenable<Self> + 'p),
+	listener: RefCell<Option<*const dyn for<'x> Pushable<&'x C>>>,
+	cache: RefCell<Option<C>>,
+	_pin: PhantomPinned
 }
 
-impl<'p, C> SignalCached<'p, C> {
-	pub fn new(parent: &'p dyn for<'k> Visitable<dyn for<'x> FnMut(C) + 'k>) -> Self {
+impl<'p, C> SignalCache<'p, C> {
+	pub fn new(parent: &'p (dyn Listenable<Self> + 'p)) -> Self {
 		Self {
+			cache: Default::default(),
+			listener: Default::default(),
 			parent,
-			parent_sub: parent.get_sub(),
-			value: RefCell::new(None),
-			my_sub: SubManager::new(),
+			_pin: PhantomPinned
 		}
 	}
 }
 
-impl<'a, 'p, C, V> Visitable<V> for SignalCached<'p, C>
+impl<'v, 'p, C, V> Listenable<V> for SignalCache<'p, C>
 where
-	C: 'p,
-	V: ?Sized + for<'x> FnMut(&'x C) + 'a,
+	V: for<'x> Pushable<&'x C> + 'v,
 {
-	fn visit<'v, 's>(&'s self, visitor: &'v mut V)
+	unsafe fn add_listener<'s, 'z>(&'s self, listener: &'z V) -> usize
 	where
-		Self: 'v,
+		Self: 'z,
 	{
-		let mut opt = self.value.borrow_mut();
-		if opt.is_none() {
-			self.parent.visit(&mut |inp| {
-				*opt = Some(inp);
-			});
-		}
-		visitor(opt.as_ref().unwrap());
+		let coerced: *const (dyn for<'x> Pushable<&'x C> + 'v) = listener;
+		let transmuted: *const (dyn for<'x> Pushable<&'x C> + 'static) =
+			unsafe { std::mem::transmute(coerced) };
+		*self.listener.borrow_mut() = Some(transmuted);
+		0
 	}
-	fn get_sub<'s>(&'s self) -> ParentSub<'s> {
-		(&self.my_sub).into()
+	unsafe fn remove_listener<'s, 'z>(&'s self, _key:usize) {
+		*self.listener.borrow_mut() = None;
 	}
 }
+
+impl<'p, C> Pushable<C> for SignalCache<'p, C> {
+	fn push<'s>(&'s self, input: C) {
+		let mut borrow = self.cache.borrow_mut();
+		let reference = borrow.insert(input);
+		if let Some(listener) = self.listener.borrow().as_ref() {
+			let listener = unsafe { &**listener };
+			listener.push(reference);
+		}
+	}
+	unsafe fn add_to_parent(&self) {
+		unsafe { self.parent.add_listener(self) };
+	}
+}
+
+// pub trait Cachable<'p, C: 'p>: Sized + Listenable<SignalCache<'p, C>> {
+// 	fn cache(&'p mut self) -> SignalCache<'p, C> {
+// 		SignalCache::new(self)
+// 	}
+// }
+// impl<'p, C: 'p, S: Sized + Listenable<SignalCache<'p, C>>> Cachable<'p, C> for S {}

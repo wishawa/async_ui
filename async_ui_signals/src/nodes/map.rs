@@ -1,91 +1,76 @@
-use std::marker::PhantomData;
+use std::{marker::{PhantomPinned}, cell::RefCell};
 
-use crate::{Visitable, sub::ParentSub};
+use crate::{Listenable, Pushable, mapper::Mapper};
 
-pub trait Mapper {
-    type Input<'i> where Self: 'i;
-    type Output<'o> where Self: 'o;
-    fn map<'m, 's>(&'s self, input: Self::Input<'m>) -> Self::Output<'m>
-    where
-        Self: 'm;
-}
 
-pub struct SimpleMapper<I, O, F>
-where
-    F: Fn(I) -> O
-{
-    mapper: F,
-    _phantom: PhantomData<(I, O)>
-}
-
-impl<I, O, F> Mapper for SimpleMapper<I, O, F>
-where
-    F: Fn(I) -> O
-{
-    type Input<'i> = I where Self: 'i;
-    type Output<'o> = O where Self: 'o;
-    fn map<'m, 's>(&'s self, input: Self::Input<'m>) -> Self::Output<'m>
-    where
-        Self: 'm
-    {
-        (self.mapper)(input)
-    }
-}
-
-pub struct RefMapper<I, O, F>
-where
-    F: Fn(&I) -> &O
-{
-    mapper: F,
-    _phantom: PhantomData<(I, O)>
-}
-
-impl<I, O, F> Mapper for RefMapper<I, O, F>
-where
-    F: Fn(&I) -> &O
-{
-    type Input<'i> = &'i I where Self: 'i;
-    type Output<'o> = &'o O where Self: 'o;
-    fn map<'m, 's>(&'s self, input: Self::Input<'m>) -> Self::Output<'m>
-    where
-        Self: 'm
-    {
-        (self.mapper)(input)
-    }
-}
 
 pub struct SignalMap<'p, M>
 where
-    M: Mapper + 'p,
+	M: Mapper + 'p,
 {
-    parent: &'p dyn for<'k> Visitable<dyn for<'x> FnMut(M::Input<'x>) + 'k>,
-    mapper: M,
+	
+	parent: &'p (dyn Listenable<Self> + 'p),
+	listener: RefCell<Option<*const dyn for<'x> Pushable<M::Output<'x>>>>,
+	mapper: M,
+	_pin: PhantomPinned
 }
 
 impl<'p, M> SignalMap<'p, M>
 where
-    M: Mapper + 'p,
+	M: Mapper + 'p,
 {
-    pub fn new(parent: &'p dyn for<'k> Visitable<dyn for<'x> FnMut(M::Input<'x>) + 'k>, mapper: M) -> Self { Self { parent, mapper } }
-}
-
-impl<'a, 'p, M, V> Visitable<V> for SignalMap<'p, M>
-where
-    M: Mapper + 'p,
-    V: ?Sized + for<'x> FnMut(M::Output<'x>) + 'a
-{
-    fn visit<'v, 's>(&'s self, visitor: &'v mut V)
-    where
-        Self: 'v
-    {
-        let mut wrapped_visitor = |input: M::Input<'_>| {
-            let output = self.mapper.map(input);
-            visitor(output);
-        };
-        self.parent
-            .visit(&mut wrapped_visitor as &mut (dyn for<'x> FnMut(M::Input<'x>) + '_));
-    }
-	fn get_sub<'s>(&'s self) -> ParentSub<'s> {
-		self.parent.get_sub()
+	pub fn new<P>(mapper: M, parent: &'p P) -> Self
+	where
+		P: Listenable<Self> + 'p,
+	{
+		Self {
+			parent,
+			listener: Default::default(),
+			mapper,
+			_pin: PhantomPinned
+		}
 	}
 }
+
+impl<'v, 'p, M, V> Listenable<V> for SignalMap<'p, M>
+where
+	M: Mapper + 'p,
+	V: for<'x> Pushable<M::Output<'x>> + 'v,
+{
+	unsafe fn add_listener<'s, 'z>(&'s self, listener: &'z V) -> usize
+	where
+		Self: 'z,
+	{
+		let coerced: *const (dyn for<'x> Pushable<M::Output<'x>> + 'v) = listener;
+		let transmuted: *const (dyn for<'x> Pushable<M::Output<'x>> + 'static) =
+			unsafe { std::mem::transmute(coerced) };
+		*self.listener.borrow_mut() = Some(transmuted);
+		0
+	}
+	unsafe fn remove_listener<'s, 'z>(&'s self, _key:usize) {
+		*self.listener.borrow_mut() = None;
+	}
+}
+
+impl<'i, 'p, M> Pushable<M::Input<'i>> for SignalMap<'p, M>
+where
+	M: Mapper + 'p,
+{
+	fn push<'s>(&'s self, input: M::Input<'i>) {
+		if let Some(listener) = self.listener.borrow().as_ref() {
+			let output = self.mapper.map(input);
+			let listener = unsafe { &**listener };
+			listener.push(output);
+		}
+	}
+	unsafe fn add_to_parent(&self) {
+		unsafe { self.parent.add_listener(self) };
+	}
+}
+
+// pub trait Mappable<'p, M: Mapper + 'p>: Sized + Listenable<SignalMap<'p, M>> {
+// 	fn map(&'p mut self, mapper: M) -> SignalMap<'p, M> {
+// 		SignalMap::new(mapper, self)
+// 	}
+// }
+// impl<'p, M: Mapper + 'p, S: Sized + Listenable<SignalMap<'p, M>>> Mappable<'p, M> for S {}
