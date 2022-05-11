@@ -1,6 +1,10 @@
-use std::{cell::{RefCell, Cell}, collections::{BTreeMap}, task::Waker};
+use std::{
+	cell::{Cell, RefCell},
+	collections::BTreeMap,
+	task::Waker,
+};
 
-use self::{leaf::{LeafAddress}, version::Version};
+use self::{leaf::LeafAddress, version::Version};
 
 mod leaf {
 	use std::pin::Pin;
@@ -9,13 +13,13 @@ mod leaf {
 	pub struct LeafAddress(*const Untyped);
 	impl LeafAddress {
 		pub fn new<T>(address: Pin<&T>) -> Self {
-			Self (address.get_ref() as *const T as *const Untyped)
+			Self(address.get_ref() as *const T as *const Untyped)
 		}
 	}
 }
 
 mod version {
-    use std::cell::Cell;
+	use std::cell::Cell;
 
 	pub struct Version(Cell<usize>);
 
@@ -30,8 +34,7 @@ mod version {
 			if other.0 > self.0 {
 				self.0.set(other.0.get());
 				true
-			}
-			else {
+			} else {
 				false
 			}
 		}
@@ -39,13 +42,16 @@ mod version {
 }
 
 pub struct SubManager {
-    leaves: RefCell<BTreeMap<LeafAddress, Waker>>,
-	version: Version
+	leaves: RefCell<BTreeMap<LeafAddress, Waker>>,
+	version: Version,
 }
 
 impl SubManager {
 	pub fn new() -> Self {
-		Self { leaves: Default::default(), version: Version::new() }
+		Self {
+			leaves: Default::default(),
+			version: Version::new(),
+		}
 	}
 	pub fn add_leaf(&self, address: LeafAddress, waker: Waker) {
 		self.leaves.borrow_mut().insert(address, waker);

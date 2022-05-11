@@ -7,11 +7,12 @@ use std::{
 
 use crate::{Listenable, Pushable};
 
+use super::ManagedParent;
+
 pub struct SignalDedupeHash<'p, C: Hash + 'p> {
-	parent: &'p (dyn Listenable<Self> + 'p),
+	parent: ManagedParent<'p, Self>,
 	listener: RefCell<Option<*const dyn for<'x> Pushable<&'x C>>>,
 	cache: Cell<Option<u64>>,
-	_pin: PhantomPinned,
 }
 
 impl<'p, C: Hash + 'p> SignalDedupeHash<'p, C> {
@@ -19,10 +20,9 @@ impl<'p, C: Hash + 'p> SignalDedupeHash<'p, C> {
 		parent: &'p (dyn Listenable<Self> + 'p),
 	) -> Self {
 		Self {
-			parent,
+			parent: ManagedParent::new(parent),
 			listener: Default::default(),
 			cache: Default::default(),
-			_pin: PhantomPinned,
 		}
 	}
 }
@@ -46,9 +46,6 @@ impl<'p, C: Hash + 'p> Pushable<C> for SignalDedupeHash<'p, C> {
 		}
 		self.cache.set(Some(hash));
 	}
-	unsafe fn add_to_parent(&self) {
-		unsafe { self.parent.add_listener(self) };
-	}
 }
 
 impl<'v, 'p, C: Hash + 'p, V: for<'x> Pushable<&'x C> + 'v> Listenable<V>
@@ -62,10 +59,12 @@ impl<'v, 'p, C: Hash + 'p, V: for<'x> Pushable<&'x C> + 'v> Listenable<V>
 		let transmuted: *const (dyn for<'x> Pushable<&'x C> + 'static) =
 			unsafe { std::mem::transmute(coerced) };
 		*self.listener.borrow_mut() = Some(transmuted);
+		unsafe{self.parent.enable(self)};
 		0
 	}
 	unsafe fn remove_listener<'s, 'z>(&'s self, _key:usize) {
 		*self.listener.borrow_mut() = None;
+		unsafe {self.parent.disable()};
 	}
 }
 

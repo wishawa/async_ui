@@ -1,8 +1,14 @@
 #![feature(generic_associated_types)]
 
-use std::{ops::{Index, Range}, marker::PhantomData};
+use std::{
+	marker::PhantomData,
+	ops::{Index, Range},
+};
 
-use async_ui_signals::{nodes::{Mapper, SignalCached, SignalCell, SignalMap}, Visitable};
+use async_ui_signals::{
+	nodes::{Mapper, SignalCached, SignalCell, SignalMap},
+	Visitable,
+};
 
 fn main() {
 	let s = String::from("hello world");
@@ -35,7 +41,8 @@ fn main() {
 		type Output<'o> = T::Owned where Self: 'o;
 		fn map<'m, 's>(&'s self, input: Self::Input<'m>) -> Self::Output<'m>
 		where
-				Self: 'm {
+			Self: 'm,
+		{
 			input.to_owned()
 		}
 	}

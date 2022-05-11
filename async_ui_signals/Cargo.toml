@@ -9,3 +9,4 @@ edition = "2021"
 pin-project-lite = "0.2.8"
 async_ui_core = { path = "../async_ui_core/" }
 futures = "0.3.21"
+slab = "0.4.5"

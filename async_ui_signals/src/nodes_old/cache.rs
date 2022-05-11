@@ -2,11 +2,12 @@ use std::{cell::RefCell, marker::PhantomPinned};
 
 use crate::{Listenable, Pushable};
 
+use super::ManagedParent;
+
 pub struct SignalCache<'p, C> {
-	parent: &'p (dyn Listenable<Self> + 'p),
+	parent: ManagedParent<'p, Self>,
 	listener: RefCell<Option<*const dyn for<'x> Pushable<&'x C>>>,
 	cache: RefCell<Option<C>>,
-	_pin: PhantomPinned
 }
 
 impl<'p, C> SignalCache<'p, C> {
@@ -14,8 +15,7 @@ impl<'p, C> SignalCache<'p, C> {
 		Self {
 			cache: Default::default(),
 			listener: Default::default(),
-			parent,
-			_pin: PhantomPinned
+			parent: ManagedParent::new(parent),
 		}
 	}
 }
@@ -32,10 +32,12 @@ where
 		let transmuted: *const (dyn for<'x> Pushable<&'x C> + 'static) =
 			unsafe { std::mem::transmute(coerced) };
 		*self.listener.borrow_mut() = Some(transmuted);
+		unsafe{self.parent.enable(self)};
 		0
 	}
 	unsafe fn remove_listener<'s, 'z>(&'s self, _key:usize) {
 		*self.listener.borrow_mut() = None;
+		unsafe {self.parent.disable()};
 	}
 }
 
@@ -47,9 +49,6 @@ impl<'p, C> Pushable<C> for SignalCache<'p, C> {
 			let listener = unsafe { &**listener };
 			listener.push(reference);
 		}
-	}
-	unsafe fn add_to_parent(&self) {
-		unsafe { self.parent.add_listener(self) };
 	}
 }
 

@@ -2,17 +2,15 @@ use std::{marker::{PhantomPinned}, cell::RefCell};
 
 use crate::{Listenable, Pushable, mapper::Mapper};
 
-
+use super::ManagedParent;
 
 pub struct SignalMap<'p, M>
 where
 	M: Mapper + 'p,
 {
-	
-	parent: &'p (dyn Listenable<Self> + 'p),
+	parent: ManagedParent<'p, Self>,
 	listener: RefCell<Option<*const dyn for<'x> Pushable<M::Output<'x>>>>,
 	mapper: M,
-	_pin: PhantomPinned
 }
 
 impl<'p, M> SignalMap<'p, M>
@@ -24,15 +22,14 @@ where
 		P: Listenable<Self> + 'p,
 	{
 		Self {
-			parent,
+			parent: ManagedParent::new(parent),
 			listener: Default::default(),
 			mapper,
-			_pin: PhantomPinned
 		}
 	}
 }
 
-impl<'v, 'p, M, V> Listenable<V> for SignalMap<'p, M>
+impl<'p, 'v, M, V> Listenable<V> for SignalMap<'p, M>
 where
 	M: Mapper + 'p,
 	V: for<'x> Pushable<M::Output<'x>> + 'v,
@@ -62,9 +59,6 @@ where
 			let listener = unsafe { &**listener };
 			listener.push(output);
 		}
-	}
-	unsafe fn add_to_parent(&self) {
-		unsafe { self.parent.add_listener(self) };
 	}
 }
 
