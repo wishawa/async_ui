@@ -1,15 +1,15 @@
 use std::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
+	future::Future,
+	pin::Pin,
+	task::{Context, Poll},
 };
 
 pub struct Race<F> {
-    futures: F,
+	futures: F,
 }
 pub struct Join<F, O> {
-    futures: F,
-    outputs: O,
+	futures: F,
+	outputs: O,
 }
 
 macro_rules! make_tuples {

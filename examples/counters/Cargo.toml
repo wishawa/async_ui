@@ -13,6 +13,7 @@ async_ui_utils = { path = "../../async_ui_utils/" }
 async_ui_web = { path = "../../async_ui_web/" }
 async_ui_web_html = { path = "../../async_ui_web_html/" }
 async_ui_reactive = { path = "../../async_ui_reactive/" }
+async_ui_signals = { path = "../../async_ui_signals/" }
 console_error_panic_hook = "0.1.6"
 wasm-bindgen-futures = "0.4.29"
 

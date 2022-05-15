@@ -13,7 +13,6 @@ pin-project-lite = "0.2.8"
 smallvec = { version = "1.8.0", features = ["const_generics", "const_new", "union"] }
 scoped-tls = "1.0.0"
 lazy_static = "1.4.0"
-enum_dispatch = "0.3.8"
 futures = "0.3.21"
 scopeguard = "1.1.0"
 async-executor = "1.4.1"

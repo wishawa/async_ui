@@ -3,83 +3,83 @@ use async_ui_web::manual_apis::WebSpawner;
 use futures::Future;
 use js_sys::Function;
 use std::{
-    cell::RefCell,
-    rc::Rc,
-    task::{Poll, Waker},
+	cell::RefCell,
+	rc::Rc,
+	task::{Poll, Waker},
 };
 use wasm_bindgen::{prelude::Closure, JsCast};
 use web_sys::HtmlElement;
 
 macro_rules! impl_event_handler {
-    ($name:ident, $evtype:ty) => {
-        paste::paste! {
-            impl<'a, H: HtmlTag + 'a> Elem<'a, H>
-            {
-                pub fn [<$name:snake>]<F: FnMut(web_sys::$evtype) + 'a>(mut self, mut callback: F) -> Self {
-                    let (tx, rx) = create_channel();
-                    let clos: Closure<dyn FnMut(_)> = Closure::wrap(Box::new(move |e: web_sys::$evtype| {
-                        tx.send(e);
-                        WebSpawner::wake_now();
-                    }) as Box<dyn FnMut(_)>);
-                    let func: &Function = clos.as_ref().unchecked_ref();
-                    let elem: &HtmlElement = self.elem.as_ref();
-                    elem.[<set_ $name:lower>](Some(func));
-                    self.asyncs.push(Box::pin(async move {
-                        let _clos = clos;
-                        let recv = rx;
-                        loop {
-                            let ev = recv.clone().await;
-                            callback(ev);
-                        }
-                    }));
-                    self
-                }
-            }
-        }
-    };
+	($name:ident, $evtype:ty) => {
+		paste::paste! {
+			impl<'a, H: HtmlTag + 'a> Elem<'a, H>
+			{
+				pub fn [<$name:snake>]<F: FnMut(web_sys::$evtype) + 'a>(mut self, mut callback: F) -> Self {
+					let (tx, rx) = create_channel();
+					let clos: Closure<dyn FnMut(_)> = Closure::wrap(Box::new(move |e: web_sys::$evtype| {
+						tx.send(e);
+						WebSpawner::wake_now();
+					}) as Box<dyn FnMut(_)>);
+					let func: &Function = clos.as_ref().unchecked_ref();
+					let elem: &HtmlElement = self.elem.as_ref();
+					elem.[<set_ $name:lower>](Some(func));
+					self.asyncs.push(Box::pin(async move {
+						let _clos = clos;
+						let recv = rx;
+						loop {
+							let ev = recv.clone().await;
+							callback(ev);
+						}
+					}));
+					self
+				}
+			}
+		}
+	};
 }
 type ChannelInner<E> = Rc<RefCell<(Option<E>, Option<Waker>)>>;
 #[derive(Clone)]
 struct ChannelRx<E> {
-    inner: ChannelInner<E>,
+	inner: ChannelInner<E>,
 }
 struct ChannelTx<E> {
-    inner: ChannelInner<E>,
+	inner: ChannelInner<E>,
 }
 impl<E> ChannelTx<E> {
-    fn send(&self, val: E) {
-        let mut bm = self.inner.borrow_mut();
-        bm.0 = Some(val);
-        if let Some(waker) = bm.1.take() {
-            waker.wake()
-        }
-    }
+	fn send(&self, val: E) {
+		let mut bm = self.inner.borrow_mut();
+		bm.0 = Some(val);
+		if let Some(waker) = bm.1.take() {
+			waker.wake()
+		}
+	}
 }
 fn create_channel<E>() -> (ChannelTx<E>, ChannelRx<E>) {
-    let inner = Rc::new(RefCell::new((None, None)));
-    (
-        ChannelTx {
-            inner: inner.clone(),
-        },
-        ChannelRx { inner },
-    )
+	let inner = Rc::new(RefCell::new((None, None)));
+	(
+		ChannelTx {
+			inner: inner.clone(),
+		},
+		ChannelRx { inner },
+	)
 }
 impl<E> Future for ChannelRx<E> {
-    type Output = E;
-    fn poll(
-        self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Self::Output> {
-        let mut bm = self.inner.borrow_mut();
-        if let Some(v) = bm.0.take() {
-            Poll::Ready(v)
-        } else {
-            if bm.1.is_none() {
-                bm.1 = Some(cx.waker().to_owned());
-            }
-            Poll::Pending
-        }
-    }
+	type Output = E;
+	fn poll(
+		self: std::pin::Pin<&mut Self>,
+		cx: &mut std::task::Context<'_>,
+	) -> std::task::Poll<Self::Output> {
+		let mut bm = self.inner.borrow_mut();
+		if let Some(v) = bm.0.take() {
+			Poll::Ready(v)
+		} else {
+			if bm.1.is_none() {
+				bm.1 = Some(cx.waker().to_owned());
+			}
+			Poll::Pending
+		}
+	}
 }
 // Sources:
 // https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers
