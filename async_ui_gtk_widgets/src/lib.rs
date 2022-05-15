@@ -1,10 +1,9 @@
 mod connect;
 mod containers;
 mod elem;
-mod list_view;
-pub use elem::{Wrappable, WrappedWidget};
-pub use list_view::{list_view, ListViewItems};
+pub use elem::WrappedWidget;
 mod widgets;
+pub use widgets::*;
 // use std::future::pending;
 
 // use async_ui_gtk::manual_apis::put_node;
@@ -13,9 +12,9 @@ mod widgets;
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
+	#[test]
+	fn it_works() {
+		let result = 2 + 2;
+		assert_eq!(result, 4);
+	}
 }
