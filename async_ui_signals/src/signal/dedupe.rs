@@ -5,11 +5,11 @@ use std::{
 
 use crate::{
 	ext::UnsizeSignal,
-	lifetimed::{Borrowed, CovariantlyLifetimed, Lifetimed},
+	lifetimed::{Borrowed, LifetimedCovariant, Lifetimed},
 };
 
 use super::{
-	map::{map, PushNext},
+	map::{map, MapTo},
 	Signal,
 };
 
@@ -21,7 +21,7 @@ where
 	for<'x> L::Value<'x>: Into<C>,
 {
 	let mut state: Option<C> = None;
-	let mapper = move |inp: L::Value<'_>, next: PushNext<'_, Borrowed<C>>| {
+	let mapper = move |inp: L::Value<'_>, next: MapTo<'_, Borrowed<C>>| {
 		let converted: C = inp.into();
 		match state.as_ref() {
 			Some(old) if old == &converted => {}
@@ -36,12 +36,12 @@ where
 
 pub fn dedupe_by_hash<'p, S, L>(signal: &'p S) -> impl Signal<L> + 'p
 where
-	L: CovariantlyLifetimed + 'p,
+	L: LifetimedCovariant + 'p,
 	S: ?Sized + UnsizeSignal<L>,
 	for<'x> L::Value<'x>: Hash,
 {
 	let mut last_hash: Option<u64> = None;
-	let mapper = move |inp: L::Value<'_>, next: PushNext<'_, L>| {
+	let mapper = move |inp: L::Value<'_>, next: MapTo<'_, L>| {
 		let mut hasher = DefaultHasher::new();
 		inp.hash(&mut hasher);
 		let hash = hasher.finish();

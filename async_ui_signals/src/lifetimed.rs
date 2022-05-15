@@ -15,12 +15,12 @@ impl<T> Lifetimed for Owned<T> {
 	type Value<'v> = T where Self: 'v;
 }
 
-pub trait CovariantlyLifetimed: Lifetimed {
+pub trait LifetimedCovariant: Lifetimed {
 	fn shorten<'s, 'l: 's>(current: Self::Value<'l>) -> Self::Value<'s>
 	where
 		Self: 'l + 's;
 }
-impl<T: ?Sized> CovariantlyLifetimed for Borrowed<T> {
+impl<T: ?Sized> LifetimedCovariant for Borrowed<T> {
 	fn shorten<'s, 'l: 's>(current: Self::Value<'l>) -> Self::Value<'s>
 	where
 		Self: 'l + 's,
@@ -28,7 +28,7 @@ impl<T: ?Sized> CovariantlyLifetimed for Borrowed<T> {
 		current
 	}
 }
-impl<T> CovariantlyLifetimed for Owned<T> {
+impl<T> LifetimedCovariant for Owned<T> {
 	fn shorten<'s, 'l: 's>(current: Self::Value<'l>) -> Self::Value<'s>
 	where
 		Self: 'l + 's,

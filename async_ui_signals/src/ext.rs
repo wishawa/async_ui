@@ -1,6 +1,8 @@
+use std::hash::Hash;
+
 use crate::{
 	lifetimed::{Borrowed, Lifetimed, Owned},
-	signal::Signal,
+	signal::{Signal, map::{map, MapTo}, dedupe::{dedupe_by_hash, dedupe}},
 };
 
 pub trait UnsizeSignal<L>
@@ -29,17 +31,19 @@ where
 	}
 }
 
-// fn test(sig: &mut dyn Signal<Borrowed<str>>) {
-// 	let mut mapped1 = sig.map(|inp, next: PushNext<Borrowed<str>>| {
+fn test(sig: &mut dyn Signal<Borrowed<str>>) {
+	let mut mapped1 = map(sig, |inp, next: MapTo<Borrowed<str>>| {
 
-// 	});
-// 	let mut mapped2 = mapped1.map(|inp, next: PushNext<Borrowed<[u8]>>| {
+	});
+	let mut mapped2 = map(&mut mapped1, |inp, next: MapTo<Borrowed<[u8]>>| {
 
-// 	});
-// 	let mut mapped3 = mapped2.map(|inp, next: PushNext<Owned<i32>>| {
+	});
+	let mut mapped3 = map(&mut mapped2, |inp, next: MapTo<Owned<i32>>| {
 
-// 	});
-// 	let mut mapped4 = mapped3.map(|inp, next: PushNext<Owned<()>>| {
+	});
+	let mut deduped = dedupe_by_hash::<'_, _, Owned<i32>>(&mut mapped3);
+	let mut deduped = dedupe::<'_, _, _, i32>(&mut deduped);
+	let mut mapped4 = map(&mut deduped, |inp, next: MapTo<Owned<()>>| {
 
-// 	});
-// }
+	});
+}
