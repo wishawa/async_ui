@@ -1,6 +1,6 @@
 #![deny(unsafe_op_in_unsafe_fn)]
-mod pointer;
 pub mod boxed;
+mod pointer;
 
 use std::{
     future::Future,
@@ -148,8 +148,7 @@ impl<F: Future, S: Fn(RemoteStaticFuture) -> O, O> Future for SpawnedFuture<F, S
                         *state = CreatedState::Spawned {
                             local_waker: cx.waker().to_owned(),
                         };
-                        let remote = unsafe { RemoteStaticFuture::new(this.remote.remote.clone()) };
-                        remote
+                        unsafe { RemoteStaticFuture::new(this.remote.remote.clone()) }
                     }
                     CreatedState::Spawned { .. } => return Poll::Pending,
                 },

@@ -1,6 +1,6 @@
 use std::{pin::Pin, task::Poll};
 
-use futures::{Stream, Future};
+use futures::{Future, Stream};
 
 use crate::Observable;
 
@@ -44,19 +44,19 @@ impl<'a, T> Future for ObserveOnce<'a, T> {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
-		use futures::StreamExt;
+        use futures::StreamExt;
         self.get_mut().stream.poll_next_unpin(cx).map(|_| ())
     }
 }
 impl<T> Observable<T> {
-    pub fn stream_change<'a>(&'a self) -> ObserveStream<'a, T> {
+    pub fn stream_change(&self) -> ObserveStream<'_, T> {
         ObserveStream {
             observable: self,
             key: None,
             version: self.inner.borrow().version,
         }
     }
-    pub fn until_next_change<'a>(&'a self) -> ObserveOnce<'a, T> {
+    pub fn until_next_change(&self) -> ObserveOnce<'_, T> {
         ObserveOnce {
             stream: self.stream_change(),
         }
