@@ -1,5 +1,8 @@
 [workspace]
 members = [
+	"async_ui_core/",
+	"async_ui_futures/",
+	"async_ui_web/",
 	"observables/",
 	"scoped_async_spawn/"
 ]

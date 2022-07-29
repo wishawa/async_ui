@@ -1,0 +1,16 @@
+[package]
+name = "async_ui_core"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scoped_async_spawn = { path = "../scoped_async_spawn/" }
+async_ui_futures = { path = "../async_ui_futures/" }
+async-task = "4.3.0"
+async-executor = "1.4.1"
+pin-project-lite = "0.2.9"
+smallvec = "1.9.0"
+enum_dispatch = "0.3.8"
+scoped-tls = "1.0.0"

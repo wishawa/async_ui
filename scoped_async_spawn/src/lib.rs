@@ -1,6 +1,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 pub mod boxed;
 mod pointer;
+mod scope;
 
 use std::{
     future::Future,
@@ -13,32 +14,25 @@ use std::{
 use pin_cell::{PinCell, PinMut};
 use pin_project_lite::pin_project;
 use pointer::Pointer;
-use scoped_tls::scoped_thread_local;
+use scope::check_scope;
+pub use scope::GiveUnforgettableScope;
 
-scoped_thread_local!(static UNFORGETTABLE_SCOPE: Pointer);
 pin_project! {
-    pub struct GiveUnforgettableScope<F: Future> {
-        #[pin] fut: F,
+    #[project = InnerProject]
+    enum Inner<F: Future> {
+        Created {
+            #[pin] fut: GiveUnforgettableScope<F>,
+            state: CreatedState
+        },
+        Finished {
+            out: Option<F::Output>
+        },
+        Aborted
     }
 }
-impl<F: Future> Future for GiveUnforgettableScope<F> {
-    type Output = F::Output;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
-        let fut_ref: &F = &self.as_ref().fut;
-        let fut_ptr = Pointer::new(fut_ref);
-        UNFORGETTABLE_SCOPE.set(&fut_ptr, || self.project().fut.poll(cx))
-    }
-}
-impl<F: Future + 'static> GiveUnforgettableScope<F> {
-    pub fn new_static(fut: F) -> Self {
-        unsafe { Self::new(fut) }
-    }
-}
-impl<F: Future> GiveUnforgettableScope<F> {
-    unsafe fn new(fut: F) -> Self {
-        Self { fut }
-    }
+enum CreatedState {
+    NotYetPinned,
+    Pinned { local_waker: Waker },
 }
 
 impl<F: Future> Future for Inner<F> {
@@ -51,7 +45,7 @@ impl<F: Future> Future for Inner<F> {
                 CreatedState::NotYetPinned => {
                     unreachable!("Cannot be spawned before pinned.");
                 }
-                CreatedState::Spawned { local_waker } => match fut.poll(cx) {
+                CreatedState::Pinned { local_waker } => match fut.poll(cx) {
                     Poll::Ready(res) => {
                         let waker = local_waker.to_owned();
                         self.set(Inner::Finished { out: Some(res) });
@@ -141,16 +135,16 @@ impl<F: Future, S: Fn(RemoteStaticFuture) -> O, O> Future for SpawnedFuture<F, S
             match bm.project() {
                 InnerProject::Created { state, .. } => match state {
                     CreatedState::NotYetPinned => {
-                        let in_scope = UNFORGETTABLE_SCOPE.with(|sc| sc.contains(here));
+                        let in_scope = check_scope(here);
                         if !in_scope {
                             panic!("Not in scope.");
                         }
-                        *state = CreatedState::Spawned {
+                        *state = CreatedState::Pinned {
                             local_waker: cx.waker().to_owned(),
                         };
                         unsafe { RemoteStaticFuture::new(this.remote.remote.clone()) }
                     }
-                    CreatedState::Spawned { .. } => return Poll::Pending,
+                    CreatedState::Pinned { .. } => return Poll::Pending,
                 },
                 InnerProject::Finished { out } => {
                     if let Some(res) = out.take() {
@@ -168,24 +162,6 @@ impl<F: Future, S: Fn(RemoteStaticFuture) -> O, O> Future for SpawnedFuture<F, S
         *this.task = Some(task);
         Poll::Pending
     }
-}
-
-pin_project! {
-    #[project = InnerProject]
-    enum Inner<F: Future> {
-        Created {
-            #[pin] fut: GiveUnforgettableScope<F>,
-            state: CreatedState
-        },
-        Finished {
-            out: Option<F::Output>
-        },
-        Aborted
-    }
-}
-enum CreatedState {
-    NotYetPinned,
-    Spawned { local_waker: Waker },
 }
 
 #[cfg(test)]

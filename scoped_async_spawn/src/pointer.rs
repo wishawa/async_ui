@@ -5,10 +5,10 @@ pub struct Pointer {
     size: usize,
 }
 impl Pointer {
-    pub fn new<T>(ptr: &T) -> Self {
+    pub fn new<T: ?Sized>(ptr: &T) -> Self {
         Self {
             start: ptr as *const T as *const Empty,
-            size: std::mem::size_of::<T>(),
+            size: std::mem::size_of_val(ptr),
         }
     }
     pub fn contains(&self, other: Pointer) -> bool {
