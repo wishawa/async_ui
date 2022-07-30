@@ -1,48 +1,42 @@
-use async_ui_core::{backend::BackendTrait, VNode};
-use executor::set_executor_future;
-use scoped_tls::{scoped_thread_local, ScopedKey};
-use std::{future::Future, rc::Rc};
-use wasm_bindgen::UnwrapThrowExt;
-use web_sys::Node;
+use async_ui_core::children::Children as ChildrenBase;
+use backend::Backend;
 
+pub mod backend;
 pub mod executor;
 
-pub struct Backend;
-impl BackendTrait for Backend {
-    type Node = Node;
+pub type Children<'c> = ChildrenBase<'c, Backend>;
 
-    fn add_child_node(
-        parent: &Self::Node,
-        child: &Self::Node,
-        insert_before_sibling: Option<&Self::Node>,
-    ) {
-        parent
-            .insert_before(child, insert_before_sibling)
-            .expect_throw("insert failed");
-    }
-
-    fn del_child_node(parent: &Self::Node, child: &Self::Node) {
-        parent.remove_child(child).expect_throw("remove failed");
-    }
-    fn drive_executor<F: Future<Output = ()> + 'static>(fut: F) {
-        set_executor_future(Box::new(fut) as _);
-    }
-    fn initialize() {}
-
-    fn get_vnode_key() -> &'static ScopedKey<Rc<VNode<Self>>> {
-        &VNODE
+pub mod __for_macro {
+    pub use super::Children;
+    pub use async_ui_core::children as children_base;
+    #[macro_export]
+    macro_rules! children {
+        [$($ch:expr),*] => {
+            ({
+                let children: $crate::__for_macro::Children = $crate::__for_macro::children_base![
+                    $($ch),*
+                ];
+                children
+            })
+        };
     }
 }
 
-scoped_thread_local!(
-    static VNODE: Rc<VNode<Backend>>
-);
-
 #[cfg(test)]
 mod tests {
+    use super::children;
+
     #[test]
     fn it_works() {
         let result = 2 + 2;
         assert_eq!(result, 4);
+        async fn test(a: &str) {}
+        fn test_blocking(a: &str) {}
+        let b = String::from("hola");
+        let f = test(&b);
+        let f2 = test_blocking(&String::from("haha"));
+        let _ = async {
+            test(&String::from("hi")).await;
+        };
     }
 }

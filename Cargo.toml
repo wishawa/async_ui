@@ -4,5 +4,7 @@ members = [
 	"async_ui_futures/",
 	"async_ui_web/",
 	"observables/",
-	"scoped_async_spawn/"
+	"scoped_async_spawn/",
+	"xbow",
+	"xbow_macros/"
 ]

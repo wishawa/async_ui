@@ -1,10 +1,4 @@
-use std::{
-    future::Future,
-    marker::PhantomPinned,
-    ops::{Deref, DerefMut},
-    pin::Pin,
-    task::Poll,
-};
+use std::{future::Future, marker::PhantomPinned, ops::Deref, pin::Pin, task::Poll};
 
 use pin_project_lite::pin_project;
 
