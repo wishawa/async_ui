@@ -1,13 +1,16 @@
 mod child;
-use std::{future::Future, pin::Pin, task::Poll};
+use std::{future::Future, pin::Pin, rc::Rc, task::Poll};
 
 use pin_project_lite::pin_project;
 use scoped_async_spawn::boxed::ScopeSafeBox;
 
-use crate::backend::BackendTrait;
+use crate::{
+    backend::BackendTrait,
+    vnode::{PassVNode, VNode},
+};
 use child::PreSpawnChild;
 
-pub mod for_macro {
+pub mod __for_macro {
     pub use super::child::PreSpawnChild;
     pub use super::Children;
     pub use scoped_async_spawn::{boxed::ScopeSafeBox, SpawnedFuture};
@@ -15,9 +18,9 @@ pub mod for_macro {
     #[macro_export]
     macro_rules! children {
         [$($ch:expr),*] => {
-            $crate::for_macro::Children::from(::std::vec![
+            $crate::__for_macro::Children::from(::std::vec![
                 $(
-                    $crate::for_macro::PreSpawnChild::new($ch)
+                    $crate::__for_macro::PreSpawnChild::new($ch)
                 ),*
             ])
         };
@@ -31,7 +34,7 @@ pin_project! {
             futures: Vec<PreSpawnChild<'c, B>>,
         },
         Polled {
-            // TODO:	The dyn Fuuture here is always SpawnedFuture, which has fixed size.
+            // TODO:	The dyn Future here is always SpawnedFuture, which has fixed size.
             // 			Ideally we would avoid the double indirection.
             #[pin] futures: ScopeSafeBox<[ScopeSafeBox<dyn Future<Output = ()> + 'c>]>,
             been_polled: bool
@@ -61,7 +64,12 @@ impl<'c, B: BackendTrait> Future for Children<'c, B> {
                 let futures = ScopeSafeBox::from_boxed(
                     std::mem::take(futures)
                         .into_iter()
-                        .map(|ele| ele.convert(B::get_vnode_key().with(Clone::clone)))
+                        .enumerate()
+                        .map(|(idx, ele)| {
+                            ele.convert(B::get_vnode_key().with(|parent_vnode| {
+                                Rc::new(VNode::Pass(PassVNode::new(Rc::clone(parent_vnode), idx)))
+                            }))
+                        })
                         .collect(),
                 );
                 outer_this.inner.set(ChildrenInner::Polled {

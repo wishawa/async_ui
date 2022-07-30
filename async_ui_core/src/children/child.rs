@@ -8,7 +8,7 @@ use std::{
 use pin_project_lite::pin_project;
 use scoped_async_spawn::{boxed::ScopeSafeBox, SpawnedFuture};
 
-use crate::{backend::BackendTrait, executor::spawn_local, VNode};
+use crate::{backend::BackendTrait, executor::spawn_local, vnode::VNode};
 
 trait ElementFutureTrait<'c, B: BackendTrait>: Future<Output = ()> {
     fn to_dyn_spawned_future(self: Box<Self>) -> Box<dyn Future<Output = ()> + 'c>;
@@ -30,7 +30,7 @@ impl<B: BackendTrait, F: Future<Output = ()>> Future for ElementFuture<B, F> {
             .vnode
             .as_ref()
             .expect("VNode should have been set before mount");
-        B::get_vnode_key().set(&*vn, || this.fut.poll(cx))
+        B::get_vnode_key().set(vn, || this.fut.poll(cx))
     }
 }
 

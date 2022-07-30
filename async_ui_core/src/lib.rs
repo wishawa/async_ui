@@ -1,13 +1,12 @@
 #![feature(into_future)]
 pub mod backend;
 pub use mount::mount;
-mod children;
+pub mod children;
 mod executor;
-mod mount;
+pub mod mount;
 mod position;
-mod vnode;
-pub use children::for_macro;
-pub use vnode::VNode;
+pub mod vnode;
+pub use children::__for_macro;
 
 #[cfg(test)]
 mod tests {

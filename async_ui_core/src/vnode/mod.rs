@@ -12,7 +12,8 @@ trait VNodeTrait<B: BackendTrait> {
     fn del_child_node(&self, position: PositionIndex);
 }
 
-#[enum_dispatch(VNodeTrait)]
+#[enum_dispatch(VNodeTrait<B>)]
 pub enum VNode<B: BackendTrait> {
-    NodeVNode(ConcreteNodeVNode<B>),
+    ConcreteNode(ConcreteNodeVNode<B>),
+    Pass(PassVNode<B>),
 }

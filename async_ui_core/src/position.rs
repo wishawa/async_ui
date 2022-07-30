@@ -27,11 +27,11 @@ impl Ord for PositionIndex {
     }
 }
 impl PositionIndex {
-    pub fn merge(mut self, other: Self) -> Self {
-        self.0.extend(other.0.into_iter());
-        self
-    }
-    pub fn nest(&mut self, index: PositionSegment) {
+    // pub fn wrap_many(mut self, other: Self) -> Self {
+    //     self.0.extend(other.0.into_iter());
+    //     self
+    // }
+    pub fn wrap(&mut self, index: PositionSegment) {
         self.0.push(index);
     }
 }
