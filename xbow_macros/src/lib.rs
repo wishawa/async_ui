@@ -5,7 +5,10 @@ use syn::DeriveInput;
 pub fn derive_project(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
     let (vis, ty, generics) = (&ast.vis, &ast.ident, &ast.generics);
-    let projection_struct_ident = Ident::new(&format!("🏹⁅{}⁆", ty.to_string()), Span::call_site());
+    let projection_struct_ident = Ident::new(
+        &format!("Ꟶ{}ⱵXBowProjection", ty.to_string()),
+        Span::call_site(),
+    );
     todo!()
 }
 #[cfg(test)]

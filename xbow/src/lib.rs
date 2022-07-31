@@ -1,138 +1,100 @@
 #![feature(generic_associated_types)]
-mod deref_wrap;
+mod borrow_output;
+mod borrowable;
+mod deref_optional;
+mod listeners;
 mod mapper;
-mod new;
+mod store;
 
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    ops::{Deref, DerefMut},
-    rc::Rc,
-};
+use borrowable::Borrowable;
+use listeners::Listeners;
+use std::{marker::PhantomData, rc::Rc};
+pub use store::{Projected, Store};
 
-use deref_wrap::DerefWrapped;
+use deref_optional::{BorrowWrapped, ProjectedDeref, ProjectedDerefMut};
 use mapper::Mapper;
-use new::New;
 pub trait EdgeTrait {
     type Data;
-    type BorrowGuard<'b>: Deref<Target = Self::Data>
+    type BorrowGuard<'b>: ProjectedDeref<Target = Self::Data>
     where
         Self: 'b;
-    type BorrowMutGuard<'b>: Deref<Target = Self::Data> + DerefMut
+    type BorrowMutGuard<'b>: ProjectedDeref<Target = Self::Data> + ProjectedDerefMut
     where
         Self: 'b;
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b>;
     fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b>;
 }
-// pub trait EdgeTrait: Clone {
-//     type Out;
-//     type Parent: NodeTrait;
-//     type ParentMapper: Mapper<In = <Self::Parent as NodeTrait>::Data, Out = Self::Out>;
-//     fn new_edge(parent: Weak<Self::Parent>) -> Self;
-//     // fn map<'s, 'b>(&'s self, parent: &'b <Self::Parent as NodeTrait>::Data) -> &'b Self::Out;
-//     // fn map_mut<'s, 'b>(
-//     //     &'s self,
-//     //     parent: &'b mut <Self::Parent as NodeTrait>::Data,
-//     // ) -> &'b mut Self::Out;
-//     fn mapper(&self) -> Self::ParentMapper;
-// }
 
-pub struct MappingEdge<P, M>
+pub struct Edge<P, M>
 where
     P: EdgeTrait,
     M: Mapper<In = P::Data> + Clone,
 {
     parent: Rc<P>,
     mapper: M,
+    listeners: Listeners,
 }
 
-impl<P, M> MappingEdge<P, M>
+impl<P, M> Edge<P, M>
 where
     P: EdgeTrait,
     M: Mapper<In = P::Data> + Clone,
 {
     pub fn new(parent: Rc<P>, mapper: M) -> Self {
-        Self { parent, mapper }
+        let listeners = Listeners::new();
+        Self {
+            parent,
+            mapper,
+            listeners,
+        }
     }
 }
 
-impl<P, M> EdgeTrait for MappingEdge<P, M>
+impl<P, M> EdgeTrait for Edge<P, M>
 where
     P: EdgeTrait,
     M: Mapper<In = P::Data> + Clone,
 {
     type Data = M::Out;
-    type BorrowGuard<'b> = DerefWrapped<P::BorrowGuard<'b>, M>
+    type BorrowGuard<'b> = BorrowWrapped<'b, P::BorrowGuard<'b>, M>
     where
         Self: 'b;
-    type BorrowMutGuard<'b> = DerefWrapped<P::BorrowMutGuard<'b>, M>
+    type BorrowMutGuard<'b> = BorrowWrapped<'b, P::BorrowMutGuard<'b>, M>
     where
         Self: 'b;
 
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
-        DerefWrapped::new(self.parent.borrow(), self.mapper.clone())
+        BorrowWrapped::new(self.parent.borrow(), self.mapper.clone(), None)
     }
 
     fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
-        DerefWrapped::new(self.parent.borrow_mut(), self.mapper.clone())
+        BorrowWrapped::new(
+            self.parent.borrow_mut(),
+            self.mapper.clone(),
+            Some(&self.listeners),
+        )
     }
 }
 pub trait Projectable<T>: EdgeTrait<Data = T> {
-    type Projection: New<Arg = Rc<Self>>;
+    type Projection: Borrowable<Edge = Self>;
 }
-pub type Project<T, E> = <E as Projectable<T>>::Projection;
-pub struct Store<T> {
-    data: RefCell<T>,
-}
-
-impl<T> Store<T>
-where
-    Store<T>: Projectable<T>,
-{
-    pub fn new(data: T) -> Rc<Self> {
-        Rc::new(Self {
-            data: RefCell::new(data),
-        })
-    }
-    pub fn project(self: &Rc<Self>) -> Project<T, Store<T>> {
-        New::new(self.clone())
-    }
-}
-impl<T> EdgeTrait for Store<T> {
-    type Data = T;
-    type BorrowGuard<'b> = Ref<'b, T>
-    where
-        Self: 'b;
-    type BorrowMutGuard<'b> = RefMut<'b, T>
-    where
-        Self: 'b;
-    fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
-        self.data.borrow()
-    }
-
-    fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
-        self.data.borrow_mut()
-    }
-}
-
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+pub type ProjectedPart<T, E> = <E as Projectable<T>>::Projection;
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+    fn it_works() {}
 }
 
 mod playground {
-    use std::rc::{Rc, Weak};
+    use std::rc::Rc;
 
-    use super::{mapper::Mapper, new::New, MappingEdge, Project, Projectable, Store};
+    use crate::borrowable::Borrowable;
+    use crate::{POption, Projected, ProjectedPart};
+
+    use super::{mapper::Mapper, Edge, Projectable, Store};
 
     use super::EdgeTrait;
 
@@ -142,27 +104,31 @@ mod playground {
     }
     struct InnerStruct {
         i1: bool,
+        i2: Option<bool>,
     }
 
     struct PMyStruct<P>
     where
         P: EdgeTrait<Data = MyStruct>,
     {
-        pub f1: PInnerStruct<MappingEdge<P, MapperMyStateTof1>>,
+        pub f1: PInnerStruct<Edge<P, MapperMyStateTof1>>,
         incoming_edge: Rc<P>,
     }
 
-    impl<P> New for PMyStruct<P>
+    impl<P> Borrowable for PMyStruct<P>
     where
         P: EdgeTrait<Data = MyStruct>,
     {
-        type Arg = Rc<P>;
-        fn new(arg: Self::Arg) -> Self {
-            let f1 = New::new(Rc::new(MappingEdge::new(arg.clone(), MapperMyStateTof1)));
+        type Edge = P;
+        fn new(edge: Rc<P>) -> Self {
+            let f1 = Borrowable::new(Rc::new(Edge::new(edge.clone(), MapperMyStateTof1)));
             Self {
                 f1,
-                incoming_edge: arg,
+                incoming_edge: edge,
             }
+        }
+        fn edge(&self) -> &Rc<Self::Edge> {
+            &self.incoming_edge
         }
     }
     impl<E> Projectable<MyStruct> for E
@@ -177,32 +143,38 @@ mod playground {
     impl Mapper for MapperMyStateTof1 {
         type In = MyStruct;
         type Out = InnerStruct;
-        fn map<'s, 'd>(&'s self, input: &'d Self::In) -> &'d Self::Out {
-            &input.f1
+        fn map<'s, 'd>(&'s self, input: &'d Self::In) -> Option<&'d Self::Out> {
+            Some(&input.f1)
         }
-        fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> &'d mut Self::Out {
-            &mut input.f1
+        fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> Option<&'d mut Self::Out> {
+            Some(&mut input.f1)
         }
     }
     struct PInnerStruct<P>
     where
         P: EdgeTrait<Data = InnerStruct>,
     {
-        pub i1: Pbool<MappingEdge<P, MapperInnerStateToi1>>,
+        pub i1: Pbool<Edge<P, MapperInnerStateToi1>>,
+        pub i2: POption<bool, Edge<P, MapperInnerStateToi2>>,
         incoming_edge: Rc<P>,
     }
 
-    impl<N> New for PInnerStruct<N>
+    impl<N> Borrowable for PInnerStruct<N>
     where
         N: EdgeTrait<Data = InnerStruct>,
     {
-        type Arg = Rc<N>;
-        fn new(arg: Self::Arg) -> Self {
-            let i1 = New::new(Rc::new(MappingEdge::new(arg.clone(), MapperInnerStateToi1)));
+        type Edge = N;
+        fn new(edge: Rc<N>) -> Self {
+            let i1 = Borrowable::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi1)));
+            let i2 = Borrowable::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi2)));
             Self {
                 i1,
-                incoming_edge: arg,
+                i2,
+                incoming_edge: edge,
             }
+        }
+        fn edge(&self) -> &Rc<Self::Edge> {
+            &self.incoming_edge
         }
     }
     impl<E> Projectable<InnerStruct> for E
@@ -217,28 +189,45 @@ mod playground {
     impl Mapper for MapperInnerStateToi1 {
         type In = InnerStruct;
         type Out = bool;
-        fn map<'s, 'd>(&'s self, input: &'d Self::In) -> &'d Self::Out {
-            &input.i1
+        fn map<'s, 'd>(&'s self, input: &'d Self::In) -> Option<&'d Self::Out> {
+            Some(&input.i1)
         }
-        fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> &'d mut Self::Out {
-            &mut input.i1
+        fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> Option<&'d mut Self::Out> {
+            Some(&mut input.i1)
+        }
+    }
+    #[derive(Clone)]
+    struct MapperInnerStateToi2;
+    impl Mapper for MapperInnerStateToi2 {
+        type In = InnerStruct;
+        type Out = Option<bool>;
+        fn map<'s, 'd>(&'s self, input: &'d Self::In) -> Option<&'d Self::Out> {
+            Some(&input.i2)
+        }
+        fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> Option<&'d mut Self::Out> {
+            Some(&mut input.i2)
         }
     }
     pub struct Pbool<N>
     where
         N: EdgeTrait<Data = bool>,
     {
-        node: Rc<N>,
+        incoming_edge: Rc<N>,
     }
 
-    impl<N> New for Pbool<N>
+    impl<N> Borrowable for Pbool<N>
     where
         N: EdgeTrait<Data = bool>,
     {
-        type Arg = Rc<N>;
+        type Edge = N;
 
-        fn new(arg: Self::Arg) -> Self {
-            Self { node: arg }
+        fn new(edge: Rc<N>) -> Self {
+            Self {
+                incoming_edge: edge,
+            }
+        }
+        fn edge(&self) -> &Rc<Self::Edge> {
+            &self.incoming_edge
         }
     }
 
@@ -248,16 +237,69 @@ mod playground {
     {
         type Projection = Pbool<E>;
     }
+
     fn hello() {
         let data = MyStruct {
-            f1: InnerStruct { i1: false },
+            f1: InnerStruct {
+                i2: Some(true),
+                i1: false,
+            },
             f2: true,
         };
         let store = Store::new(data);
-        let proj: PMyStruct<_> = store.project();
-        let b = *proj.f1.i1.node.borrow();
-        fn take(pr: Project<MyStruct, impl EdgeTrait<Data = MyStruct>>) {
-            let b = *pr.f1.i1.node.borrow();
+        let proj = store.project();
+        let b = *proj.f1.i1.borrow().unwrap();
+        let c = &*proj.f1.borrow().unwrap();
+        take(&proj);
+        // take2(&proj.f1);
+        fn take(proj: &Projected<MyStruct>) {
+            let b = *proj.f1.i1.borrow().unwrap();
+            // take2(&proj.f1);
         }
+        fn take2(proj: &ProjectedPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
+            let a = proj.i2.borrow();
+        }
+    }
+}
+
+pub struct POption<T, N>
+where
+    Edge<N, MapperOption<T>>: Projectable<T>,
+    N: EdgeTrait<Data = Option<T>>,
+{
+    pub Some: ProjectedPart<T, Edge<N, MapperOption<T>>>,
+    incoming_edge: Rc<N>,
+}
+pub struct MapperOption<T>(PhantomData<T>);
+impl<T> Clone for MapperOption<T> {
+    fn clone(&self) -> Self {
+        Self(PhantomData)
+    }
+}
+impl<T> Mapper for MapperOption<T> {
+    type In = Option<T>;
+    type Out = T;
+    fn map<'s, 'd>(&'s self, input: &'d Self::In) -> Option<&'d Self::Out> {
+        input.as_ref()
+    }
+    fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> Option<&'d mut Self::Out> {
+        input.as_mut()
+    }
+}
+impl<T, N> Borrowable for POption<T, N>
+where
+    Edge<N, MapperOption<T>>: Projectable<T>,
+    N: EdgeTrait<Data = Option<T>>,
+{
+    type Edge = N;
+
+    fn new(edge: Rc<N>) -> Self {
+        Self {
+            Some: Borrowable::new(Rc::new(Edge::new(edge.clone(), MapperOption(PhantomData)))),
+            incoming_edge: edge,
+        }
+    }
+    fn edge(&self) -> &Rc<Self::Edge> {
+        &self.incoming_edge
     }
 }
