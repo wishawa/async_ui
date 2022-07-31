@@ -15,10 +15,13 @@ where
 {
     pub(crate) fn new(guard: G) -> Option<Self> {
         if guard.deref_optional().is_some() {
-            Some(Self { guard })
+            Some(Self::new_without_check(guard))
         } else {
             None
         }
+    }
+    pub(crate) fn new_without_check(guard: G) -> Self {
+        Self { guard }
     }
 }
 

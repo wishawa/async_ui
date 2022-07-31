@@ -1,4 +1,5 @@
 #![feature(generic_associated_types)]
+mod bool_type;
 mod borrow_output;
 mod borrowable;
 mod deref_optional;
@@ -6,6 +7,7 @@ mod listeners;
 mod mapper;
 mod store;
 
+use bool_type::{Boolean, True};
 use borrowable::Borrowable;
 use listeners::Listeners;
 use std::{marker::PhantomData, rc::Rc};
@@ -21,24 +23,28 @@ pub trait EdgeTrait {
     type BorrowMutGuard<'b>: ProjectedDeref<Target = Self::Data> + ProjectedDerefMut
     where
         Self: 'b;
+    type InEnum: Boolean;
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b>;
     fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b>;
 }
 
-pub struct Edge<P, M>
+pub struct Edge<P, M, Y>
 where
     P: EdgeTrait,
     M: Mapper<In = P::Data> + Clone,
+    Y: Boolean,
 {
     parent: Rc<P>,
     mapper: M,
     listeners: Listeners,
+    _phantom: PhantomData<Y>,
 }
 
-impl<P, M> Edge<P, M>
+impl<P, M, Y> Edge<P, M, Y>
 where
     P: EdgeTrait,
     M: Mapper<In = P::Data> + Clone,
+    Y: Boolean,
 {
     pub fn new(parent: Rc<P>, mapper: M) -> Self {
         let listeners = Listeners::new();
@@ -46,14 +52,16 @@ where
             parent,
             mapper,
             listeners,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<P, M> EdgeTrait for Edge<P, M>
+impl<P, M, Y> EdgeTrait for Edge<P, M, Y>
 where
     P: EdgeTrait,
     M: Mapper<In = P::Data> + Clone,
+    Y: Boolean,
 {
     type Data = M::Out;
     type BorrowGuard<'b> = BorrowWrapped<'b, P::BorrowGuard<'b>, M>
@@ -62,6 +70,7 @@ where
     type BorrowMutGuard<'b> = BorrowWrapped<'b, P::BorrowMutGuard<'b>, M>
     where
         Self: 'b;
+    type InEnum = Y;
 
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         BorrowWrapped::new(self.parent.borrow(), self.mapper.clone(), None)
@@ -91,7 +100,7 @@ mod tests {
 mod playground {
     use std::rc::Rc;
 
-    use crate::borrowable::Borrowable;
+    use crate::borrowable::{Borrowable, BorrowableGuaranteed};
     use crate::{POption, Projected, ProjectedPart};
 
     use super::{mapper::Mapper, Edge, Projectable, Store};
@@ -111,7 +120,7 @@ mod playground {
     where
         P: EdgeTrait<Data = MyStruct>,
     {
-        pub f1: PInnerStruct<Edge<P, MapperMyStateTof1>>,
+        pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::InEnum>>,
         incoming_edge: Rc<P>,
     }
 
@@ -154,8 +163,8 @@ mod playground {
     where
         P: EdgeTrait<Data = InnerStruct>,
     {
-        pub i1: Pbool<Edge<P, MapperInnerStateToi1>>,
-        pub i2: POption<bool, Edge<P, MapperInnerStateToi2>>,
+        pub i1: Pbool<Edge<P, MapperInnerStateToi1, P::InEnum>>,
+        pub i2: POption<bool, Edge<P, MapperInnerStateToi2, P::InEnum>>,
         incoming_edge: Rc<P>,
     }
 
@@ -248,26 +257,30 @@ mod playground {
         };
         let store = Store::new(data);
         let proj = store.project();
-        let b = *proj.f1.i1.borrow().unwrap();
-        let c = &*proj.f1.borrow().unwrap();
+        let b = *proj.f1.i1.borrow_opt().unwrap();
+        let c = &*proj.f1.borrow_opt().unwrap();
+        let b = &*proj.f1.borrow();
+        let b = &*proj.f1.i2.borrow();
+        let b = &proj.f1.i2.Some;
+        // let b = *proj.f1.i2.Some.borrow_opt().unwrap();
         take(&proj);
         // take2(&proj.f1);
         fn take(proj: &Projected<MyStruct>) {
-            let b = *proj.f1.i1.borrow().unwrap();
+            let b = *proj.f1.i1.borrow_opt().unwrap();
             // take2(&proj.f1);
         }
         fn take2(proj: &ProjectedPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
-            let a = proj.i2.borrow();
+            let a = proj.i2.borrow_opt();
         }
     }
 }
 
 pub struct POption<T, N>
 where
-    Edge<N, MapperOption<T>>: Projectable<T>,
+    Edge<N, MapperOption<T>, True>: Projectable<T>,
     N: EdgeTrait<Data = Option<T>>,
 {
-    pub Some: ProjectedPart<T, Edge<N, MapperOption<T>>>,
+    pub Some: ProjectedPart<T, Edge<N, MapperOption<T>, True>>,
     incoming_edge: Rc<N>,
 }
 pub struct MapperOption<T>(PhantomData<T>);
@@ -288,7 +301,7 @@ impl<T> Mapper for MapperOption<T> {
 }
 impl<T, N> Borrowable for POption<T, N>
 where
-    Edge<N, MapperOption<T>>: Projectable<T>,
+    Edge<N, MapperOption<T>, True>: Projectable<T>,
     N: EdgeTrait<Data = Option<T>>,
 {
     type Edge = N;

@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    bool_type::False,
     borrowable::Borrowable,
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
     mapper::Mapper,
@@ -26,7 +27,7 @@ impl<T> Mapper for NoOpMapper<T> {
         Some(input)
     }
 }
-type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>>;
+type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, False>;
 pub type Projected<T> = ProjectedPart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
@@ -53,6 +54,8 @@ impl<T> EdgeTrait for Store<T> {
     type BorrowMutGuard<'b> = RefMut<'b, T>
     where
         Self: 'b;
+
+    type InEnum = False;
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         self.data.borrow()
     }
