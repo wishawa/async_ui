@@ -5,10 +5,10 @@ use std::{
 };
 
 use crate::{
-    bool_type::False,
-    borrowable::Borrowable,
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
+    in_enum::InEnumNo,
     mapper::Mapper,
+    projection::Projection,
     Edge, EdgeTrait, Projectable, ProjectedPart,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
@@ -27,7 +27,7 @@ impl<T> Mapper for NoOpMapper<T> {
         Some(input)
     }
 }
-type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, False>;
+type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, InEnumNo>;
 pub type Projected<T> = ProjectedPart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
@@ -43,7 +43,7 @@ where
         })
     }
     pub fn project(self: &Rc<Self>) -> ProjectedPart<T, RootEdge<T>> {
-        Borrowable::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
+        Projection::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
     }
 }
 impl<T> EdgeTrait for Store<T> {
@@ -55,13 +55,19 @@ impl<T> EdgeTrait for Store<T> {
     where
         Self: 'b;
 
-    type InEnum = False;
+    type InEnum = InEnumNo;
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         self.data.borrow()
     }
 
     fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
         self.data.borrow_mut()
+    }
+    fn invalidate_here(self: &Rc<Self>) {
+        // NO-OP
+    }
+    fn invalidate_up(self: &Rc<Self>) {
+        // NO-OP
     }
 }
 
@@ -70,14 +76,12 @@ impl<'b, T> ProjectedDeref for Ref<'b, T> {
     fn deref_optional(&self) -> Option<&Self::Target> {
         Some(&*self)
     }
-    fn fire_listeners(&self) {}
 }
 impl<'b, T> ProjectedDeref for RefMut<'b, T> {
     type Target = T;
     fn deref_optional(&self) -> Option<&Self::Target> {
         Some(&*self)
     }
-    fn fire_listeners(&self) {}
 }
 impl<'b, T> ProjectedDerefMut for RefMut<'b, T> {
     fn deref_mut_optional(&mut self) -> Option<&mut Self::Target> {

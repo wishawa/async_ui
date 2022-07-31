@@ -16,7 +16,7 @@ impl Listeners {
         });
         Self { inner }
     }
-    pub(crate) fn fire(&self) {
+    pub(crate) fn invalidate(&self) {
         let mut bm = self.inner.borrow_mut();
         bm.version += 1;
         bm.wakers.iter().for_each(Waker::wake_by_ref);
