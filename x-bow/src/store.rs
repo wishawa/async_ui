@@ -9,7 +9,7 @@ use crate::{
     edge::{Edge, EdgeTrait},
     in_enum::InEnumNo,
     mapper::Mapper,
-    projectable::{Projectable, ProjectedPart},
+    projectable::{ProjectPart, Projectable},
     projection::Projection,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
@@ -29,7 +29,7 @@ impl<T> Mapper for NoOpMapper<T> {
     }
 }
 pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, InEnumNo>;
-pub type Projected<T> = ProjectedPart<T, RootEdge<T>>;
+pub type Projected<T> = ProjectPart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
 }

@@ -9,14 +9,17 @@ mod mapper;
 mod projectable;
 mod projection;
 mod store;
+pub use x_bow_macros::XBowProject;
 
-mod __for_macro {
+pub mod __for_macro {
     pub use super::edge::{Edge, EdgeTrait};
-    pub use super::impls::ProjectedLeaf;
+    pub use super::impls::ProjectLeaf;
     pub use super::mapper::Mapper;
-    pub use super::projectable::ProjectedPart;
+    pub use super::projectable::{ProjectPart, Projectable};
     pub use super::projection::Projection;
 }
+pub use projection::{Projection, ProjectionExt, ProjectionExtGuaranteed};
+pub use store::{Projected, Store};
 
 #[cfg(test)]
 mod tests {
@@ -30,9 +33,9 @@ mod playground {
     use std::rc::Rc;
 
     use crate::edge::{Edge, EdgeTrait};
-    use crate::impls::ProjectedLeaf;
+    use crate::impls::ProjectLeaf;
     use crate::mapper::Mapper;
-    use crate::projectable::{Projectable, ProjectedPart};
+    use crate::projectable::{ProjectPart, Projectable};
     use crate::projection::Projection;
     use crate::store::{Projected, Store};
 
@@ -50,7 +53,7 @@ mod playground {
         P: EdgeTrait<Data = MyStruct>,
     {
         // pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::InEnum>>,
-        pub f1: ProjectedPart<InnerStruct, Edge<P, MapperMyStateTof1, P::InEnum>>,
+        pub f1: ProjectPart<InnerStruct, Edge<P, MapperMyStateTof1, P::InEnum>>,
         incoming_edge: Rc<P>,
     }
 
@@ -97,11 +100,11 @@ mod playground {
     where
         P: EdgeTrait<Data = InnerStruct>,
     {
-        pub i1: ProjectedPart<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
+        pub i1: ProjectLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
         // pub i1: PLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
-        pub i2: ProjectedPart<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
+        pub i2: ProjectLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
         // pub i2: POption<bool, Edge<P, MapperInnerStateToi2, P::InEnum>>,
-        pub i22: ProjectedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
+        pub i22: ProjectLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
         incoming_edge: Rc<P>,
     }
 
@@ -162,12 +165,12 @@ mod playground {
         }
     }
 
-    impl<E> Projectable<E> for bool
-    where
-        E: EdgeTrait<Data = bool>,
-    {
-        type Projection = ProjectedLeaf<bool, E>;
-    }
+    // impl<E> Projectable<E> for bool
+    // where
+    //     E: EdgeTrait<Data = bool>,
+    // {
+    //     type Projection = ProjectedLeaf<bool, E>;
+    // }
 
     fn hello() {
         use crate::projection::{ProjectionExt, ProjectionExtGuaranteed};
@@ -184,7 +187,7 @@ mod playground {
         let c = &*proj.f1.borrow_opt().unwrap();
         let b = &*proj.f1.borrow();
         let b = &*proj.f1.i2.borrow();
-        let b = &proj.f1.i2.Some;
+        // let b = &proj.f1.i2.Some;
         let b = &*proj.f1.i22.borrow();
 
         // let b = *proj.f1.i2.Some.borrow_opt().unwrap();
@@ -195,7 +198,7 @@ mod playground {
             // take2(&proj.f1);
             // take3(&proj.f1);
         }
-        fn take2(proj: &ProjectedPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
+        fn take2(proj: &ProjectPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
             let a = proj.i2.borrow_opt();
         }
     }

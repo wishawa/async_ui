@@ -3,14 +3,14 @@ use std::rc::Rc;
 use crate::{edge::EdgeTrait, projection::Projection};
 
 mod stdlib;
-pub struct ProjectedLeaf<T, N>
+pub struct ProjectLeaf<T, N>
 where
     N: EdgeTrait<Data = T>,
 {
     incoming_edge: Rc<N>,
 }
 
-impl<T, N> Projection for ProjectedLeaf<T, N>
+impl<T, N> Projection for ProjectLeaf<T, N>
 where
     N: EdgeTrait<Data = T>,
 {

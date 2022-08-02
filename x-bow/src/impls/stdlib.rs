@@ -4,7 +4,7 @@ use crate::{
     edge::{Edge, EdgeTrait},
     in_enum::InEnumYes,
     mapper::Mapper,
-    projectable::{Projectable, ProjectedPart},
+    projectable::{ProjectPart, Projectable},
     projection::Projection,
 };
 
@@ -14,7 +14,7 @@ where
     T: Projectable<Edge<E, MapperOption<T>, InEnumYes>>,
     E: EdgeTrait<Data = Option<T>>,
 {
-    pub Some: ProjectedPart<T, Edge<E, MapperOption<T>, InEnumYes>>,
+    pub Some: ProjectPart<T, Edge<E, MapperOption<T>, InEnumYes>>,
     incoming_edge: Rc<E>,
 }
 pub struct MapperOption<T>(PhantomData<T>);
