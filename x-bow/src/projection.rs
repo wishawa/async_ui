@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{borrow_output::XBowBorrow, in_enum::InEnumNo, EdgeTrait};
+use crate::{borrow_output::XBowBorrow, edge::EdgeTrait, in_enum::InEnumNo};
 
 pub trait Projection {
     type Edge: EdgeTrait;

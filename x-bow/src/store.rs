@@ -6,10 +6,11 @@ use std::{
 
 use crate::{
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
+    edge::{Edge, EdgeTrait},
     in_enum::InEnumNo,
     mapper::Mapper,
+    projectable::{Projectable, ProjectedPart},
     projection::Projection,
-    Edge, EdgeTrait, Projectable, ProjectedPart,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
 impl<T> Clone for NoOpMapper<T> {
@@ -27,7 +28,7 @@ impl<T> Mapper for NoOpMapper<T> {
         Some(input)
     }
 }
-type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, InEnumNo>;
+pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, InEnumNo>;
 pub type Projected<T> = ProjectedPart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
@@ -35,14 +36,14 @@ pub struct Store<T> {
 
 impl<T> Store<T>
 where
-    RootEdge<T>: Projectable<T>,
+    T: Projectable<RootEdge<T>>,
 {
     pub fn new(data: T) -> Rc<Self> {
         Rc::new(Self {
             data: RefCell::new(data),
         })
     }
-    pub fn project(self: &Rc<Self>) -> ProjectedPart<T, RootEdge<T>> {
+    pub fn project(self: &Rc<Self>) -> Projected<T> {
         Projection::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
     }
 }
