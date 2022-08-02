@@ -6,5 +6,6 @@ members = [
 	"observables/",
 	"scoped_async_spawn/",
 	"x-bow",
-	"x-bow-macros/"
+	"x-bow-macros/",
+	"examples/playground/"
 ]
