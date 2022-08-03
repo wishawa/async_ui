@@ -1,22 +1,22 @@
 use std::rc::Rc;
 
-use crate::{edge::EdgeTrait, projection::Tracked};
+use crate::{edge::EdgeTrait, tracked::Tracked};
 
 mod stdlib;
-pub struct TrackedLeaf<T, N>
+pub struct TrackedLeaf<T, E>
 where
-    N: EdgeTrait<Data = T>,
+    E: EdgeTrait<Data = T>,
 {
-    incoming_edge: Rc<N>,
+    incoming_edge: Rc<E>,
 }
 
-impl<T, N> Tracked for TrackedLeaf<T, N>
+impl<T, E> Tracked for TrackedLeaf<T, E>
 where
-    N: EdgeTrait<Data = T>,
+    E: EdgeTrait<Data = T>,
 {
-    type Edge = N;
+    type Edge = E;
 
-    fn new(edge: Rc<N>) -> Self {
+    fn new(edge: Rc<E>) -> Self {
         Self {
             incoming_edge: edge,
         }

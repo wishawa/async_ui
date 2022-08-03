@@ -6,9 +6,9 @@ mod impls;
 mod listeners;
 mod mapper;
 mod optional;
-mod projectable;
-mod projection;
 mod store;
+mod trackable;
+mod tracked;
 pub use x_bow_macros::Track;
 
 pub mod __for_macro {
@@ -16,11 +16,11 @@ pub mod __for_macro {
     pub use super::impls::TrackedLeaf;
     pub use super::mapper::Mapper;
     pub use super::optional::{IsOptional, OptionalNo, OptionalYes};
-    pub use super::projectable::{Trackable, TrackedPart};
-    pub use super::projection::Tracked;
+    pub use super::trackable::{Trackable, TrackedPart};
+    pub use super::tracked::Tracked;
 }
-pub use projection::{Tracked, TrackedExt, TrackedExtGuaranteed};
 pub use store::{Projected, Store};
+pub use tracked::{Tracked, TrackedExt, TrackedExtGuaranteed};
 
 #[cfg(test)]
 mod tests {
@@ -36,9 +36,9 @@ mod playground {
     use crate::edge::{Edge, EdgeTrait};
     use crate::impls::TrackedLeaf;
     use crate::mapper::Mapper;
-    use crate::projectable::{Trackable, TrackedPart};
-    use crate::projection::Tracked;
     use crate::store::{Projected, Store};
+    use crate::trackable::{Trackable, TrackedPart};
+    use crate::tracked::Tracked;
 
     struct MyStruct {
         f1: InnerStruct,
@@ -80,7 +80,7 @@ mod playground {
     }
     impl<E> Trackable<E> for MyStruct
     where
-        E: EdgeTrait<Data = MyStruct>,
+        E: EdgeTrait<Data = Self>,
     {
         type Tracked = PMyStruct<E>;
     }
@@ -136,7 +136,7 @@ mod playground {
     }
     impl<E> Trackable<E> for InnerStruct
     where
-        E: EdgeTrait<Data = InnerStruct>,
+        E: EdgeTrait<Data = Self>,
     {
         type Tracked = PInnerStruct<E>;
     }
@@ -174,7 +174,7 @@ mod playground {
     // }
 
     fn hello() {
-        use crate::projection::{TrackedExt, TrackedExtGuaranteed};
+        use crate::tracked::{TrackedExt, TrackedExtGuaranteed};
         let data = MyStruct {
             f1: InnerStruct {
                 i2: Some(true),

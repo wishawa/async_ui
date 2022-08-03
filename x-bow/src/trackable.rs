@@ -1,4 +1,4 @@
-use crate::projection::Tracked;
+use crate::tracked::Tracked;
 
 pub trait Trackable<E> {
     type Tracked: Tracked<Edge = E>;

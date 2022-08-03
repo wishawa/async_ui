@@ -4,9 +4,41 @@ use crate::{
     edge::{Edge, EdgeTrait},
     mapper::Mapper,
     optional::OptionalYes,
-    projectable::{Trackable, TrackedPart},
-    projection::Tracked,
+    trackable::{Trackable, TrackedPart},
+    tracked::Tracked,
 };
+
+// #[derive(x_bow_macros::Track)]
+// #[x_bow(module_prefix = crate::__for_macro)]
+// struct Test<T> {
+//     value: T
+// }
+macro_rules! leaf_primitive {
+    ($primitive:ty) => {
+        impl<E> Trackable<E> for $primitive
+        where
+            E: crate::edge::EdgeTrait<Data = $primitive>,
+        {
+            type Tracked = super::TrackedLeaf<$primitive, E>;
+        }
+    };
+}
+leaf_primitive!(bool);
+leaf_primitive!(char);
+leaf_primitive!(f32);
+leaf_primitive!(f64);
+leaf_primitive!(i128);
+leaf_primitive!(i16);
+leaf_primitive!(i32);
+leaf_primitive!(i64);
+leaf_primitive!(i8);
+leaf_primitive!(isize);
+leaf_primitive!(u128);
+leaf_primitive!(u16);
+leaf_primitive!(u32);
+leaf_primitive!(u64);
+leaf_primitive!(u8);
+leaf_primitive!(usize);
 
 #[allow(non_snake_case)]
 pub struct POption<T, E>
@@ -58,8 +90,8 @@ where
 }
 impl<T, E> Trackable<E> for Option<T>
 where
-    E: EdgeTrait<Data = Option<T>>,
     T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
+    E: EdgeTrait<Data = Option<T>>,
 {
     type Tracked = POption<T, E>;
 }

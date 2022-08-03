@@ -9,8 +9,8 @@ use crate::{
     edge::{Edge, EdgeTrait},
     mapper::Mapper,
     optional::OptionalNo,
-    projectable::{Trackable, TrackedPart},
-    projection::Tracked,
+    trackable::{Trackable, TrackedPart},
+    tracked::Tracked,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
 impl<T> Clone for NoOpMapper<T> {
