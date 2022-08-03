@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::{borrow_output::XBowBorrow, edge::EdgeTrait, in_enum::InEnumNo};
+use crate::{borrow_output::XBowBorrow, edge::EdgeTrait, optional::OptionalNo};
 
 pub trait Tracked {
     type Edge: EdgeTrait;
@@ -38,6 +38,6 @@ pub trait TrackedExtGuaranteed: Tracked {
 impl<T> TrackedExtGuaranteed for T
 where
     T: Tracked,
-    T::Edge: EdgeTrait<InEnum = InEnumNo>,
+    T::Edge: EdgeTrait<Optional = OptionalNo>,
 {
 }

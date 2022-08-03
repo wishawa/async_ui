@@ -2,8 +2,8 @@ use std::{marker::PhantomData, rc::Rc};
 
 use crate::{
     edge::{Edge, EdgeTrait},
-    in_enum::InEnumYes,
     mapper::Mapper,
+    optional::OptionalYes,
     projectable::{Trackable, TrackedPart},
     projection::Tracked,
 };
@@ -11,10 +11,10 @@ use crate::{
 #[allow(non_snake_case)]
 pub struct POption<T, E>
 where
-    T: Trackable<Edge<E, MapperOption<T>, InEnumYes>>,
+    T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
     E: EdgeTrait<Data = Option<T>>,
 {
-    pub Some: TrackedPart<T, Edge<E, MapperOption<T>, InEnumYes>>,
+    pub Some: TrackedPart<T, Edge<E, MapperOption<T>, OptionalYes>>,
     incoming_edge: Rc<E>,
 }
 pub struct MapperOption<T>(PhantomData<T>);
@@ -39,7 +39,7 @@ impl<T> Mapper for MapperOption<T> {
 impl<T, E> Tracked for POption<T, E>
 where
     E: EdgeTrait<Data = Option<T>>,
-    T: Trackable<Edge<E, MapperOption<T>, InEnumYes>>,
+    T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
 {
     type Edge = E;
 
@@ -59,7 +59,7 @@ where
 impl<T, E> Trackable<E> for Option<T>
 where
     E: EdgeTrait<Data = Option<T>>,
-    T: Trackable<Edge<E, MapperOption<T>, InEnumYes>>,
+    T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
 {
-    type Projection = POption<T, E>;
+    type Tracked = POption<T, E>;
 }

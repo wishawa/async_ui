@@ -7,8 +7,8 @@ use std::{
 use crate::{
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
     edge::{Edge, EdgeTrait},
-    in_enum::InEnumNo,
     mapper::Mapper,
+    optional::OptionalNo,
     projectable::{Trackable, TrackedPart},
     projection::Tracked,
 };
@@ -28,7 +28,7 @@ impl<T> Mapper for NoOpMapper<T> {
         Some(input)
     }
 }
-pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, InEnumNo>;
+pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, OptionalNo>;
 pub type Projected<T> = TrackedPart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
@@ -43,7 +43,7 @@ where
             data: RefCell::new(data),
         })
     }
-    pub fn project(self: &Rc<Self>) -> Projected<T> {
+    pub fn project(self: Rc<Self>) -> Projected<T> {
         Tracked::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
     }
 }
@@ -56,7 +56,7 @@ impl<T> EdgeTrait for Store<T> {
     where
         Self: 'b;
 
-    type InEnum = InEnumNo;
+    type Optional = OptionalNo;
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         self.data.borrow()
     }

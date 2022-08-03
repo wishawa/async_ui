@@ -3,9 +3,9 @@ mod borrow_output;
 mod deref_optional;
 mod edge;
 mod impls;
-mod in_enum;
 mod listeners;
 mod mapper;
+mod optional;
 mod projectable;
 mod projection;
 mod store;
@@ -15,6 +15,7 @@ pub mod __for_macro {
     pub use super::edge::{Edge, EdgeTrait};
     pub use super::impls::TrackedLeaf;
     pub use super::mapper::Mapper;
+    pub use super::optional::{IsOptional, OptionalNo, OptionalYes};
     pub use super::projectable::{Trackable, TrackedPart};
     pub use super::projection::Tracked;
 }
@@ -52,8 +53,8 @@ mod playground {
     where
         P: EdgeTrait<Data = MyStruct>,
     {
-        // pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::InEnum>>,
-        pub f1: TrackedPart<InnerStruct, Edge<P, MapperMyStateTof1, P::InEnum>>,
+        // pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::Optional>>,
+        pub f1: TrackedPart<InnerStruct, Edge<P, MapperMyStateTof1, P::Optional>>,
         incoming_edge: Rc<P>,
     }
 
@@ -81,7 +82,7 @@ mod playground {
     where
         E: EdgeTrait<Data = MyStruct>,
     {
-        type Projection = PMyStruct<E>;
+        type Tracked = PMyStruct<E>;
     }
 
     #[derive(Clone)]
@@ -100,11 +101,11 @@ mod playground {
     where
         P: EdgeTrait<Data = InnerStruct>,
     {
-        pub i1: TrackedLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
-        // pub i1: PLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
-        pub i2: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
-        // pub i2: POption<bool, Edge<P, MapperInnerStateToi2, P::InEnum>>,
-        pub i22: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
+        pub i1: TrackedLeaf<bool, Edge<P, MapperInnerStateToi1, P::Optional>>,
+        // pub i1: PLeaf<bool, Edge<P, MapperInnerStateToi1, P::Optional>>,
+        pub i2: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::Optional>>,
+        // pub i2: POption<bool, Edge<P, MapperInnerStateToi2, P::Optional>>,
+        pub i22: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::Optional>>,
         incoming_edge: Rc<P>,
     }
 
@@ -137,7 +138,7 @@ mod playground {
     where
         E: EdgeTrait<Data = InnerStruct>,
     {
-        type Projection = PInnerStruct<E>;
+        type Tracked = PInnerStruct<E>;
     }
 
     #[derive(Clone)]

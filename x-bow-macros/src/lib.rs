@@ -3,10 +3,11 @@ use phantom_generics::generic_phantom_data;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_quote, punctuated::Punctuated, token::SelfType, Attribute, DataEnum, DataStruct,
-    DeriveInput, Expr, ExprCall, ExprPath, ExprStruct, Field, FieldValue, Fields, FieldsNamed,
-    FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Path, PathSegment, Stmt,
-    Token, Type, TypeGenerics, TypeParam,
+    parse_quote, punctuated::Punctuated, token::SelfType, Attribute, Data, DataEnum, DataStruct,
+    DeriveInput, Expr, ExprCall, ExprField, ExprPath, ExprStruct, Field, FieldPat, FieldValue,
+    Fields, FieldsNamed, FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Pat,
+    PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment, Stmt,
+    Token, Type, TypeGenerics, TypeParam, Variant, VisPublic,
 };
 
 const ATTRIBUTE_PATH: &str = "x_bow";
@@ -14,11 +15,7 @@ const ATTRIBUTE_SKIP: &str = "no_track";
 #[proc_macro_derive(Track, attributes(x_bow))]
 pub fn derive_project(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
-    let res = match &ast.data {
-        syn::Data::Struct(data) => derive_for_struct(&ast, data),
-        syn::Data::Enum(data) => todo!(),
-        _ => panic!("x-bow: Track: only structs and enums are supported"),
-    };
+    let res = derive_main(&ast);
     res.into()
 }
 fn get_projection_ident(input_ident: &Ident) -> Ident {
@@ -36,8 +33,13 @@ fn get_edge_generic_param(my_ident: Ident, my_generics: &TypeGenerics) -> TypePa
 fn get_incoming_edge_ident() -> Ident {
     Ident::new("x_bow_tracked_incoming_edge", Span::mixed_site())
 }
-fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
-    let num_fields = data.fields.len();
+fn derive_main(ast: &DeriveInput) -> TokenStream {
+    let data = &ast.data;
+    let num_fields = match data {
+        Data::Struct(data) => data.fields.len(),
+        Data::Enum(data) => data.variants.len(),
+        _ => panic!("x-bow: Track: only structs and enums are supported"),
+    };
     let mut field_types = Punctuated::<Field, Token![,]>::new();
     let mut field_constructors = Punctuated::<FieldValue, Token![,]>::new();
     let mut field_mappers = Vec::with_capacity(num_fields);
@@ -50,95 +52,231 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
     let edge_generic = get_edge_generic_param(ast.ident.clone(), &inp_type_params);
     let edge_generic_ident = edge_generic.ident.clone();
     let incoming_edge = get_incoming_edge_ident();
-    let is_tuple = match data.fields {
-        syn::Fields::Unnamed(_) => true,
-        _ => false,
+    let (is_enum, is_tuple) = match data {
+        Data::Struct(data) => (
+            false,
+            match data.fields {
+                syn::Fields::Unnamed(_) => true,
+                _ => false,
+            },
+        ),
+        _ => (true, false),
     };
-    for (idx, field) in data.fields.iter().enumerate() {
-        let Field { vis, ty, .. } = field;
-        let project_wrap_name = Expr::Path(if has_skip(&field.attrs) {
-            parse_quote!(::x_bow::__for_macro::TrackedLeaf)
-        } else {
-            parse_quote!(::x_bow::__for_macro::TrackedPart)
-        });
+    // for (idx, field) in data.fields.iter().enumerate() {
+    let mut for_each_field =
+        |idx: usize, field: &Field, variant_info: Option<(&Variant, &Field, usize)>| {
+            let Field { vis, ty, .. } = field;
+            let project_wrap_name = Expr::Path(if has_skip(&field.attrs) {
+                parse_quote!(::x_bow::__for_macro::TrackedLeaf)
+            } else {
+                parse_quote!(::x_bow::__for_macro::TrackedPart)
+            });
 
-        let field_member = field.ident.as_ref().map_or_else(
-            || Member::Unnamed(idx.into()),
-            |ident| Member::Named(ident.to_owned()),
-        );
-        let mapper_name = Ident::new(
-            &format!(
-                "XBowMapper_{}_{}",
-                inp_ident,
-                field
-                    .ident
-                    .as_ref()
-                    .map_or_else(|| idx.to_string(), |ident| ident.to_string())
-            ),
-            Span::mixed_site(),
-        );
+            let field_member = field.ident.as_ref().map_or_else(
+                || Member::Unnamed(idx.into()),
+                |ident| Member::Named(ident.to_owned()),
+            );
+            let mapper_name = Ident::new(
+                &format!(
+                    "XBowMapper_{}_{}",
+                    inp_ident,
+                    field
+                        .ident
+                        .as_ref()
+                        .map_or_else(|| idx.to_string(), |ident| ident.to_string())
+                ),
+                Span::mixed_site(),
+            );
 
-        field_invalidates.push({
-            Stmt::Semi(
-                Expr::Call(parse_quote! {
-                    ::x_bow::__for_macro::Tracked::invalidate_here_down(&self . #field_member)
-                }),
-                Default::default(),
-            )
-        });
-        field_types.push({
+            field_invalidates.push({
+                Stmt::Semi(
+                    Expr::Call(parse_quote! {
+                        ::x_bow::__for_macro::Tracked::invalidate_here_down(&self . #field_member)
+                    }),
+                    Default::default(),
+                )
+            });
+            field_types.push({
             let mut field = field.to_owned();
             field.attrs = Vec::new();
+            let optional_path: Path = if is_enum {
+                parse_quote! {
+                    ::x_bow::__for_macro::OptionalYes
+                }
+            }
+            else {
+                parse_quote! {
+                    #edge_generic_ident :: Optional
+                }
+            };
             field.ty = Type::Path(parse_quote!(
-                #project_wrap_name <#ty #inp_type_params, ::x_bow::__for_macro::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #edge_generic_ident :: InEnum>>
+                #project_wrap_name <#ty, ::x_bow::__for_macro::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #optional_path>>
             ));
             field
         });
-        field_constructors.push({
-            let member = if let Some(idt) = field.ident.as_ref() {
-                Member::Named(idt.to_owned())
-            } else {
-                Member::Unnamed(idx.into())
-            };
-            FieldValue {
-                attrs: Vec::new(),
-                member,
-                colon_token: field.colon_token,
-                expr: parse_quote!(
-                    ::x_bow::__for_macro::Tracked::new(
-                        ::std::rc::Rc::new(
-                            ::x_bow::__for_macro::Edge::new(
-                                ::std::clone::Clone::clone(& #incoming_edge),
-                                #mapper_name (::std::marker::PhantomData)
+            field_constructors.push({
+                FieldValue {
+                    attrs: Vec::new(),
+                    member: field_member.clone(),
+                    colon_token: field.colon_token,
+                    expr: parse_quote!(
+                        ::x_bow::__for_macro::Tracked::new(
+                            ::std::rc::Rc::new(
+                                ::x_bow::__for_macro::Edge::new(
+                                    ::std::clone::Clone::clone(& #incoming_edge),
+                                    #mapper_name (::std::marker::PhantomData)
+                                )
                             )
                         )
-                    )
-                ),
+                    ),
+                }
+            });
+            field_mappers.push({
+            let input_ident = Ident::new("map_input", Span::mixed_site());
+            let (map_expr, map_mut_expr): (Expr, Expr) = if let Some((variant, vf, vf_idx)) = variant_info {
+                let variant_name = &variant.ident;
+                let value_ident = Ident::new("map_variant_value", Span::mixed_site());
+                let pat_ident = Pat::Ident(PatIdent {
+                            attrs: Vec::new(),
+                            by_ref: None,
+                            mutability: None,
+                            subpat: None,
+                            ident: value_ident.clone()
+                        });
+                        let variant_path = parse_quote! (Self::In::#variant_name);
+                let pattern: Pat = match &variant.fields {
+                    Fields::Named(fields) => {
+                        let vf_name = vf.ident.as_ref().unwrap();
+                        Pat::Struct(PatStruct {
+                            attrs: Vec::new(),
+                            brace_token: fields.brace_token.to_owned(),
+                            dot2_token: Some(Default::default()),
+                            path: variant_path,
+                            fields: [FieldPat {
+                                attrs: Vec::new(),
+                                colon_token: Some(Default::default()),
+                                member: Member::Named(vf_name.to_owned()),
+                                pat: Box::new(pat_ident)
+                            }].into_iter().collect()
+                        })
+                    },
+                    Fields::Unnamed(_) => {
+                        let mut receiver: Punctuated::<Pat, Token![,]> = (0..vf_idx).map(|_| Pat::Wild(PatWild {
+                            attrs: Vec::new(),
+                            underscore_token: Default::default()
+                        })).collect();
+                        receiver.push(pat_ident);
+                        receiver.push(Pat::Rest(PatRest {
+                            attrs: Vec::new(),
+                            dot2_token: Default::default()
+                        }));
+                        Pat::TupleStruct(PatTupleStruct {
+                            attrs: Vec::new(),
+                            path: variant_path,
+                            pat: PatTuple {
+                                attrs: Vec::new(),
+                                elems: receiver,
+                                paren_token: Default::default()
+                            }
+                        })
+                    },
+                    _ => unreachable!()
+                };
+                let out: Expr = parse_quote! (
+                    match #input_ident {
+                        #pattern => ::std::option::Option::Some(#value_ident),
+                        _ => None
+                    }
+                );
+                (out.clone(), out)
+            } else {
+                let access: ExprField = parse_quote! {
+                    #input_ident. #field_member
+                };
+                (
+                    parse_quote! (
+                        ::std::option::Option::Some(& #access)
+                    ),
+                    parse_quote! (
+                        ::std::option::Option::Some(&mut #access)
+                    ),
+                )
+            };
+            quote! {
+                #vis struct #mapper_name #inp_type_params (#mapper_phantom_data);
+                impl #inp_type_params ::std::clone::Clone for #mapper_name #inp_type_params {
+                    #[inline]
+                    fn clone(&self) -> Self {
+                        Self(::std::marker::PhantomData)
+                    }
+                }
+                impl #inp_impl_params ::x_bow::__for_macro::Mapper for #mapper_name #inp_type_params
+                #inp_where_clause
+                {
+                    type In = #inp_ident #inp_type_params;
+                    type Out = #ty;
+                    #[inline]
+                    fn map<'s, 'd>(&'s self, #input_ident: &'d Self::In) -> ::std::option::Option<&'d Self::Out> {
+                        #map_expr
+                    }
+                    #[inline]
+                    fn map_mut<'s, 'd>(&'s self, #input_ident: &'d mut Self::In) -> ::std::option::Option<&'d mut Self::Out> {
+                        #map_mut_expr
+                    }
+                }
             }
         });
-        field_mappers.push(quote! {
-            #vis struct #mapper_name #inp_type_params (#mapper_phantom_data);
-            impl #inp_type_params ::std::clone::Clone for #mapper_name #inp_type_params {
-                fn clone(&self) -> Self {
-                    Self(::std::marker::PhantomData)
+        };
+    match data {
+        Data::Struct(data) => {
+            data.fields
+                .iter()
+                .enumerate()
+                .for_each(|(idx, field)| for_each_field(idx, field, None));
+        }
+        Data::Enum(data) => {
+            data.variants.iter().enumerate().for_each(|(idx, variant)| {
+                let variant_name = variant.ident.clone();
+                let for_each_variant_field = |(variant_idx, variant_field): (usize, &Field)| {
+                    let variant_field_member = variant_field
+                        .ident
+                        .as_ref()
+                        .map_or_else(|| variant_idx.to_string(), |n| n.to_string());
+                    let field = Field {
+                        attrs: variant_field.attrs.clone(),
+                        colon_token: Some(Default::default()),
+                        ident: Some(Ident::new(
+                            &format!("{variant_name}_{variant_field_member}"),
+                            Span::mixed_site(),
+                        )),
+                        ty: variant_field.ty.clone(),
+                        vis: syn::Visibility::Public(VisPublic {
+                            pub_token: Default::default(),
+                        }),
+                    };
+                    for_each_field(idx, &field, Some((variant, &variant_field, variant_idx)));
+                };
+                match &variant.fields {
+                    Fields::Named(fields) => {
+                        fields
+                            .named
+                            .iter()
+                            .enumerate()
+                            .for_each(for_each_variant_field);
+                    }
+                    Fields::Unnamed(fields) => {
+                        fields
+                            .unnamed
+                            .iter()
+                            .enumerate()
+                            .for_each(for_each_variant_field);
+                    }
+                    Fields::Unit => {}
                 }
-            }
-            impl #inp_impl_params ::x_bow::__for_macro::Mapper for #mapper_name #inp_type_params
-            #inp_where_clause
-            {
-                type In = #inp_ident #inp_type_params;
-                type Out = #ty;
-                #[inline]
-                    fn map<'s, 'd>(&'s self, input: &'d Self::In) -> ::std::option::Option<&'d Self::Out> {
-                    ::std::option::Option::Some(&input. #field_member)
-                }
-                #[inline]
-                fn map_mut<'s, 'd>(&'s self, input: &'d mut Self::In) -> ::std::option::Option<&'d mut Self::Out> {
-                    ::std::option::Option::Some(&mut input. #field_member)
-                }
-            }
-        });
-    }
+            });
+        }
+        _ => unreachable!(),
+    };
     let incoming_edge_ident = get_incoming_edge_ident();
     let (incoming_edge_field, incoming_edge_colon, incoming_edge_member) = if is_tuple {
         (None, None, Member::Unnamed(num_fields.into()))
@@ -262,7 +400,7 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
         impl #impl_params ::x_bow::__for_macro::Trackable<#edge_generic_ident> for #inp_ident #inp_type_params
         #where_clause
         {
-            type Projection = #projection_ident #type_params;
+            type Tracked = #projection_ident #type_params;
         }
         #(#field_mappers)*
     }

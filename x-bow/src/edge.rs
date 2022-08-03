@@ -2,9 +2,9 @@ use std::{marker::PhantomData, rc::Rc};
 
 use crate::{
     deref_optional::{BorrowWrapped, ProjectedDeref, ProjectedDerefMut},
-    in_enum::IsInEnum,
     listeners::Listeners,
     mapper::Mapper,
+    optional::IsOptional,
 };
 pub trait EdgeTrait {
     type Data;
@@ -14,7 +14,7 @@ pub trait EdgeTrait {
     type BorrowMutGuard<'b>: ProjectedDeref<Target = Self::Data> + ProjectedDerefMut
     where
         Self: 'b;
-    type InEnum: IsInEnum;
+    type Optional: IsOptional;
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b>;
     fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b>;
     fn invalidate_here(self: &Rc<Self>);
@@ -25,7 +25,7 @@ pub struct Edge<E, M, Y>
 where
     E: EdgeTrait,
     M: Mapper<In = E::Data> + Clone,
-    Y: IsInEnum,
+    Y: IsOptional,
 {
     parent: Rc<E>,
     mapper: M,
@@ -37,7 +37,7 @@ impl<E, M, Y> Edge<E, M, Y>
 where
     E: EdgeTrait,
     M: Mapper<In = E::Data> + Clone,
-    Y: IsInEnum,
+    Y: IsOptional,
 {
     pub fn new(parent: Rc<E>, mapper: M) -> Self {
         let listeners = Listeners::new();
@@ -54,7 +54,7 @@ impl<E, M, Y> EdgeTrait for Edge<E, M, Y>
 where
     E: EdgeTrait,
     M: Mapper<In = E::Data> + Clone,
-    Y: IsInEnum,
+    Y: IsOptional,
 {
     type Data = M::Out;
     type BorrowGuard<'b> = BorrowWrapped<E::BorrowGuard<'b>, M>
@@ -63,7 +63,7 @@ where
     type BorrowMutGuard<'b> = BorrowWrapped< E::BorrowMutGuard<'b>, M>
     where
         Self: 'b;
-    type InEnum = Y;
+    type Optional = Y;
 
     fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         BorrowWrapped::new(self.parent.borrow(), self.mapper.clone())
@@ -76,7 +76,7 @@ where
         self.listeners.invalidate();
     }
     fn invalidate_up(self: &Rc<Self>) {
+        self.parent.invalidate_up();
         self.parent.invalidate_here();
-        self.parent.invalidate_up()
     }
 }
