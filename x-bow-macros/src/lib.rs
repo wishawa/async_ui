@@ -3,8 +3,8 @@ use phantom_generics::generic_phantom_data;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_quote, punctuated::Punctuated, token::SelfType, Attribute, Data, DataEnum, DataStruct,
-    DeriveInput, Expr, ExprCall, ExprField, ExprPath, ExprStruct, Field, FieldPat, FieldValue,
+    parse_quote, punctuated::Punctuated, token::SelfType, Attribute, Data, DataEnum, DeriveInput,
+    Expr, ExprAssign, ExprCall, ExprField, ExprPath, ExprStruct, Field, FieldPat, FieldValue,
     Fields, FieldsNamed, FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Pat,
     PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment, Stmt,
     Token, Type, TypeGenerics, TypeParam, Variant, VisPublic,
@@ -12,10 +12,25 @@ use syn::{
 
 const ATTRIBUTE_PATH: &str = "x_bow";
 const ATTRIBUTE_SKIP: &str = "no_track";
+const ATTRIBUTE_MODULE_PREFIX: &str = "module_prefix";
 #[proc_macro_derive(Track, attributes(x_bow))]
 pub fn derive_project(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
-    let res = derive_main(&ast);
+    let prefix_path = ast
+        .attrs
+        .iter()
+        .find_map(|attr| {
+            if let Ok(ExprAssign { left, right, .. }) = attr.parse_args() {
+                if let (Expr::Path(left), Expr::Path(right)) = (&*left, &*right) {
+                    if left.path.is_ident(ATTRIBUTE_MODULE_PREFIX) {
+                        return Some(right.path.clone());
+                    }
+                }
+            }
+            None
+        })
+        .unwrap_or_else(|| parse_quote!(::x_bow::__for_macro));
+    let res = derive_main(&ast, &prefix_path);
     res.into()
 }
 fn get_projection_ident(input_ident: &Ident) -> Ident {
@@ -24,16 +39,20 @@ fn get_projection_ident(input_ident: &Ident) -> Ident {
         Span::mixed_site(),
     )
 }
-fn get_edge_generic_param(my_ident: Ident, my_generics: &TypeGenerics) -> TypeParam {
+fn get_edge_generic_param(
+    my_ident: Ident,
+    my_generics: &TypeGenerics,
+    module_prefix: &Path,
+) -> TypeParam {
     let ident = Ident::new("XBowTrackedEdge", Span::mixed_site());
     parse_quote!(
-        #ident: ::x_bow::__for_macro::EdgeTrait<Data = #my_ident #my_generics>
+        #ident: #module_prefix::EdgeTrait<Data = #my_ident #my_generics>
     )
 }
 fn get_incoming_edge_ident() -> Ident {
     Ident::new("x_bow_tracked_incoming_edge", Span::mixed_site())
 }
-fn derive_main(ast: &DeriveInput) -> TokenStream {
+fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
     let data = &ast.data;
     let num_fields = match data {
         Data::Struct(data) => data.fields.len(),
@@ -49,7 +68,7 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
     let (inp_impl_params, inp_type_params, inp_where_clause) = ast.generics.split_for_impl();
     let mapper_phantom_data = generic_phantom_data(&ast.generics);
 
-    let edge_generic = get_edge_generic_param(ast.ident.clone(), &inp_type_params);
+    let edge_generic = get_edge_generic_param(ast.ident.clone(), &inp_type_params, module_prefix);
     let edge_generic_ident = edge_generic.ident.clone();
     let incoming_edge = get_incoming_edge_ident();
     let (is_enum, is_tuple) = match data {
@@ -67,9 +86,9 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
         |idx: usize, field: &Field, variant_info: Option<(&Variant, &Field, usize)>| {
             let Field { vis, ty, .. } = field;
             let project_wrap_name = Expr::Path(if has_skip(&field.attrs) {
-                parse_quote!(::x_bow::__for_macro::TrackedLeaf)
+                parse_quote!(#module_prefix::TrackedLeaf)
             } else {
-                parse_quote!(::x_bow::__for_macro::TrackedPart)
+                parse_quote!(#module_prefix::TrackedPart)
             });
 
             let field_member = field.ident.as_ref().map_or_else(
@@ -91,7 +110,7 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
             field_invalidates.push({
                 Stmt::Semi(
                     Expr::Call(parse_quote! {
-                        ::x_bow::__for_macro::Tracked::invalidate_here_down(&self . #field_member)
+                        #module_prefix::Tracked::invalidate_here_down(&self . #field_member)
                     }),
                     Default::default(),
                 )
@@ -101,7 +120,7 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
             field.attrs = Vec::new();
             let optional_path: Path = if is_enum {
                 parse_quote! {
-                    ::x_bow::__for_macro::OptionalYes
+                    #module_prefix::OptionalYes
                 }
             }
             else {
@@ -110,7 +129,7 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
                 }
             };
             field.ty = Type::Path(parse_quote!(
-                #project_wrap_name <#ty, ::x_bow::__for_macro::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #optional_path>>
+                #project_wrap_name <#ty, #module_prefix::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #optional_path>>
             ));
             field
         });
@@ -120,9 +139,9 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
                     member: field_member.clone(),
                     colon_token: field.colon_token,
                     expr: parse_quote!(
-                        ::x_bow::__for_macro::Tracked::new(
+                        #module_prefix::Tracked::new(
                             ::std::rc::Rc::new(
-                                ::x_bow::__for_macro::Edge::new(
+                                #module_prefix::Edge::new(
                                     ::std::clone::Clone::clone(& #incoming_edge),
                                     #mapper_name (::std::marker::PhantomData)
                                 )
@@ -210,7 +229,7 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
                         Self(::std::marker::PhantomData)
                     }
                 }
-                impl #inp_impl_params ::x_bow::__for_macro::Mapper for #mapper_name #inp_type_params
+                impl #inp_impl_params #module_prefix::Mapper for #mapper_name #inp_type_params
                 #inp_where_clause
                 {
                     type In = #inp_ident #inp_type_params;
@@ -382,7 +401,7 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
     let projection_ident = get_projection_ident(inp_ident);
     quote! {
         #ty_out
-        impl #impl_params ::x_bow::__for_macro::Tracked for #projection_ident #type_params
+        impl #impl_params #module_prefix::Tracked for #projection_ident #type_params
         #where_clause
         {
             type Edge = #edge_generic_ident;
@@ -393,11 +412,11 @@ fn derive_main(ast: &DeriveInput) -> TokenStream {
                 &self. #incoming_edge_member
             }
             fn invalidate_here_down(&self) {
-                ::x_bow::__for_macro::EdgeTrait::invalidate_here(::x_bow::__for_macro::Tracked::edge(self));
+                #module_prefix::EdgeTrait::invalidate_here(#module_prefix::Tracked::edge(self));
                 #(#field_invalidates)*
             }
         }
-        impl #impl_params ::x_bow::__for_macro::Trackable<#edge_generic_ident> for #inp_ident #inp_type_params
+        impl #impl_params #module_prefix::Trackable<#edge_generic_ident> for #inp_ident #inp_type_params
         #where_clause
         {
             type Tracked = #projection_ident #type_params;
