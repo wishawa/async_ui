@@ -10,31 +10,31 @@ use syn::{
 };
 
 const ATTRIBUTE_PATH: &str = "x_bow";
-const ATTRIBUTE_SKIP: &str = "no_project";
-#[proc_macro_derive(XBowProject, attributes(x_bow))]
+const ATTRIBUTE_SKIP: &str = "no_track";
+#[proc_macro_derive(Track, attributes(x_bow))]
 pub fn derive_project(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
     let res = match &ast.data {
         syn::Data::Struct(data) => derive_for_struct(&ast, data),
         syn::Data::Enum(data) => todo!(),
-        _ => panic!("XBowProject: only structs and enums are supported"),
+        _ => panic!("x-bow: Track: only structs and enums are supported"),
     };
     res.into()
 }
 fn get_projection_ident(input_ident: &Ident) -> Ident {
     Ident::new(
-        &format!("XBowProjection_{}", input_ident.to_string()),
+        &format!("XBowTracked_{}", input_ident.to_string()),
         Span::mixed_site(),
     )
 }
 fn get_edge_generic_param(my_ident: Ident, my_generics: &TypeGenerics) -> TypeParam {
-    let ident = Ident::new("XBowProjectionEdge", Span::mixed_site());
+    let ident = Ident::new("XBowTrackedEdge", Span::mixed_site());
     parse_quote!(
         #ident: ::x_bow::__for_macro::EdgeTrait<Data = #my_ident #my_generics>
     )
 }
 fn get_incoming_edge_ident() -> Ident {
-    Ident::new("x_bow_projection_incoming_edge", Span::mixed_site())
+    Ident::new("x_bow_tracked_incoming_edge", Span::mixed_site())
 }
 fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
     let num_fields = data.fields.len();
@@ -57,9 +57,9 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
     for (idx, field) in data.fields.iter().enumerate() {
         let Field { vis, ty, .. } = field;
         let project_wrap_name = Expr::Path(if has_skip(&field.attrs) {
-            parse_quote!(::x_bow::__for_macro::ProjectLeaf)
+            parse_quote!(::x_bow::__for_macro::TrackedLeaf)
         } else {
-            parse_quote!(::x_bow::__for_macro::ProjectPart)
+            parse_quote!(::x_bow::__for_macro::TrackedPart)
         });
 
         let field_member = field.ident.as_ref().map_or_else(
@@ -81,7 +81,7 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
         field_invalidates.push({
             Stmt::Semi(
                 Expr::Call(parse_quote! {
-                    ::x_bow::__for_macro::Projection::invalidate_here_down(&self . #field_member)
+                    ::x_bow::__for_macro::Tracked::invalidate_here_down(&self . #field_member)
                 }),
                 Default::default(),
             )
@@ -105,7 +105,7 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
                 member,
                 colon_token: field.colon_token,
                 expr: parse_quote!(
-                    ::x_bow::__for_macro::Projection::new(
+                    ::x_bow::__for_macro::Tracked::new(
                         ::std::rc::Rc::new(
                             ::x_bow::__for_macro::Edge::new(
                                 ::std::clone::Clone::clone(& #incoming_edge),
@@ -244,7 +244,7 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
     let projection_ident = get_projection_ident(inp_ident);
     quote! {
         #ty_out
-        impl #impl_params ::x_bow::__for_macro::Projection for #projection_ident #type_params
+        impl #impl_params ::x_bow::__for_macro::Tracked for #projection_ident #type_params
         #where_clause
         {
             type Edge = #edge_generic_ident;
@@ -255,11 +255,11 @@ fn derive_for_struct(ast: &DeriveInput, data: &DataStruct) -> TokenStream {
                 &self. #incoming_edge_member
             }
             fn invalidate_here_down(&self) {
-                ::x_bow::__for_macro::EdgeTrait::invalidate_here(::x_bow::__for_macro::Projection::edge(self));
+                ::x_bow::__for_macro::EdgeTrait::invalidate_here(::x_bow::__for_macro::Tracked::edge(self));
                 #(#field_invalidates)*
             }
         }
-        impl #impl_params ::x_bow::__for_macro::Projectable<#edge_generic_ident> for #inp_ident #inp_type_params
+        impl #impl_params ::x_bow::__for_macro::Trackable<#edge_generic_ident> for #inp_ident #inp_type_params
         #where_clause
         {
             type Projection = #projection_ident #type_params;

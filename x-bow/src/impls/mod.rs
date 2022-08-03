@@ -1,16 +1,16 @@
 use std::rc::Rc;
 
-use crate::{edge::EdgeTrait, projection::Projection};
+use crate::{edge::EdgeTrait, projection::Tracked};
 
 mod stdlib;
-pub struct ProjectLeaf<T, N>
+pub struct TrackedLeaf<T, N>
 where
     N: EdgeTrait<Data = T>,
 {
     incoming_edge: Rc<N>,
 }
 
-impl<T, N> Projection for ProjectLeaf<T, N>
+impl<T, N> Tracked for TrackedLeaf<T, N>
 where
     N: EdgeTrait<Data = T>,
 {

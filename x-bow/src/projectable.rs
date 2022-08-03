@@ -1,6 +1,6 @@
-use crate::projection::Projection;
+use crate::projection::Tracked;
 
-pub trait Projectable<E> {
-    type Projection: Projection<Edge = E>;
+pub trait Trackable<E> {
+    type Projection: Tracked<Edge = E>;
 }
-pub type ProjectPart<T, E> = <T as Projectable<E>>::Projection;
+pub type TrackedPart<T, E> = <T as Trackable<E>>::Projection;

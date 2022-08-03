@@ -2,13 +2,13 @@ use std::ops::{Deref, DerefMut};
 
 use crate::{
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
-    projection::Projection,
+    projection::Tracked,
 };
 
 pub struct XBowBorrow<'p, G, P>
 where
     G: ProjectedDeref,
-    P: Projection + ?Sized,
+    P: Tracked + ?Sized,
 {
     guard: G,
     projection: Option<&'p P>,
@@ -17,7 +17,7 @@ where
 impl<'p, G, P> XBowBorrow<'p, G, P>
 where
     G: ProjectedDeref,
-    P: Projection + ?Sized,
+    P: Tracked + ?Sized,
 {
     pub(crate) fn new(guard: G, projection: Option<&'p P>) -> Option<Self> {
         if guard.deref_optional().is_some() {
@@ -34,7 +34,7 @@ where
 impl<'p, G, P> Deref for XBowBorrow<'p, G, P>
 where
     G: ProjectedDeref,
-    P: Projection + ?Sized,
+    P: Tracked + ?Sized,
 {
     type Target = <G as ProjectedDeref>::Target;
 
@@ -45,7 +45,7 @@ where
 impl<'p, G, P> DerefMut for XBowBorrow<'p, G, P>
 where
     G: ProjectedDerefMut,
-    P: Projection + ?Sized,
+    P: Tracked + ?Sized,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.guard.deref_mut_optional().unwrap()
@@ -54,7 +54,7 @@ where
 impl<'p, G, P> Drop for XBowBorrow<'p, G, P>
 where
     G: ProjectedDeref,
-    P: Projection + ?Sized,
+    P: Tracked + ?Sized,
 {
     fn drop(&mut self) {
         if let Some(proj) = self.projection {

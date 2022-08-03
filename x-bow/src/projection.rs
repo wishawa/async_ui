@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{borrow_output::XBowBorrow, edge::EdgeTrait, in_enum::InEnumNo};
 
-pub trait Projection {
+pub trait Tracked {
     type Edge: EdgeTrait;
     fn new(edge: Rc<Self::Edge>) -> Self;
     fn edge(&self) -> &Rc<Self::Edge>;
@@ -11,7 +11,7 @@ pub trait Projection {
         self.edge().invalidate_up();
     }
 }
-pub trait ProjectionExt: Projection {
+pub trait TrackedExt: Tracked {
     fn borrow_opt<'b>(
         &'b self,
     ) -> Option<XBowBorrow<'b, <Self::Edge as EdgeTrait>::BorrowGuard<'b>, Self>> {
@@ -23,9 +23,9 @@ pub trait ProjectionExt: Projection {
         XBowBorrow::new(self.edge().borrow_mut(), Some(self))
     }
 }
-impl<T> ProjectionExt for T where T: Projection {}
+impl<T> TrackedExt for T where T: Tracked {}
 
-pub trait ProjectionExtGuaranteed: Projection {
+pub trait TrackedExtGuaranteed: Tracked {
     fn borrow<'b>(&'b self) -> XBowBorrow<'b, <Self::Edge as EdgeTrait>::BorrowGuard<'b>, Self> {
         XBowBorrow::new_without_check(self.edge().borrow(), None)
     }
@@ -35,9 +35,9 @@ pub trait ProjectionExtGuaranteed: Projection {
         XBowBorrow::new_without_check(self.edge().borrow_mut(), Some(self))
     }
 }
-impl<T> ProjectionExtGuaranteed for T
+impl<T> TrackedExtGuaranteed for T
 where
-    T: Projection,
+    T: Tracked,
     T::Edge: EdgeTrait<InEnum = InEnumNo>,
 {
 }

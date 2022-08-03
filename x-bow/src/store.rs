@@ -9,8 +9,8 @@ use crate::{
     edge::{Edge, EdgeTrait},
     in_enum::InEnumNo,
     mapper::Mapper,
-    projectable::{ProjectPart, Projectable},
-    projection::Projection,
+    projectable::{Trackable, TrackedPart},
+    projection::Tracked,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
 impl<T> Clone for NoOpMapper<T> {
@@ -29,14 +29,14 @@ impl<T> Mapper for NoOpMapper<T> {
     }
 }
 pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, InEnumNo>;
-pub type Projected<T> = ProjectPart<T, RootEdge<T>>;
+pub type Projected<T> = TrackedPart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
 }
 
 impl<T> Store<T>
 where
-    T: Projectable<RootEdge<T>>,
+    T: Trackable<RootEdge<T>>,
 {
     pub fn new(data: T) -> Rc<Self> {
         Rc::new(Self {
@@ -44,7 +44,7 @@ where
         })
     }
     pub fn project(self: &Rc<Self>) -> Projected<T> {
-        Projection::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
+        Tracked::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
     }
 }
 impl<T> EdgeTrait for Store<T> {

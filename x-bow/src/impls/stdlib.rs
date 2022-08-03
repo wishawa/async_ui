@@ -4,17 +4,17 @@ use crate::{
     edge::{Edge, EdgeTrait},
     in_enum::InEnumYes,
     mapper::Mapper,
-    projectable::{ProjectPart, Projectable},
-    projection::Projection,
+    projectable::{Trackable, TrackedPart},
+    projection::Tracked,
 };
 
 #[allow(non_snake_case)]
 pub struct POption<T, E>
 where
-    T: Projectable<Edge<E, MapperOption<T>, InEnumYes>>,
+    T: Trackable<Edge<E, MapperOption<T>, InEnumYes>>,
     E: EdgeTrait<Data = Option<T>>,
 {
-    pub Some: ProjectPart<T, Edge<E, MapperOption<T>, InEnumYes>>,
+    pub Some: TrackedPart<T, Edge<E, MapperOption<T>, InEnumYes>>,
     incoming_edge: Rc<E>,
 }
 pub struct MapperOption<T>(PhantomData<T>);
@@ -36,16 +36,16 @@ impl<T> Mapper for MapperOption<T> {
         input.as_mut()
     }
 }
-impl<T, E> Projection for POption<T, E>
+impl<T, E> Tracked for POption<T, E>
 where
     E: EdgeTrait<Data = Option<T>>,
-    T: Projectable<Edge<E, MapperOption<T>, InEnumYes>>,
+    T: Trackable<Edge<E, MapperOption<T>, InEnumYes>>,
 {
     type Edge = E;
 
     fn new(edge: Rc<E>) -> Self {
         Self {
-            Some: Projection::new(Rc::new(Edge::new(edge.clone(), MapperOption(PhantomData)))),
+            Some: Tracked::new(Rc::new(Edge::new(edge.clone(), MapperOption(PhantomData)))),
             incoming_edge: edge,
         }
     }
@@ -56,10 +56,10 @@ where
         self.edge().invalidate_here();
     }
 }
-impl<T, E> Projectable<E> for Option<T>
+impl<T, E> Trackable<E> for Option<T>
 where
     E: EdgeTrait<Data = Option<T>>,
-    T: Projectable<Edge<E, MapperOption<T>, InEnumYes>>,
+    T: Trackable<Edge<E, MapperOption<T>, InEnumYes>>,
 {
     type Projection = POption<T, E>;
 }

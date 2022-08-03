@@ -9,16 +9,16 @@ mod mapper;
 mod projectable;
 mod projection;
 mod store;
-pub use x_bow_macros::XBowProject;
+pub use x_bow_macros::Track;
 
 pub mod __for_macro {
     pub use super::edge::{Edge, EdgeTrait};
-    pub use super::impls::ProjectLeaf;
+    pub use super::impls::TrackedLeaf;
     pub use super::mapper::Mapper;
-    pub use super::projectable::{ProjectPart, Projectable};
-    pub use super::projection::Projection;
+    pub use super::projectable::{Trackable, TrackedPart};
+    pub use super::projection::Tracked;
 }
-pub use projection::{Projection, ProjectionExt, ProjectionExtGuaranteed};
+pub use projection::{Tracked, TrackedExt, TrackedExtGuaranteed};
 pub use store::{Projected, Store};
 
 #[cfg(test)]
@@ -33,10 +33,10 @@ mod playground {
     use std::rc::Rc;
 
     use crate::edge::{Edge, EdgeTrait};
-    use crate::impls::ProjectLeaf;
+    use crate::impls::TrackedLeaf;
     use crate::mapper::Mapper;
-    use crate::projectable::{ProjectPart, Projectable};
-    use crate::projection::Projection;
+    use crate::projectable::{Trackable, TrackedPart};
+    use crate::projection::Tracked;
     use crate::store::{Projected, Store};
 
     struct MyStruct {
@@ -53,17 +53,17 @@ mod playground {
         P: EdgeTrait<Data = MyStruct>,
     {
         // pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::InEnum>>,
-        pub f1: ProjectPart<InnerStruct, Edge<P, MapperMyStateTof1, P::InEnum>>,
+        pub f1: TrackedPart<InnerStruct, Edge<P, MapperMyStateTof1, P::InEnum>>,
         incoming_edge: Rc<P>,
     }
 
-    impl<P> Projection for PMyStruct<P>
+    impl<P> Tracked for PMyStruct<P>
     where
         P: EdgeTrait<Data = MyStruct>,
     {
         type Edge = P;
         fn new(edge: Rc<P>) -> Self {
-            let f1 = Projection::new(Rc::new(Edge::new(edge.clone(), MapperMyStateTof1)));
+            let f1 = Tracked::new(Rc::new(Edge::new(edge.clone(), MapperMyStateTof1)));
             Self {
                 f1,
                 incoming_edge: edge,
@@ -77,7 +77,7 @@ mod playground {
             self.f1.invalidate_here_down();
         }
     }
-    impl<E> Projectable<E> for MyStruct
+    impl<E> Trackable<E> for MyStruct
     where
         E: EdgeTrait<Data = MyStruct>,
     {
@@ -100,23 +100,23 @@ mod playground {
     where
         P: EdgeTrait<Data = InnerStruct>,
     {
-        pub i1: ProjectLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
+        pub i1: TrackedLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
         // pub i1: PLeaf<bool, Edge<P, MapperInnerStateToi1, P::InEnum>>,
-        pub i2: ProjectLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
+        pub i2: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
         // pub i2: POption<bool, Edge<P, MapperInnerStateToi2, P::InEnum>>,
-        pub i22: ProjectLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
+        pub i22: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::InEnum>>,
         incoming_edge: Rc<P>,
     }
 
-    impl<N> Projection for PInnerStruct<N>
+    impl<N> Tracked for PInnerStruct<N>
     where
         N: EdgeTrait<Data = InnerStruct>,
     {
         type Edge = N;
         fn new(edge: Rc<N>) -> Self {
-            let i1 = Projection::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi1)));
-            let i2 = Projection::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi2)));
-            let i22 = Projection::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi2)));
+            let i1 = Tracked::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi1)));
+            let i2 = Tracked::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi2)));
+            let i22 = Tracked::new(Rc::new(Edge::new(edge.clone(), MapperInnerStateToi2)));
             Self {
                 i1,
                 i2,
@@ -133,7 +133,7 @@ mod playground {
             self.i1.invalidate_here_down();
         }
     }
-    impl<E> Projectable<E> for InnerStruct
+    impl<E> Trackable<E> for InnerStruct
     where
         E: EdgeTrait<Data = InnerStruct>,
     {
@@ -173,7 +173,7 @@ mod playground {
     // }
 
     fn hello() {
-        use crate::projection::{ProjectionExt, ProjectionExtGuaranteed};
+        use crate::projection::{TrackedExt, TrackedExtGuaranteed};
         let data = MyStruct {
             f1: InnerStruct {
                 i2: Some(true),
@@ -198,7 +198,7 @@ mod playground {
             // take2(&proj.f1);
             // take3(&proj.f1);
         }
-        fn take2(proj: &ProjectPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
+        fn take2(proj: &TrackedPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
             let a = proj.i2.borrow_opt();
         }
     }
