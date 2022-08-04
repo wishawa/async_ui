@@ -4,18 +4,16 @@ pub mod play {
 
     #[derive(x_bow::Track)]
     pub struct MyStruct<C: FnOnce(i32)> {
-        #[x_bow(no_track)]
         pub field1: i32,
-        #[x_bow(no_track)]
         pub field2: usize,
         pub field3: InnerStruct<C>,
         pub field4: InnerTuple,
         pub field5: GenericStruct<Vec<bool>>,
         pub ef: MyEnum,
+        pub oi: Option<InnerTuple>,
     }
     #[derive(x_bow::Track)]
     pub struct InnerStruct<C: FnOnce(i32)> {
-        #[x_bow(no_track)]
         pub inner1: bool,
         pub inner2: RunOnDrop<i32, C>,
         pub inner3: GenericEnum<i32, Box<i32>>,
@@ -40,12 +38,8 @@ pub mod play {
     }
     #[derive(x_bow::Track)]
     pub enum MyEnum {
-        A(#[x_bow(no_track)] bool),
-        B {
-            #[x_bow(no_track)]
-            val: i64,
-            another: InnerTuple,
-        },
+        A(bool),
+        B { val: i64, another: InnerTuple },
     }
     #[derive(x_bow::Track)]
     pub enum GenericEnum<U, T: std::ops::Deref<Target = U>> {
@@ -75,6 +69,7 @@ fn main() {
             },
         },
         ef: MyEnum::A(false),
+        oi: Some(InnerTuple(true)),
     })
     .project();
     let b = *proj.field1.borrow();
@@ -82,10 +77,12 @@ fn main() {
     let b = proj.field4.0;
     let b = &**proj.field5.value.wrapped.borrow();
     let b = proj.field3.inner2.closure.borrow();
-    let b = proj.ef.A_0;
+    let b = proj.ef.A;
 
     let b = &*proj.ef.B_another.borrow_opt().unwrap();
-    let b = proj.field3.inner3.Pointer_0.borrow_opt().unwrap();
+    let b = proj.field3.inner3.Pointer.borrow_opt().unwrap();
+    // let b = proj.oi.
+    let b = *proj.oi.Some.0.borrow_opt().unwrap();
 
     println!("Hello, world!");
 }

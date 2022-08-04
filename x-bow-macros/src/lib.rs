@@ -6,31 +6,34 @@ use syn::{
     parse_quote, punctuated::Punctuated, token::SelfType, Attribute, Data, DataEnum, DeriveInput,
     Expr, ExprAssign, ExprCall, ExprField, ExprPath, ExprStruct, Field, FieldPat, FieldValue,
     Fields, FieldsNamed, FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Pat,
-    PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment, Stmt,
-    Token, Type, TypeGenerics, TypeParam, Variant, VisPublic,
+    PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment,
+    PredicateType, Stmt, Token, TraitBound, TraitBoundModifier, Type, TypeGenerics, TypeParam,
+    TypeParamBound, Variant, VisPublic, WhereClause, WherePredicate,
 };
 
 const ATTRIBUTE_PATH: &str = "x_bow";
 const ATTRIBUTE_SKIP: &str = "no_track";
 const ATTRIBUTE_MODULE_PREFIX: &str = "module_prefix";
+const ATTRIBUTE_REMOTE_TYPE: &str = "remote_type";
 #[proc_macro_derive(Track, attributes(x_bow))]
 pub fn derive_project(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
-    let prefix_path = ast
-        .attrs
-        .iter()
-        .find_map(|attr| {
-            if let Ok(ExprAssign { left, right, .. }) = attr.parse_args() {
-                if let (Expr::Path(left), Expr::Path(right)) = (&*left, &*right) {
-                    if left.path.is_ident(ATTRIBUTE_MODULE_PREFIX) {
-                        return Some(right.path.clone());
-                    }
+    let mut remote_type = None;
+    let mut prefix_path = None;
+    ast.attrs.iter().for_each(|attr| {
+        if let Ok(ExprAssign { left, right, .. }) = attr.parse_args() {
+            if let (Expr::Path(left), Expr::Path(right)) = (&*left, &*right) {
+                if left.path.is_ident(ATTRIBUTE_MODULE_PREFIX) {
+                    prefix_path = Some(right.path.clone());
+                }
+                if left.path.is_ident(ATTRIBUTE_REMOTE_TYPE) {
+                    remote_type = right.path.segments.last().map(|seg| seg.ident.clone());
                 }
             }
-            None
-        })
-        .unwrap_or_else(|| parse_quote!(::x_bow::__for_macro));
-    let res = derive_main(&ast, &prefix_path);
+        }
+    });
+    let prefix_path = prefix_path.unwrap_or_else(|| parse_quote!(::x_bow::__for_macro));
+    let res = derive_main(&ast, &prefix_path, remote_type);
     res.into()
 }
 fn get_projection_ident(input_ident: &Ident) -> Ident {
@@ -52,7 +55,11 @@ fn get_edge_generic_param(
 fn get_incoming_edge_ident() -> Ident {
     Ident::new("x_bow_tracked_incoming_edge", Span::mixed_site())
 }
-fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
+fn derive_main(
+    ast: &DeriveInput,
+    module_prefix: &Path,
+    on_remote_type: Option<Ident>,
+) -> TokenStream {
     let data = &ast.data;
     let num_fields = match data {
         Data::Struct(data) => data.fields.len(),
@@ -64,11 +71,12 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
     let mut field_mappers = Vec::with_capacity(num_fields);
     let mut field_invalidates = Vec::new();
 
-    let inp_ident = &ast.ident;
+    let target_ident = on_remote_type.as_ref().unwrap_or(&ast.ident);
     let (inp_impl_params, inp_type_params, inp_where_clause) = ast.generics.split_for_impl();
     let mapper_phantom_data = generic_phantom_data(&ast.generics);
 
-    let edge_generic = get_edge_generic_param(ast.ident.clone(), &inp_type_params, module_prefix);
+    let edge_generic =
+        get_edge_generic_param(target_ident.clone(), &inp_type_params, module_prefix);
     let edge_generic_ident = edge_generic.ident.clone();
     let incoming_edge = get_incoming_edge_ident();
     let (is_enum, is_tuple) = match data {
@@ -81,10 +89,12 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
         ),
         _ => (true, false),
     };
+    let mut proj_constraints: Vec<WherePredicate> = Vec::new();
     let mut for_each_field =
         |idx: usize, field: &Field, variant_info: Option<(&Variant, &Field, usize)>| {
             let Field { vis, ty, .. } = field;
-            let project_wrap_name = Expr::Path(if has_skip(&field.attrs) {
+            let skip = has_skip(&field.attrs);
+            let project_wrap_name = Expr::Path(if skip {
                 parse_quote!(#module_prefix::TrackedLeaf)
             } else {
                 parse_quote!(#module_prefix::TrackedPart)
@@ -97,7 +107,7 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
             let mapper_name = Ident::new(
                 &format!(
                     "XBowMapper_{}_{}",
-                    inp_ident,
+                    target_ident,
                     field
                         .ident
                         .as_ref()
@@ -106,32 +116,49 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
                 Span::mixed_site(),
             );
 
-            field_invalidates.push({
-                Stmt::Semi(
-                    Expr::Call(parse_quote! {
-                        #module_prefix::Tracked::invalidate_here_down(&self . #field_member)
-                    }),
-                    Default::default(),
-                )
-            });
-            field_types.push({
-            let mut field = field.to_owned();
-            field.attrs = Vec::new();
-            let optional_path: Path = if is_enum {
-                parse_quote! {
-                    #module_prefix::OptionalYes
+            field_invalidates.push(Stmt::Semi(
+                Expr::Call(parse_quote! {
+                    #module_prefix::Tracked::invalidate_here_down(&self . #field_member)
+                }),
+                Default::default(),
+            ));
+            {
+                let mut field = field.to_owned();
+                field.attrs = Vec::new();
+                let optional_path: Path = if is_enum {
+                    parse_quote! {
+                        #module_prefix::OptionalYes
+                    }
+                } else {
+                    parse_quote! {
+                        #edge_generic_ident :: Optional
+                    }
+                };
+                let add_edge: Path = parse_quote! (
+                    #module_prefix::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #optional_path>
+                );
+                field.ty = Type::Path(parse_quote!(
+                    #project_wrap_name <#ty, #add_edge>
+                ));
+                field_types.push(field);
+                if !skip {
+                    proj_constraints.push(WherePredicate::Type(PredicateType {
+                        bounded_ty: ty.clone(),
+                        bounds: [TypeParamBound::Trait(TraitBound {
+                            lifetimes: None,
+                            paren_token: None,
+                            modifier: TraitBoundModifier::None,
+                            path: parse_quote! (
+                                #module_prefix::Trackable<#add_edge>
+                            ),
+                        })]
+                        .into_iter()
+                        .collect(),
+                        colon_token: Default::default(),
+                        lifetimes: None,
+                    }));
                 }
             }
-            else {
-                parse_quote! {
-                    #edge_generic_ident :: Optional
-                }
-            };
-            field.ty = Type::Path(parse_quote!(
-                #project_wrap_name <#ty, #module_prefix::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #optional_path>>
-            ));
-            field
-        });
             field_constructors.push({
                 FieldValue {
                     attrs: Vec::new(),
@@ -149,101 +176,108 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
                     ),
                 }
             });
-            field_mappers.push({
-            let input_ident = Ident::new("map_input", Span::mixed_site());
-            let (map_expr, map_mut_expr): (Expr, Expr) = if let Some((variant, vf, vf_idx)) = variant_info {
-                let variant_name = &variant.ident;
-                let value_ident = Ident::new("map_variant_value", Span::mixed_site());
-                let pat_ident = Pat::Ident(PatIdent {
+            {
+                let input_ident = Ident::new("map_input", Span::mixed_site());
+                let (map_expr, map_mut_expr): (Expr, Expr) =
+                    if let Some((variant, vf, vf_idx)) = variant_info {
+                        let variant_name = &variant.ident;
+                        let value_ident = Ident::new("map_variant_value", Span::mixed_site());
+                        let pat_ident = Pat::Ident(PatIdent {
                             attrs: Vec::new(),
                             by_ref: None,
                             mutability: None,
                             subpat: None,
-                            ident: value_ident.clone()
+                            ident: value_ident.clone(),
                         });
                         let variant_path = parse_quote! (Self::In::#variant_name);
-                let pattern: Pat = match &variant.fields {
-                    Fields::Named(fields) => {
-                        let vf_name = vf.ident.as_ref().unwrap();
-                        Pat::Struct(PatStruct {
-                            attrs: Vec::new(),
-                            brace_token: fields.brace_token.to_owned(),
-                            dot2_token: Some(Default::default()),
-                            path: variant_path,
-                            fields: [FieldPat {
-                                attrs: Vec::new(),
-                                colon_token: Some(Default::default()),
-                                member: Member::Named(vf_name.to_owned()),
-                                pat: Box::new(pat_ident)
-                            }].into_iter().collect()
-                        })
-                    },
-                    Fields::Unnamed(_) => {
-                        let mut receiver: Punctuated::<Pat, Token![,]> = (0..vf_idx).map(|_| Pat::Wild(PatWild {
-                            attrs: Vec::new(),
-                            underscore_token: Default::default()
-                        })).collect();
-                        receiver.push(pat_ident);
-                        receiver.push(Pat::Rest(PatRest {
-                            attrs: Vec::new(),
-                            dot2_token: Default::default()
-                        }));
-                        Pat::TupleStruct(PatTupleStruct {
-                            attrs: Vec::new(),
-                            path: variant_path,
-                            pat: PatTuple {
-                                attrs: Vec::new(),
-                                elems: receiver,
-                                paren_token: Default::default()
+                        let pattern: Pat = match &variant.fields {
+                            Fields::Named(fields) => {
+                                let vf_name = vf.ident.as_ref().unwrap();
+                                Pat::Struct(PatStruct {
+                                    attrs: Vec::new(),
+                                    brace_token: fields.brace_token.to_owned(),
+                                    dot2_token: Some(Default::default()),
+                                    path: variant_path,
+                                    fields: [FieldPat {
+                                        attrs: Vec::new(),
+                                        colon_token: Some(Default::default()),
+                                        member: Member::Named(vf_name.to_owned()),
+                                        pat: Box::new(pat_ident),
+                                    }]
+                                    .into_iter()
+                                    .collect(),
+                                })
                             }
-                        })
-                    },
-                    _ => unreachable!()
-                };
-                let out: Expr = parse_quote! (
-                    match #input_ident {
-                        #pattern => ::std::option::Option::Some(#value_ident),
-                        _ => None
+                            Fields::Unnamed(_) => {
+                                let mut receiver: Punctuated<Pat, Token![,]> = (0..vf_idx)
+                                    .map(|_| {
+                                        Pat::Wild(PatWild {
+                                            attrs: Vec::new(),
+                                            underscore_token: Default::default(),
+                                        })
+                                    })
+                                    .collect();
+                                receiver.push(pat_ident);
+                                receiver.push(Pat::Rest(PatRest {
+                                    attrs: Vec::new(),
+                                    dot2_token: Default::default(),
+                                }));
+                                Pat::TupleStruct(PatTupleStruct {
+                                    attrs: Vec::new(),
+                                    path: variant_path,
+                                    pat: PatTuple {
+                                        attrs: Vec::new(),
+                                        elems: receiver,
+                                        paren_token: Default::default(),
+                                    },
+                                })
+                            }
+                            _ => unreachable!(),
+                        };
+                        let out: Expr = parse_quote! (
+                            match #input_ident {
+                                #pattern => ::std::option::Option::Some(#value_ident),
+                                _ => None
+                            }
+                        );
+                        (out.clone(), out)
+                    } else {
+                        let access: ExprField = parse_quote! {
+                            #input_ident. #field_member
+                        };
+                        (
+                            parse_quote! (
+                                ::std::option::Option::Some(& #access)
+                            ),
+                            parse_quote! (
+                                ::std::option::Option::Some(&mut #access)
+                            ),
+                        )
+                    };
+                field_mappers.push(quote! {
+                    #vis struct #mapper_name #inp_type_params (#mapper_phantom_data);
+                    impl #inp_type_params ::std::clone::Clone for #mapper_name #inp_type_params {
+                        #[inline]
+                        fn clone(&self) -> Self {
+                            Self(::std::marker::PhantomData)
+                        }
                     }
-                );
-                (out.clone(), out)
-            } else {
-                let access: ExprField = parse_quote! {
-                    #input_ident. #field_member
-                };
-                (
-                    parse_quote! (
-                        ::std::option::Option::Some(& #access)
-                    ),
-                    parse_quote! (
-                        ::std::option::Option::Some(&mut #access)
-                    ),
-                )
-            };
-            quote! {
-                #vis struct #mapper_name #inp_type_params (#mapper_phantom_data);
-                impl #inp_type_params ::std::clone::Clone for #mapper_name #inp_type_params {
-                    #[inline]
-                    fn clone(&self) -> Self {
-                        Self(::std::marker::PhantomData)
+                    impl #inp_impl_params #module_prefix::Mapper for #mapper_name #inp_type_params
+                    #inp_where_clause
+                    {
+                        type In = #target_ident #inp_type_params;
+                        type Out = #ty;
+                        #[inline]
+                        fn map<'s, 'd>(&'s self, #input_ident: &'d Self::In) -> ::std::option::Option<&'d Self::Out> {
+                            #map_expr
+                        }
+                        #[inline]
+                        fn map_mut<'s, 'd>(&'s self, #input_ident: &'d mut Self::In) -> ::std::option::Option<&'d mut Self::Out> {
+                            #map_mut_expr
+                        }
                     }
-                }
-                impl #inp_impl_params #module_prefix::Mapper for #mapper_name #inp_type_params
-                #inp_where_clause
-                {
-                    type In = #inp_ident #inp_type_params;
-                    type Out = #ty;
-                    #[inline]
-                    fn map<'s, 'd>(&'s self, #input_ident: &'d Self::In) -> ::std::option::Option<&'d Self::Out> {
-                        #map_expr
-                    }
-                    #[inline]
-                    fn map_mut<'s, 'd>(&'s self, #input_ident: &'d mut Self::In) -> ::std::option::Option<&'d mut Self::Out> {
-                        #map_mut_expr
-                    }
-                }
+                });
             }
-        });
         };
     match data {
         Data::Struct(data) => {
@@ -255,47 +289,45 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
         Data::Enum(data) => {
             data.variants.iter().enumerate().for_each(|(idx, variant)| {
                 let variant_name = variant.ident.clone();
-                let for_each_variant_field = |(variant_idx, variant_field): (usize, &Field)| {
-                    let variant_field_member = variant_field.ident.as_ref().map_or_else(
-                        || {
-                            if data.variants.len() > 1 {
-                                Ident::new(
-                                    &format!("{variant_name}_{variant_idx}"),
-                                    Span::mixed_site(),
-                                )
-                            } else {
-                                variant_name.clone()
-                            }
-                        },
-                        |n| Ident::new(&format!("{variant_name}_{n}"), Span::mixed_site()),
-                    );
-                    let field = Field {
-                        attrs: variant_field.attrs.clone(),
-                        colon_token: Some(Default::default()),
-                        ident: Some(variant_field_member),
-                        ty: variant_field.ty.clone(),
-                        vis: syn::Visibility::Public(VisPublic {
-                            pub_token: Default::default(),
-                        }),
-                    };
-                    for_each_field(idx, &field, Some((variant, &variant_field, variant_idx)));
+                let fields = match &variant.fields {
+                    Fields::Named(fields) => Some(&fields.named),
+                    Fields::Unnamed(fields) => Some(&fields.unnamed),
+                    Fields::Unit => None,
                 };
-                match &variant.fields {
-                    Fields::Named(fields) => {
-                        fields
-                            .named
-                            .iter()
-                            .enumerate()
-                            .for_each(for_each_variant_field);
-                    }
-                    Fields::Unnamed(fields) => {
-                        fields
-                            .unnamed
-                            .iter()
-                            .enumerate()
-                            .for_each(for_each_variant_field);
-                    }
-                    Fields::Unit => {}
+                if let Some(fields) = fields {
+                    let total_fields = fields.len();
+                    fields
+                        .iter()
+                        .enumerate()
+                        .for_each(|(variant_field_idx, variant_field)| {
+                            let variant_field_member = variant_field.ident.as_ref().map_or_else(
+                                || {
+                                    if total_fields > 1 {
+                                        Ident::new(
+                                            &format!("{variant_name}_{variant_field_idx}"),
+                                            Span::mixed_site(),
+                                        )
+                                    } else {
+                                        variant_name.clone()
+                                    }
+                                },
+                                |n| Ident::new(&format!("{variant_name}_{n}"), Span::mixed_site()),
+                            );
+                            let field = Field {
+                                attrs: variant_field.attrs.clone(),
+                                colon_token: Some(Default::default()),
+                                ident: Some(variant_field_member),
+                                ty: variant_field.ty.clone(),
+                                vis: syn::Visibility::Public(VisPublic {
+                                    pub_token: Default::default(),
+                                }),
+                            };
+                            for_each_field(
+                                idx,
+                                &field,
+                                Some((variant, &variant_field, variant_field_idx)),
+                            );
+                        });
                 }
             });
         }
@@ -349,7 +381,15 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
     modified_generics
         .params
         .push(GenericParam::Type(edge_generic));
-    let proj_ident = get_projection_ident(&ast.ident);
+    let wc = modified_generics
+        .where_clause
+        .get_or_insert_with(|| WhereClause {
+            where_token: Default::default(),
+            predicates: Default::default(),
+        });
+    wc.predicates.extend(proj_constraints);
+
+    let proj_ident = get_projection_ident(target_ident);
     let ty_out = ItemStruct {
         attrs: Vec::new(),
         vis: ast.vis.to_owned(),
@@ -403,8 +443,9 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
         })
     };
     let (impl_params, type_params, where_clause) = modified_generics.split_for_impl();
-    let projection_ident = get_projection_ident(inp_ident);
+    let projection_ident = get_projection_ident(target_ident);
     quote! {
+        #[allow(non_snake_case)]
         #ty_out
         impl #impl_params #module_prefix::Tracked for #projection_ident #type_params
         #where_clause
@@ -421,7 +462,7 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
                 #(#field_invalidates)*
             }
         }
-        impl #impl_params #module_prefix::Trackable<#edge_generic_ident> for #inp_ident #inp_type_params
+        impl #impl_params #module_prefix::Trackable<#edge_generic_ident> for #target_ident #inp_type_params
         #where_clause
         {
             type Tracked = #projection_ident #type_params;
