@@ -6,7 +6,7 @@ mod executor;
 pub mod mount;
 mod position;
 pub mod vnode;
-pub use children::__for_macro;
+pub use children::__private_macro_only;
 
 #[cfg(test)]
 mod tests {

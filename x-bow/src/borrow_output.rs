@@ -58,8 +58,8 @@ where
 {
     fn drop(&mut self) {
         if let Some(proj) = self.projection {
-            proj.invalidate_up();
-            proj.invalidate_here_down();
+            proj.invalidate_up_inside();
+            proj.invalidate_down_outside();
         }
     }
 }

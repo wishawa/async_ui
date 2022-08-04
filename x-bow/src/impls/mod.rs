@@ -24,7 +24,7 @@ where
     fn edge(&self) -> &Rc<Self::Edge> {
         &self.incoming_edge
     }
-    fn invalidate_here_down(&self) {
-        self.edge().invalidate_here();
+    fn invalidate_down_outside(&self) {
+        self.edge().invalidate_here_outside();
     }
 }

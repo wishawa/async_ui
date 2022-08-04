@@ -11,16 +11,17 @@ mod trackable;
 mod tracked;
 pub use x_bow_macros::Track;
 
-pub mod __for_macro {
+#[doc(hidden)]
+pub mod __private_macro_only {
     pub use super::edge::{Edge, EdgeTrait};
     pub use super::impls::TrackedLeaf;
     pub use super::mapper::Mapper;
     pub use super::optional::{IsOptional, OptionalNo, OptionalYes};
-    pub use super::trackable::{Trackable, TrackedPart};
+    pub use super::trackable::{HandlePart, Trackable};
     pub use super::tracked::Tracked;
 }
-pub use store::{Projected, Store};
-pub use tracked::{Tracked, TrackedExt, TrackedExtGuaranteed};
+pub use store::{Handle, Store};
+pub use tracked::{TrackedExt, TrackedExtGuaranteed};
 
 #[cfg(test)]
 mod tests {
@@ -36,8 +37,8 @@ mod playground {
     use crate::edge::{Edge, EdgeTrait};
     use crate::impls::TrackedLeaf;
     use crate::mapper::Mapper;
-    use crate::store::{Projected, Store};
-    use crate::trackable::{Trackable, TrackedPart};
+    use crate::store::{Handle, Store};
+    use crate::trackable::{HandlePart, Trackable};
     use crate::tracked::Tracked;
 
     struct MyStruct {
@@ -54,7 +55,7 @@ mod playground {
         P: EdgeTrait<Data = MyStruct>,
     {
         // pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::Optional>>,
-        pub f1: TrackedPart<InnerStruct, Edge<P, MapperMyStateTof1, P::Optional>>,
+        pub f1: HandlePart<InnerStruct, Edge<P, MapperMyStateTof1, P::Optional>>,
         incoming_edge: Rc<P>,
     }
 
@@ -73,9 +74,9 @@ mod playground {
         fn edge(&self) -> &Rc<Self::Edge> {
             &self.incoming_edge
         }
-        fn invalidate_here_down(&self) {
-            self.edge().invalidate_here();
-            self.f1.invalidate_here_down();
+        fn invalidate_down_outside(&self) {
+            self.edge().invalidate_here_outside();
+            self.f1.invalidate_down_outside();
         }
     }
     impl<E> Trackable<E> for MyStruct
@@ -129,9 +130,9 @@ mod playground {
             &self.incoming_edge
         }
 
-        fn invalidate_here_down(&self) {
-            self.edge().invalidate_here();
-            self.i1.invalidate_here_down();
+        fn invalidate_down_outside(&self) {
+            self.edge().invalidate_here_outside();
+            self.i1.invalidate_down_outside();
         }
     }
     impl<E> Trackable<E> for InnerStruct
@@ -182,8 +183,7 @@ mod playground {
             },
             f2: true,
         };
-        let store = Store::new(data);
-        let proj = store.project();
+        let proj = Store::new(data);
         let b = *proj.f1.i1.borrow_opt().unwrap();
         let c = &*proj.f1.borrow_opt().unwrap();
         let b = &*proj.f1.borrow();
@@ -194,12 +194,12 @@ mod playground {
         // let b = *proj.f1.i2.Some.borrow_opt().unwrap();
         take(&proj);
         take2(&proj.f1);
-        fn take(proj: &Projected<MyStruct>) {
+        fn take(proj: &Handle<MyStruct>) {
             let b = *proj.f1.i1.borrow_opt().unwrap();
             // take2(&proj.f1);
             // take3(&proj.f1);
         }
-        fn take2(proj: &TrackedPart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
+        fn take2(proj: &HandlePart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
             let a = proj.i2.borrow_opt();
         }
     }

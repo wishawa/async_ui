@@ -9,7 +9,7 @@ use crate::{
     edge::{Edge, EdgeTrait},
     mapper::Mapper,
     optional::OptionalNo,
-    trackable::{Trackable, TrackedPart},
+    trackable::{HandlePart, Trackable},
     tracked::Tracked,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
@@ -29,7 +29,7 @@ impl<T> Mapper for NoOpMapper<T> {
     }
 }
 pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, OptionalNo>;
-pub type Projected<T> = TrackedPart<T, RootEdge<T>>;
+pub type Handle<T> = HandlePart<T, RootEdge<T>>;
 pub struct Store<T> {
     data: RefCell<T>,
 }
@@ -38,13 +38,11 @@ impl<T> Store<T>
 where
     T: Trackable<RootEdge<T>>,
 {
-    pub fn new(data: T) -> Rc<Self> {
-        Rc::new(Self {
+    pub fn new(data: T) -> Handle<T> {
+        let s = Rc::new(Self {
             data: RefCell::new(data),
-        })
-    }
-    pub fn project(self: Rc<Self>) -> Projected<T> {
-        Tracked::new(Rc::new(Edge::new(self.clone(), NoOpMapper(PhantomData))))
+        });
+        Tracked::new(Rc::new(Edge::new(s, NoOpMapper(PhantomData))))
     }
 }
 impl<T> EdgeTrait for Store<T> {
@@ -57,17 +55,17 @@ impl<T> EdgeTrait for Store<T> {
         Self: 'b;
 
     type Optional = OptionalNo;
-    fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
+    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         self.data.borrow()
     }
 
-    fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
+    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
         self.data.borrow_mut()
     }
-    fn invalidate_here(self: &Rc<Self>) {
+    fn invalidate_here_outside(self: &Rc<Self>) {
         // NO-OP
     }
-    fn invalidate_up(self: &Rc<Self>) {
+    fn invalidate_up_inside(self: &Rc<Self>) {
         // NO-OP
     }
 }

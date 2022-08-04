@@ -3,12 +3,12 @@ use phantom_generics::generic_phantom_data;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_quote, punctuated::Punctuated, token::SelfType, Attribute, Data, DataEnum, DeriveInput,
-    Expr, ExprAssign, ExprCall, ExprField, ExprPath, ExprStruct, Field, FieldPat, FieldValue,
-    Fields, FieldsNamed, FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Pat,
-    PatIdent, PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment,
-    PredicateType, Stmt, Token, TraitBound, TraitBoundModifier, Type, TypeGenerics, TypeParam,
-    TypeParamBound, Variant, VisPublic, WhereClause, WherePredicate,
+    parse_quote, punctuated::Punctuated, token::SelfType, Attribute, Data, DeriveInput, Expr,
+    ExprAssign, ExprCall, ExprField, ExprPath, ExprStruct, Field, FieldPat, FieldValue, Fields,
+    FieldsNamed, FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Pat, PatIdent,
+    PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment, PredicateType, Stmt,
+    Token, TraitBound, TraitBoundModifier, Type, TypeGenerics, TypeParam, TypeParamBound, Variant,
+    VisPublic, WhereClause, WherePredicate,
 };
 
 const ATTRIBUTE_PATH: &str = "x_bow";
@@ -32,7 +32,7 @@ pub fn derive_project(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
         }
     });
-    let prefix_path = prefix_path.unwrap_or_else(|| parse_quote!(::x_bow::__for_macro));
+    let prefix_path = prefix_path.unwrap_or_else(|| parse_quote!(::x_bow::__private_macro_only));
     let res = derive_main(&ast, &prefix_path, remote_type);
     res.into()
 }
@@ -97,7 +97,7 @@ fn derive_main(
             let project_wrap_name = Expr::Path(if skip {
                 parse_quote!(#module_prefix::TrackedLeaf)
             } else {
-                parse_quote!(#module_prefix::TrackedPart)
+                parse_quote!(#module_prefix::HandlePart)
             });
 
             let field_member = field.ident.as_ref().map_or_else(
@@ -118,7 +118,7 @@ fn derive_main(
 
             field_invalidates.push(Stmt::Semi(
                 Expr::Call(parse_quote! {
-                    #module_prefix::Tracked::invalidate_here_down(&self . #field_member)
+                    #module_prefix::Tracked::invalidate_down_outside(&self . #field_member)
                 }),
                 Default::default(),
             ));
@@ -457,8 +457,8 @@ fn derive_main(
             fn edge(&self) -> &::std::rc::Rc<Self::Edge> {
                 &self. #incoming_edge_member
             }
-            fn invalidate_here_down(&self) {
-                #module_prefix::EdgeTrait::invalidate_here(#module_prefix::Tracked::edge(self));
+            fn invalidate_down_outside(&self) {
+                #module_prefix::EdgeTrait::invalidate_here_outside(#module_prefix::Tracked::edge(self));
                 #(#field_invalidates)*
             }
         }
@@ -471,9 +471,6 @@ fn derive_main(
     }
 }
 
-fn get_enum_fields(input: &DataEnum) -> TokenStream {
-    todo!()
-}
 fn has_skip(attrs: &[Attribute]) -> bool {
     for attr in attrs.iter() {
         if let Ok(Meta::List(meta_list)) = attr.parse_meta() {

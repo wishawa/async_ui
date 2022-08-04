@@ -15,10 +15,10 @@ pub trait EdgeTrait {
     where
         Self: 'b;
     type Optional: IsOptional;
-    fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b>;
-    fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b>;
-    fn invalidate_here(self: &Rc<Self>);
-    fn invalidate_up(self: &Rc<Self>);
+    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b>;
+    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b>;
+    fn invalidate_here_outside(self: &Rc<Self>);
+    fn invalidate_up_inside(self: &Rc<Self>);
 }
 
 pub struct Edge<E, M, Y>
@@ -65,18 +65,18 @@ where
         Self: 'b;
     type Optional = Y;
 
-    fn borrow<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
-        BorrowWrapped::new(self.parent.borrow(), self.mapper.clone())
+    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
+        BorrowWrapped::new(self.parent.borrow_edge(), self.mapper.clone())
     }
 
-    fn borrow_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
-        BorrowWrapped::new(self.parent.borrow_mut(), self.mapper.clone())
+    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
+        BorrowWrapped::new(self.parent.borrow_edge_mut(), self.mapper.clone())
     }
-    fn invalidate_here(self: &Rc<Self>) {
-        self.listeners.invalidate();
+    fn invalidate_here_outside(self: &Rc<Self>) {
+        self.listeners.invalidate_outside();
     }
-    fn invalidate_up(self: &Rc<Self>) {
-        self.parent.invalidate_up();
-        self.parent.invalidate_here();
+    fn invalidate_up_inside(self: &Rc<Self>) {
+        self.parent.invalidate_up_inside();
+        self.listeners.invalidate_inside();
     }
 }

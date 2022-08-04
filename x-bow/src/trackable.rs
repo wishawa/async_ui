@@ -3,4 +3,4 @@ use crate::tracked::Tracked;
 pub trait Trackable<E> {
     type Tracked: Tracked<Edge = E>;
 }
-pub type TrackedPart<T, E> = <T as Trackable<E>>::Tracked;
+pub type HandlePart<T, E> = <T as Trackable<E>>::Tracked;

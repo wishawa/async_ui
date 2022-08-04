@@ -10,7 +10,8 @@ use crate::{
 };
 use child::PreSpawnChild;
 
-pub mod __for_macro {
+#[doc(hidden)]
+pub mod __private_macro_only {
     pub use super::child::PreSpawnChild;
     pub use super::Children;
     pub use scoped_async_spawn::{boxed::ScopeSafeBox, SpawnedFuture};
@@ -18,9 +19,9 @@ pub mod __for_macro {
     #[macro_export]
     macro_rules! children {
         [$($ch:expr),*] => {
-            $crate::__for_macro::Children::from(::std::vec![
+            $crate::__private_macro_only::Children::from(::std::vec![
                 $(
-                    $crate::__for_macro::PreSpawnChild::new($ch)
+                    $crate::__private_macro_only::PreSpawnChild::new($ch)
                 ),*
             ])
         };

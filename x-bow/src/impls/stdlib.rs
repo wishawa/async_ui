@@ -1,11 +1,9 @@
-use std::{marker::PhantomData, rc::Rc};
-
 use x_bow_macros::Track;
 
-use crate::trackable::{Trackable, TrackedPart};
+use crate::trackable::Trackable;
 
 #[derive(Track)]
-#[x_bow(module_prefix = crate::__for_macro)]
+#[x_bow(module_prefix = crate::__private_macro_only)]
 struct Test<T> {
     value: T,
 }
@@ -38,8 +36,9 @@ leaf_primitive!(usize);
 
 mod option {
     use x_bow_macros::Track;
+    #[allow(dead_code)]
     #[derive(Track)]
-    #[x_bow(module_prefix = crate::__for_macro)]
+    #[x_bow(module_prefix = crate::__private_macro_only)]
     #[x_bow(remote_type = Option)]
     pub enum ImitateOption<T> {
         Some(T),
@@ -53,7 +52,7 @@ mod option {
 //     T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
 //     E: EdgeTrait<Data = Option<T>>,
 // {
-//     pub Some: TrackedPart<T, Edge<E, MapperOption<T>, OptionalYes>>,
+//     pub Some: HandlePart<T, Edge<E, MapperOption<T>, OptionalYes>>,
 //     incoming_edge: Rc<E>,
 // }
 // pub struct MapperOption<T>(PhantomData<T>);

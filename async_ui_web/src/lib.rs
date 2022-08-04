@@ -6,14 +6,14 @@ pub mod executor;
 
 pub type Children<'c> = ChildrenBase<'c, Backend>;
 
-pub mod __for_macro {
+pub mod __private_macro_only {
     pub use super::Children;
     pub use async_ui_core::children as children_base;
     #[macro_export]
     macro_rules! children {
         [$($ch:expr),*] => {
             ({
-                let children: $crate::__for_macro::Children = $crate::__for_macro::children_base![
+                let children: $crate::__private_macro_only::Children = $crate::__private_macro_only::children_base![
                     $($ch),*
                 ];
                 children

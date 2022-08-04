@@ -70,19 +70,21 @@ fn main() {
         },
         ef: MyEnum::A(false),
         oi: Some(InnerTuple(true)),
-    })
-    .project();
+    });
     let b = *proj.field1.borrow();
     let b = *proj.field3.inner1.borrow();
-    let b = proj.field4.0;
+    let b = &proj.field4.0;
     let b = &**proj.field5.value.wrapped.borrow();
     let b = proj.field3.inner2.closure.borrow();
-    let b = proj.ef.A;
+    let b = &proj.ef.A;
 
     let b = &*proj.ef.B_another.borrow_opt().unwrap();
     let b = proj.field3.inner3.Pointer.borrow_opt().unwrap();
     // let b = proj.oi.
     let b = *proj.oi.Some.0.borrow_opt().unwrap();
+    use x_bow::__private_macro_only::Tracked;
+    proj.edge();
+    *proj.oi.borrow_mut() = Some(InnerTuple(false));
 
     println!("Hello, world!");
 }
