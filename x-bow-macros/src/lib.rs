@@ -81,7 +81,6 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
         ),
         _ => (true, false),
     };
-    // for (idx, field) in data.fields.iter().enumerate() {
     let mut for_each_field =
         |idx: usize, field: &Field, variant_info: Option<(&Variant, &Field, usize)>| {
             let Field { vis, ty, .. } = field;
@@ -257,17 +256,23 @@ fn derive_main(ast: &DeriveInput, module_prefix: &Path) -> TokenStream {
             data.variants.iter().enumerate().for_each(|(idx, variant)| {
                 let variant_name = variant.ident.clone();
                 let for_each_variant_field = |(variant_idx, variant_field): (usize, &Field)| {
-                    let variant_field_member = variant_field
-                        .ident
-                        .as_ref()
-                        .map_or_else(|| variant_idx.to_string(), |n| n.to_string());
+                    let variant_field_member = variant_field.ident.as_ref().map_or_else(
+                        || {
+                            if data.variants.len() > 1 {
+                                Ident::new(
+                                    &format!("{variant_name}_{variant_idx}"),
+                                    Span::mixed_site(),
+                                )
+                            } else {
+                                variant_name.clone()
+                            }
+                        },
+                        |n| Ident::new(&format!("{variant_name}_{n}"), Span::mixed_site()),
+                    );
                     let field = Field {
                         attrs: variant_field.attrs.clone(),
                         colon_token: Some(Default::default()),
-                        ident: Some(Ident::new(
-                            &format!("{variant_name}_{variant_field_member}"),
-                            Span::mixed_site(),
-                        )),
+                        ident: Some(variant_field_member),
                         ty: variant_field.ty.clone(),
                         vis: syn::Visibility::Public(VisPublic {
                             pub_token: Default::default(),
