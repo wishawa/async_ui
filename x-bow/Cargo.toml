@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 x-bow-macros = { path = "../x-bow-macros/" }
+observables = { path = "../observables/" }

@@ -1,28 +1,16 @@
-use std::{cell::RefCell, task::Waker};
+use std::task::Waker;
 
-use slab::Slab;
+pub mod cell;
 
-mod borrow;
-mod stream;
-
-pub struct Observable<T> {
-    inner: RefCell<ObserbableInner<T>>,
+pub trait ObservableBase {
+    fn add_waker(&self, waker: Waker);
+    fn get_version(&self) -> u64;
 }
-struct ObserbableInner<T> {
-    data: T,
-    listeners: Slab<Waker>,
-    version: usize,
+pub trait Observable<T>: ObservableBase {
+    fn visit<R, F: FnOnce(&T) -> R>(&self, func: F) -> R;
 }
-
-impl<T> Observable<T> {
-    pub fn new(data: T) -> Self {
-        let inner = RefCell::new(ObserbableInner {
-            data,
-            listeners: Slab::new(),
-            version: 0,
-        });
-        Self { inner }
-    }
+pub trait Mutatable<T> {
+    fn visit_mut<R, F: FnOnce(&mut T) -> R>(&self, func: F) -> R;
 }
 
 #[cfg(test)]

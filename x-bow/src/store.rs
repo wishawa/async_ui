@@ -7,6 +7,7 @@ use std::{
 use crate::{
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
     edge::{Edge, EdgeTrait},
+    listeners::Listeners,
     mapper::Mapper,
     optional::OptionalNo,
     trackable::{HandlePart, Trackable},
@@ -62,11 +63,14 @@ impl<T> EdgeTrait for Store<T> {
     fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
         self.data.borrow_mut()
     }
-    fn invalidate_here_outside(self: &Rc<Self>) {
+    fn invalidate_outside_here(self: &Rc<Self>) {
+        unreachable!()
+    }
+    fn invalidate_inside_up(self: &Rc<Self>) {
         // NO-OP
     }
-    fn invalidate_up_inside(self: &Rc<Self>) {
-        // NO-OP
+    fn listeners<'s>(self: &'s Rc<Self>) -> &'s Listeners {
+        unreachable!()
     }
 }
 

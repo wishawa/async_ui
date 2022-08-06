@@ -1,4 +1,6 @@
-use std::rc::Rc;
+use std::{rc::Rc, task::Waker};
+
+use observables::ObservableBase;
 
 use crate::{borrow_output::XBowBorrow, edge::EdgeTrait, optional::OptionalNo};
 
@@ -8,8 +10,8 @@ pub trait Tracked {
     #[doc(hidden)]
     fn edge(&self) -> &Rc<Self::Edge>;
     fn invalidate_down_outside(&self);
-    fn invalidate_up_inside(&self) {
-        self.edge().invalidate_up_inside();
+    fn invalidate_inside_up(&self) {
+        self.edge().invalidate_inside_up();
     }
 }
 pub trait TrackedExt: Tracked {
@@ -42,3 +44,15 @@ where
     T::Edge: EdgeTrait<Optional = OptionalNo>,
 {
 }
+
+// impl<T> ObservableBase for T
+// where
+//     T: Tracked
+// {
+//     fn add_waker(&self, waker: Waker) {
+//         self.edge().listeners().add_outside_waker(waker)
+//     }
+//     fn get_version(&self) -> u64 {
+//         self.edge().listeners().outside_version()
+//     }
+// }

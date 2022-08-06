@@ -27,12 +27,30 @@ impl Listeners {
     }
     pub(crate) fn invalidate_inside(&self) {
         self.inside_version.set(self.inside_version.get() + 1);
-        let mut bm = self.inner.borrow_mut();
-        bm.inside_wakers.drain(..).for_each(Waker::wake);
+        self.inner
+            .borrow_mut()
+            .inside_wakers
+            .drain(..)
+            .for_each(Waker::wake);
     }
     pub(crate) fn invalidate_outside(&self) {
         self.outside_version.set(self.outside_version.get() + 1);
-        let mut bm = self.inner.borrow_mut();
-        bm.outside_wakers.drain(..).for_each(Waker::wake);
+        self.inner
+            .borrow_mut()
+            .outside_wakers
+            .drain(..)
+            .for_each(Waker::wake);
+    }
+    pub(crate) fn add_inside_waker(&self, waker: Waker) {
+        self.inner.borrow_mut().inside_wakers.push(waker)
+    }
+    pub(crate) fn add_outside_waker(&self, waker: Waker) {
+        self.inner.borrow_mut().outside_wakers.push(waker)
+    }
+    pub(crate) fn inside_version(&self) -> u64 {
+        self.inside_version.get()
+    }
+    pub(crate) fn outside_version(&self) -> u64 {
+        self.outside_version.get()
     }
 }

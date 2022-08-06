@@ -25,6 +25,6 @@ where
         &self.incoming_edge
     }
     fn invalidate_down_outside(&self) {
-        self.edge().invalidate_here_outside();
+        self.edge().invalidate_outside_here();
     }
 }

@@ -118,7 +118,7 @@ mod collections {
             }
             fn invalidate_down_outside(&self) {
                 use super::invalidate_and_retain;
-                self.edge().invalidate_here_outside();
+                self.edge().invalidate_outside_here();
                 self.items.borrow_mut().retain(invalidate_and_retain);
             }
         }
@@ -252,7 +252,7 @@ mod collections {
             }
             fn invalidate_down_outside(&self) {
                 use super::invalidate_and_retain;
-                self.edge().invalidate_here_outside();
+                self.edge().invalidate_outside_here();
                 self.items.borrow_mut().retain(invalidate_and_retain);
             }
         }

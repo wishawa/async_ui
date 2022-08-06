@@ -458,7 +458,7 @@ fn derive_main(
                 &self. #incoming_edge_member
             }
             fn invalidate_down_outside(&self) {
-                #module_prefix::EdgeTrait::invalidate_here_outside(#module_prefix::Tracked::edge(self));
+                #module_prefix::EdgeTrait::invalidate_outside_here(#module_prefix::Tracked::edge(self));
                 #(#field_invalidates)*
             }
         }
