@@ -10,7 +10,7 @@ use crate::{
     listeners::Listeners,
     mapper::Mapper,
     optional::OptionalNo,
-    trackable::{HandlePart, Trackable},
+    trackable::Trackable,
     tracked::Tracked,
 };
 pub struct NoOpMapper<T>(PhantomData<T>);
@@ -30,7 +30,7 @@ impl<T> Mapper for NoOpMapper<T> {
     }
 }
 pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, OptionalNo>;
-pub type Handle<T> = HandlePart<T, RootEdge<T>>;
+pub type Handle<T> = Tracked<<T as Trackable<RootEdge<T>>>::TrackedNode>;
 pub struct Store<T> {
     data: RefCell<T>,
 }

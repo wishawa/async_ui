@@ -94,12 +94,6 @@ fn derive_main(
         |idx: usize, field: &Field, variant_info: Option<(&Variant, &Field, usize)>| {
             let Field { vis, ty, .. } = field;
             let skip = has_skip(&field.attrs);
-            let project_wrap_name = Expr::Path(if skip {
-                parse_quote!(#module_prefix::TrackedLeaf)
-            } else {
-                parse_quote!(#module_prefix::HandlePart)
-            });
-
             let field_member = field.ident.as_ref().map_or_else(
                 || Member::Unnamed(idx.into()),
                 |ident| Member::Named(ident.to_owned()),
@@ -118,7 +112,7 @@ fn derive_main(
 
             field_invalidates.push(Stmt::Semi(
                 Expr::Call(parse_quote! {
-                    #module_prefix::Tracked::invalidate_down_outside(&self . #field_member)
+                    #module_prefix::TrackedNode::invalidate_outside_down(&* self . #field_member)
                 }),
                 Default::default(),
             ));
@@ -137,8 +131,17 @@ fn derive_main(
                 let add_edge: Path = parse_quote! (
                     #module_prefix::Edge<#edge_generic_ident, #mapper_name #inp_type_params, #optional_path>
                 );
+                let tracked_node_ty: Type = if skip {
+                    parse_quote! (
+                        #module_prefix::XBowLeaf<#ty, #add_edge>
+                    )
+                } else {
+                    parse_quote! (
+                        #module_prefix::TrackedNodeAlias<#ty, #add_edge>
+                    )
+                };
                 field.ty = Type::Path(parse_quote!(
-                    #project_wrap_name <#ty, #add_edge>
+                    #module_prefix::Tracked<#tracked_node_ty>
                 ));
                 field_types.push(field);
                 if !skip {
@@ -447,7 +450,7 @@ fn derive_main(
     quote! {
         #[allow(non_snake_case)]
         #ty_out
-        impl #impl_params #module_prefix::Tracked for #projection_ident #type_params
+        impl #impl_params #module_prefix::TrackedNode for #projection_ident #type_params
         #where_clause
         {
             type Edge = #edge_generic_ident;
@@ -457,15 +460,15 @@ fn derive_main(
             fn edge(&self) -> &::std::rc::Rc<Self::Edge> {
                 &self. #incoming_edge_member
             }
-            fn invalidate_down_outside(&self) {
-                #module_prefix::EdgeTrait::invalidate_outside_here(#module_prefix::Tracked::edge(self));
+            fn invalidate_outside_down(&self) {
+                #module_prefix::EdgeTrait::invalidate_outside_here(#module_prefix::TrackedNode::edge(self));
                 #(#field_invalidates)*
             }
         }
         impl #impl_params #module_prefix::Trackable<#edge_generic_ident> for #target_ident #inp_type_params
         #where_clause
         {
-            type Tracked = #projection_ident #type_params;
+            type TrackedNode = #projection_ident #type_params;
         }
         #(#field_mappers)*
     }

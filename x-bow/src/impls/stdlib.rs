@@ -6,7 +6,7 @@ mod primitives {
             where
                 E: crate::edge::EdgeTrait<Data = $primitive>,
             {
-                type Tracked = crate::impls::TrackedLeaf<$primitive, E>;
+                type TrackedNode = crate::impls::XBowLeaf<$primitive, E>;
             }
         };
     }
@@ -40,12 +40,16 @@ mod option {
     }
 }
 mod collections {
-    use crate::tracked::Tracked;
-    use std::rc::Weak;
+    use crate::tracked::TrackedNode;
+    use std::{ops::Deref, rc::Weak};
 
-    fn invalidate_and_retain<K, T: Tracked>(_key: &K, value: &mut Weak<T>) -> bool {
+    fn invalidate_and_retain<K, T>(_key: &K, value: &mut Weak<T>) -> bool
+    where
+        T: Deref,
+        T::Target: TrackedNode,
+    {
         if let Some(item) = value.upgrade() {
-            item.invalidate_down_outside();
+            item.invalidate_outside_down();
             true
         } else {
             false
@@ -63,8 +67,8 @@ mod collections {
             edge::{Edge, EdgeTrait},
             mapper::Mapper,
             optional::OptionalYes,
-            trackable::{HandlePart, Trackable},
-            tracked::Tracked,
+            trackable::Trackable,
+            tracked::{Tracked, TrackedAlias, TrackedNode},
         };
 
         #[allow(non_camel_case_types)]
@@ -74,7 +78,7 @@ mod collections {
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
         {
             items:
-                RefCell<BTreeMap<usize, Weak<HandlePart<T, Edge<E, MapperVec<T>, OptionalYes>>>>>,
+                RefCell<BTreeMap<usize, Weak<TrackedAlias<T, Edge<E, MapperVec<T>, OptionalYes>>>>>,
             incoming_edge: Rc<E>,
         }
 
@@ -100,7 +104,7 @@ mod collections {
                 input.get_mut(self.index)
             }
         }
-        impl<T, E> Tracked for XBowTracked_Vec<T, E>
+        impl<T, E> TrackedNode for XBowTracked_Vec<T, E>
         where
             E: EdgeTrait<Data = Vec<T>>,
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
@@ -116,7 +120,7 @@ mod collections {
             fn edge(&self) -> &Rc<Self::Edge> {
                 &self.incoming_edge
             }
-            fn invalidate_down_outside(&self) {
+            fn invalidate_outside_down(&self) {
                 use super::invalidate_and_retain;
                 self.edge().invalidate_outside_here();
                 self.items.borrow_mut().retain(invalidate_and_retain);
@@ -131,7 +135,7 @@ mod collections {
             fn create_item(
                 &self,
                 index: usize,
-            ) -> Rc<HandlePart<T, Edge<E, MapperVec<T>, OptionalYes>>> {
+            ) -> Rc<TrackedAlias<T, Edge<E, MapperVec<T>, OptionalYes>>> {
                 let edge = Edge::new(
                     self.incoming_edge.clone(),
                     MapperVec {
@@ -144,7 +148,7 @@ mod collections {
             pub fn handle_at(
                 &self,
                 index: usize,
-            ) -> Rc<HandlePart<T, Edge<E, MapperVec<T>, OptionalYes>>> {
+            ) -> Rc<TrackedAlias<T, Edge<E, MapperVec<T>, OptionalYes>>> {
                 match self.items.borrow_mut().entry(index) {
                     Entry::Vacant(vacant) => {
                         let tracked = self.create_item(index);
@@ -169,7 +173,7 @@ mod collections {
             E: EdgeTrait<Data = Vec<T>>,
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
         {
-            type Tracked = XBowTracked_Vec<T, E>;
+            type TrackedNode = XBowTracked_Vec<T, E>;
         }
     }
     mod hashmap {
@@ -185,8 +189,8 @@ mod collections {
             edge::{Edge, EdgeTrait},
             mapper::Mapper,
             optional::OptionalYes,
-            trackable::{HandlePart, Trackable},
-            tracked::Tracked,
+            trackable::Trackable,
+            tracked::{Tracked, TrackedAlias, TrackedNode},
         };
         #[allow(non_camel_case_types)]
         pub struct XBowTracked_HashMap<K, V, E>
@@ -195,8 +199,9 @@ mod collections {
             E: EdgeTrait<Data = HashMap<K, V>>,
             V: Trackable<Edge<E, MapperHashMap<K, V>, OptionalYes>>,
         {
-            items:
-                RefCell<HashMap<K, Weak<HandlePart<V, Edge<E, MapperHashMap<K, V>, OptionalYes>>>>>,
+            items: RefCell<
+                HashMap<K, Weak<TrackedAlias<V, Edge<E, MapperHashMap<K, V>, OptionalYes>>>>,
+            >,
             incoming_edge: Rc<E>,
         }
 
@@ -234,7 +239,7 @@ mod collections {
             }
         }
 
-        impl<K, V, E> Tracked for XBowTracked_HashMap<K, V, E>
+        impl<K, V, E> TrackedNode for XBowTracked_HashMap<K, V, E>
         where
             K: Clone + Eq + Hash,
             E: EdgeTrait<Data = HashMap<K, V>>,
@@ -250,7 +255,7 @@ mod collections {
             fn edge(&self) -> &Rc<Self::Edge> {
                 &self.incoming_edge
             }
-            fn invalidate_down_outside(&self) {
+            fn invalidate_outside_down(&self) {
                 use super::invalidate_and_retain;
                 self.edge().invalidate_outside_here();
                 self.items.borrow_mut().retain(invalidate_and_retain);
@@ -265,7 +270,7 @@ mod collections {
             fn create_item(
                 &self,
                 key: K,
-            ) -> Rc<HandlePart<V, Edge<E, MapperHashMap<K, V>, OptionalYes>>> {
+            ) -> Rc<TrackedAlias<V, Edge<E, MapperHashMap<K, V>, OptionalYes>>> {
                 let edge = Edge::new(
                     self.incoming_edge.clone(),
                     MapperHashMap {
@@ -278,7 +283,7 @@ mod collections {
             pub fn handle_at(
                 &self,
                 key: K,
-            ) -> Rc<HandlePart<V, Edge<E, MapperHashMap<K, V>, OptionalYes>>> {
+            ) -> Rc<TrackedAlias<V, Edge<E, MapperHashMap<K, V>, OptionalYes>>> {
                 let mut bm = self.items.borrow_mut();
                 let entry = bm.entry(key.clone());
                 match entry {
@@ -306,7 +311,7 @@ mod collections {
             E: EdgeTrait<Data = HashMap<K, V>>,
             V: Trackable<Edge<E, MapperHashMap<K, V>, OptionalYes>>,
         {
-            type Tracked = XBowTracked_HashMap<K, V, E>;
+            type TrackedNode = XBowTracked_HashMap<K, V, E>;
         }
     }
 }
@@ -317,7 +322,7 @@ mod collections {
 //     T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
 //     E: EdgeTrait<Data = Option<T>>,
 // {
-//     pub Some: HandlePart<T, Edge<E, MapperOption<T>, OptionalYes>>,
+//     pub Some: Tracked<T, Edge<E, MapperOption<T>, OptionalYes>>,
 //     incoming_edge: Rc<E>,
 // }
 // pub struct MapperOption<T>(PhantomData<T>);

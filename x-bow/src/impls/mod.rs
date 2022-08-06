@@ -1,16 +1,16 @@
 use std::rc::Rc;
 
-use crate::{edge::EdgeTrait, tracked::Tracked};
+use crate::{edge::EdgeTrait, tracked::TrackedNode};
 
 mod stdlib;
-pub struct TrackedLeaf<T, E>
+pub struct XBowLeaf<T, E>
 where
     E: EdgeTrait<Data = T>,
 {
     incoming_edge: Rc<E>,
 }
 
-impl<T, E> Tracked for TrackedLeaf<T, E>
+impl<T, E> TrackedNode for XBowLeaf<T, E>
 where
     E: EdgeTrait<Data = T>,
 {
@@ -24,7 +24,7 @@ where
     fn edge(&self) -> &Rc<Self::Edge> {
         &self.incoming_edge
     }
-    fn invalidate_down_outside(&self) {
+    fn invalidate_outside_down(&self) {
         self.edge().invalidate_outside_here();
     }
 }

@@ -1,6 +1,5 @@
-use crate::tracked::Tracked;
+use crate::tracked::TrackedNode;
 
 pub trait Trackable<E> {
-    type Tracked: Tracked<Edge = E>;
+    type TrackedNode: TrackedNode<Edge = E>;
 }
-pub type HandlePart<T, E> = <T as Trackable<E>>::Tracked;

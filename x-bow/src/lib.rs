@@ -14,14 +14,14 @@ pub use x_bow_macros::Track;
 #[doc(hidden)]
 pub mod __private_macro_only {
     pub use super::edge::{Edge, EdgeTrait};
-    pub use super::impls::TrackedLeaf;
+    pub use super::impls::XBowLeaf;
     pub use super::mapper::Mapper;
     pub use super::optional::{IsOptional, OptionalNo, OptionalYes};
-    pub use super::trackable::{HandlePart, Trackable};
-    pub use super::tracked::Tracked;
+    pub use super::trackable::Trackable;
+    pub use super::tracked::{Tracked, TrackedNode, TrackedNodeAlias};
 }
 pub use store::{Handle, Store};
-pub use tracked::{TrackedExt, TrackedExtGuaranteed};
+// pub use tracked::{TrackedExt, TrackedExtGuaranteed};
 
 #[cfg(test)]
 mod tests {
@@ -34,7 +34,7 @@ mod tests {
 //     use std::rc::Rc;
 
 //     use crate::edge::{Edge, EdgeTrait};
-//     use crate::impls::TrackedLeaf;
+//     use crate::impls::XBowProject_Leaf;
 //     use crate::mapper::Mapper;
 //     use crate::store::{Handle, Store};
 //     use crate::trackable::{HandlePart, Trackable};
@@ -54,7 +54,7 @@ mod tests {
 //         P: EdgeTrait<Data = MyStruct>,
 //     {
 //         // pub f1: PInnerStruct<Edge<P, MapperMyStateTof1, P::Optional>>,
-//         pub f1: HandlePart<InnerStruct, Edge<P, MapperMyStateTof1, P::Optional>>,
+//         pub f1: Tracked<InnerStruct, Edge<P, MapperMyStateTof1, P::Optional>>,
 //         incoming_edge: Rc<P>,
 //     }
 
@@ -73,9 +73,9 @@ mod tests {
 //         fn edge(&self) -> &Rc<Self::Edge> {
 //             &self.incoming_edge
 //         }
-//         fn invalidate_down_outside(&self) {
+//         fn invalidate_outside_down(&self) {
 //             self.edge().invalidate_outside_here();
-//             self.f1.invalidate_down_outside();
+//             self.f1.invalidate_outside_down();
 //         }
 //     }
 //     impl<E> Trackable<E> for MyStruct
@@ -101,11 +101,11 @@ mod tests {
 //     where
 //         P: EdgeTrait<Data = InnerStruct>,
 //     {
-//         pub i1: TrackedLeaf<bool, Edge<P, MapperInnerStateToi1, P::Optional>>,
+//         pub i1: XBowProject_Leaf<bool, Edge<P, MapperInnerStateToi1, P::Optional>>,
 //         // pub i1: PLeaf<bool, Edge<P, MapperInnerStateToi1, P::Optional>>,
-//         pub i2: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::Optional>>,
+//         pub i2: XBowProject_Leaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::Optional>>,
 //         // pub i2: POption<bool, Edge<P, MapperInnerStateToi2, P::Optional>>,
-//         pub i22: TrackedLeaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::Optional>>,
+//         pub i22: XBowProject_Leaf<Option<bool>, Edge<P, MapperInnerStateToi2, P::Optional>>,
 //         incoming_edge: Rc<P>,
 //     }
 
@@ -129,9 +129,9 @@ mod tests {
 //             &self.incoming_edge
 //         }
 
-//         fn invalidate_down_outside(&self) {
+//         fn invalidate_outside_down(&self) {
 //             self.edge().invalidate_outside_here();
-//             self.i1.invalidate_down_outside();
+//             self.i1.invalidate_outside_down();
 //         }
 //     }
 //     impl<E> Trackable<E> for InnerStruct
@@ -198,7 +198,7 @@ mod tests {
 //             // take2(&proj.f1);
 //             // take3(&proj.f1);
 //         }
-//         fn take2(proj: &HandlePart<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
+//         fn take2(proj: &Tracked<InnerStruct, impl EdgeTrait<Data = InnerStruct>>) {
 //             let a = proj.i2.borrow_opt();
 //         }
 //     }

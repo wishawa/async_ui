@@ -1,6 +1,8 @@
-use x_bow::{Store, TrackedExt, TrackedExtGuaranteed};
+use x_bow::Store;
 
 pub mod play {
+    #[derive(x_bow::Track)]
+    pub struct InnerTuple(#[x_bow(no_track)] pub bool);
 
     #[derive(x_bow::Track)]
     pub struct MyStruct<C: FnOnce(i32)> {
@@ -18,8 +20,6 @@ pub mod play {
         pub inner2: RunOnDrop<i32, C>,
         pub inner3: GenericEnum<i32, Box<i32>>,
     }
-    #[derive(x_bow::Track)]
-    pub struct InnerTuple(#[x_bow(no_track)] pub bool);
     #[derive(x_bow::Track)]
     pub struct GenericStruct<T> {
         pub value: Wrapped<T>,
@@ -71,19 +71,19 @@ fn main() {
         ef: MyEnum::A(false),
         oi: Some(InnerTuple(true)),
     });
-    let b = *proj.field1.borrow();
-    let b = *proj.field3.inner1.borrow();
-    let b = &proj.field4.0;
-    let b = &**proj.field5.value.wrapped.borrow();
-    let b = proj.field3.inner2.closure.borrow();
-    let b = &proj.ef.A;
+    let _b = *proj.field1.borrow();
+    let _b = *proj.field3.inner1.borrow();
+    let _b = &proj.field4.0;
+    let _b = &*proj.field5.value.wrapped.borrow();
+    let _b = proj.field3.inner2.closure.borrow();
+    let _b = &proj.ef.A;
 
-    let b = &*proj.ef.B_another.borrow_opt().unwrap();
-    let b = proj.field3.inner3.Pointer.borrow_opt().unwrap();
-    // let b = proj.oi.
-    let b = *proj.oi.Some.0.borrow_opt().unwrap();
-    use x_bow::__private_macro_only::Tracked;
-    proj.edge();
+    let _b = &*proj.ef.B_another.borrow_opt().unwrap();
+    let _b = proj.field3.inner3.Pointer.borrow_opt().unwrap();
+    let _b = proj.oi.Some.borrow_opt();
+    let _b = *proj.oi.Some.0.borrow_opt().unwrap();
+    use x_bow::__private_macro_only::TrackedNode;
+    let _e = proj.edge();
     *proj.oi.borrow_mut() = Some(InnerTuple(false));
 
     println!("Hello, world!");
