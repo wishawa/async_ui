@@ -1,106 +1,77 @@
 mod child;
-use std::{future::Future, pin::Pin, rc::Rc, task::Poll};
-
-use pin_project_lite::pin_project;
-use scoped_async_spawn::boxed::ScopeSafeBox;
-
-use crate::{
-    backend::BackendTrait,
-    vnode::{PassVNode, VNode},
+mod spawner;
+use std::{
+    future::Future,
+    pin::Pin,
+    rc::Rc,
+    task::{Context, Poll},
 };
-use child::PreSpawnChild;
+
+use child::Child;
+use pin_project_lite::pin_project;
+use scoped_async_spawn::SpawnGuard;
+
+use crate::{backend::BackendTrait, vnode::PassVNode};
+
+use spawner::Spawner;
 
 #[doc(hidden)]
 pub mod __private_macro_only {
-    pub use super::child::PreSpawnChild;
+    pub use super::child::Child;
     pub use super::Children;
-    pub use scoped_async_spawn::{boxed::ScopeSafeBox, SpawnedFuture};
 
     #[macro_export]
     macro_rules! children {
         [$($ch:expr),*] => {
-            $crate::__private_macro_only::Children::from(::std::vec![
-                $(
-                    $crate::__private_macro_only::PreSpawnChild::new($ch)
-                ),*
+            $crate::__private_macro_only::Children::new(::std::vec![
+                $($crate::__private_macro_only::Child::new($ch)),*
             ])
-        };
+        }
     }
 }
 
 pin_project! {
-    #[project = ChildrenEnumProj]
-    enum ChildrenInner<'c, B: BackendTrait> {
-        Created {
-            futures: Vec<PreSpawnChild<'c, B>>,
-        },
-        Polled {
-            // TODO:	The dyn Future here is always SpawnedFuture, which has fixed size.
-            // 			Ideally we would avoid the double indirection.
-            #[pin] futures: ScopeSafeBox<[ScopeSafeBox<dyn Future<Output = ()> + 'c>]>,
-            been_polled: bool
-        }
+    pub struct Children<'c, B>
+    where
+        B: BackendTrait
+    {
+        children: Vec<Child<'c, B>>,
+        mounted: bool,
+        #[pin]
+        guard: SpawnGuard<'c, Spawner, ()>
     }
 }
-pin_project! {
-    pub struct Children<'c, B: BackendTrait> {
-        #[pin] inner: ChildrenInner<'c, B>
-    }
-}
-impl<'c, B: BackendTrait> From<Vec<PreSpawnChild<'c, B>>> for Children<'c, B> {
-    fn from(futures: Vec<PreSpawnChild<'c, B>>) -> Self {
+
+impl<'c, B> Children<'c, B>
+where
+    B: BackendTrait,
+{
+    pub fn new(children: Vec<Child<'c, B>>) -> Self {
         Self {
-            inner: ChildrenInner::Created { futures },
+            children,
+            mounted: false,
+            guard: SpawnGuard::new(Spawner),
         }
     }
 }
-impl<'c, B: BackendTrait> Future for Children<'c, B> {
+impl<'c, B> Future for Children<'c, B>
+where
+    B: BackendTrait,
+{
     type Output = ();
 
-    fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
-        let mut outer_this = self.project();
-        let this = outer_this.inner.as_mut().project();
-        match this {
-            ChildrenEnumProj::Created { futures } => {
-                let futures = ScopeSafeBox::from_boxed(
-                    std::mem::take(futures)
-                        .into_iter()
-                        .enumerate()
-                        .map(|(idx, ele)| {
-                            ele.convert(B::get_vnode_key().with(|parent_vnode| {
-                                Rc::new(VNode::Pass(PassVNode::new(Rc::clone(parent_vnode), idx)))
-                            }))
-                        })
-                        .collect(),
-                );
-                outer_this.inner.set(ChildrenInner::Polled {
-                    futures,
-                    been_polled: false,
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut this = self.project();
+        let parent_vnode = B::get_vnode_key().with(Clone::clone);
+        if !*this.mounted {
+            *this.mounted = true;
+            if this.children.len() > 1 {
+                this.children.iter_mut().enumerate().for_each(|(idx, ch)| {
+                    let vnode = Rc::new(PassVNode::new(parent_vnode.clone(), idx).into());
+                    ch.mount(vnode, this.guard.as_mut(), cx);
                 });
-            }
-            ChildrenEnumProj::Polled {
-                futures,
-                been_polled,
-            } => {
-                if !*been_polled {
-                    *been_polled = true;
-                    futures.with_scope(|p: Pin<&mut [ScopeSafeBox<dyn Future<Output = ()>>]>| {
-                        // Taken from https://github.com/rust-lang/futures-rs/blob/556cc461be75316dcc00b37ec2b887f1a039a8d2/futures-util/src/future/join_all.rs#L18
-                        fn iter_pin_mut<T>(
-                            slice: Pin<&mut [T]>,
-                        ) -> impl Iterator<Item = Pin<&mut T>> {
-                            // Safety: `std` _could_ make this unsound if it were to decide Pin's
-                            // invariants aren't required to transmit through slices. Otherwise this has
-                            // the same safety as a normal field pin projection.
-                            unsafe { slice.get_unchecked_mut() }
-                                .iter_mut()
-                                .map(|t| unsafe { Pin::new_unchecked(t) })
-                        }
-                        iter_pin_mut(p).for_each(|f| {
-                            let _ = f.poll(cx);
-                        });
-                    });
-                }
+            } else if let Some(ch) = this.children.first_mut() {
+                ch.mount(parent_vnode, this.guard, cx);
             }
         }
         Poll::Pending

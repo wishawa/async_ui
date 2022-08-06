@@ -11,6 +11,6 @@ async_ui_futures = { path = "../async_ui_futures/" }
 async-task = "4.3.0"
 async-executor = "1.4.1"
 pin-project-lite = "0.2.9"
-smallvec = "1.9.0"
+smallvec = { version = "1.9.0", features = ["union", "const_generics"] }
 enum_dispatch = "0.3.8"
 scoped-tls = "1.0.0"

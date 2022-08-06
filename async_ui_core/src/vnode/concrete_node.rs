@@ -5,10 +5,10 @@ use crate::{backend::BackendTrait, position::PositionIndex};
 use super::VNodeTrait;
 
 pub struct ConcreteNodeVNode<B: BackendTrait> {
-    node: RefNode<B>,
+    pub node: RefNode<B>,
     children: RefCell<BTreeMap<PositionIndex, B::Node>>,
 }
-enum RefNode<B: BackendTrait> {
+pub enum RefNode<B: BackendTrait> {
     Parent { parent: B::Node },
     Sibling { parent: B::Node, sibling: B::Node },
 }

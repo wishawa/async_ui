@@ -38,5 +38,6 @@ mod tests {
         let _ = async {
             test(&String::from("hi")).await;
         };
+        let a = children![async {}];
     }
 }
