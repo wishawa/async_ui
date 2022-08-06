@@ -5,7 +5,8 @@ use std::{
 
 pub struct Listeners {
     inner: RefCell<ListenersInner>,
-    version: Cell<u64>,
+    inside_version: Cell<u64>,
+    outside_version: Cell<u64>,
 }
 struct ListenersInner {
     outside_wakers: Vec<Waker>,
@@ -20,19 +21,17 @@ impl Listeners {
         });
         Self {
             inner,
-            version: Cell::new(0),
+            inside_version: Cell::new(0),
+            outside_version: Cell::new(0),
         }
     }
-    fn invalidate_version(&self) {
-        self.version.set(self.version.get() + 1);
-    }
     pub(crate) fn invalidate_inside(&self) {
-        self.invalidate_version();
+        self.inside_version.set(self.inside_version.get() + 1);
         let mut bm = self.inner.borrow_mut();
         bm.inside_wakers.drain(..).for_each(Waker::wake);
     }
     pub(crate) fn invalidate_outside(&self) {
-        self.invalidate_version();
+        self.outside_version.set(self.outside_version.get() + 1);
         let mut bm = self.inner.borrow_mut();
         bm.outside_wakers.drain(..).for_each(Waker::wake);
     }
