@@ -1,3 +1,4 @@
+use observables::Version;
 use std::{
     cell::{Cell, RefCell},
     task::Waker,
@@ -5,8 +6,8 @@ use std::{
 
 pub struct Listeners {
     inner: RefCell<ListenersInner>,
-    inside_version: Cell<u64>,
-    outside_version: Cell<u64>,
+    inside_version: Cell<Version>,
+    outside_version: Cell<Version>,
 }
 struct ListenersInner {
     outside_wakers: Vec<Waker>,
@@ -21,12 +22,13 @@ impl Listeners {
         });
         Self {
             inner,
-            inside_version: Cell::new(0),
-            outside_version: Cell::new(0),
+            inside_version: Cell::new(Version::new()),
+            outside_version: Cell::new(Version::new()),
         }
     }
     pub(crate) fn invalidate_inside(&self) {
-        self.inside_version.set(self.inside_version.get() + 1);
+        self.inside_version
+            .set(self.inside_version.get().incremented());
         self.inner
             .borrow_mut()
             .inside_wakers
@@ -34,7 +36,8 @@ impl Listeners {
             .for_each(Waker::wake);
     }
     pub(crate) fn invalidate_outside(&self) {
-        self.outside_version.set(self.outside_version.get() + 1);
+        self.outside_version
+            .set(self.outside_version.get().incremented());
         self.inner
             .borrow_mut()
             .outside_wakers
@@ -47,10 +50,10 @@ impl Listeners {
     pub(crate) fn add_outside_waker(&self, waker: Waker) {
         self.inner.borrow_mut().outside_wakers.push(waker)
     }
-    pub(crate) fn inside_version(&self) -> u64 {
+    pub(crate) fn inside_version(&self) -> Version {
         self.inside_version.get()
     }
-    pub(crate) fn outside_version(&self) -> u64 {
+    pub(crate) fn outside_version(&self) -> Version {
         self.outside_version.get()
     }
 }

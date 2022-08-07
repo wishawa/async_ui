@@ -1,6 +1,6 @@
-use std::{marker::PhantomData, ops::Deref, pin::Pin, rc::Rc, task::Waker};
+use std::{marker::PhantomData, ops::Deref, rc::Rc, task::Waker};
 
-use observables::{Observable, ObservableBase};
+use observables::{Observable, ObservableBase, Version};
 
 use crate::{
     borrow_output::{Mutable, NotMutable, XBowBorrow},
@@ -90,10 +90,10 @@ impl<N> ObservableBase for Tracked<N>
 where
     N: TrackedNode,
 {
-    fn add_waker(self: Pin<&Self>, waker: Waker) {
+    fn add_waker(&self, waker: Waker) {
         self.edge.listeners().add_outside_waker(waker);
     }
-    fn get_version(self: Pin<&Self>) -> u64 {
+    fn get_version(&self) -> Version {
         self.edge.listeners().outside_version()
     }
 }

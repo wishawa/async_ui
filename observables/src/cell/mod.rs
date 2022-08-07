@@ -1,6 +1,6 @@
-use std::{cell::RefCell, pin::Pin, task::Waker};
+use std::{cell::RefCell, task::Waker};
 
-use crate::{Observable, ObservableBase};
+use crate::{Observable, ObservableBase, Version};
 
 pub struct ObservableCell<T> {
     inner: RefCell<ObserbableCellInner<T>>,
@@ -9,7 +9,7 @@ pub struct ObservableCell<T> {
 struct ObserbableCellInner<T> {
     data: T,
     listeners: Vec<Waker>,
-    version: u64,
+    version: Version,
 }
 
 impl<T> ObservableCell<T> {
@@ -17,16 +17,16 @@ impl<T> ObservableCell<T> {
         let inner = RefCell::new(ObserbableCellInner {
             data,
             listeners: Vec::new(),
-            version: 0,
+            version: Version::new(),
         });
         Self { inner }
     }
 }
 impl<T> ObservableBase for ObservableCell<T> {
-    fn add_waker(self: Pin<&Self>, waker: Waker) {
+    fn add_waker(&self, waker: Waker) {
         self.inner.borrow_mut().listeners.push(waker);
     }
-    fn get_version(self: Pin<&Self>) -> u64 {
+    fn get_version(&self) -> Version {
         self.inner.borrow().version
     }
 }
