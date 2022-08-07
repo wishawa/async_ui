@@ -8,7 +8,7 @@ use syn::{
     FieldsNamed, FieldsUnnamed, GenericParam, ItemStruct, Member, Meta, NestedMeta, Pat, PatIdent,
     PatRest, PatStruct, PatTuple, PatTupleStruct, PatWild, Path, PathSegment, PredicateType, Stmt,
     Token, TraitBound, TraitBoundModifier, Type, TypeGenerics, TypeParam, TypeParamBound, Variant,
-    VisPublic, WhereClause, WherePredicate,
+    WhereClause, WherePredicate,
 };
 
 const ATTRIBUTE_PATH: &str = "x_bow";
@@ -49,7 +49,7 @@ fn get_edge_generic_param(
 ) -> TypeParam {
     let ident = Ident::new("XBowTrackedEdge", Span::mixed_site());
     parse_quote!(
-        #ident: #module_prefix::EdgeTrait<Data = #my_ident #my_generics>
+        #ident: #module_prefix::TrackedEdge<Data = #my_ident #my_generics>
     )
 }
 fn get_incoming_edge_ident() -> Ident {
@@ -168,7 +168,7 @@ fn derive_main(
                     member: field_member.clone(),
                     colon_token: field.colon_token,
                     expr: parse_quote!(
-                        #module_prefix::Tracked::new(
+                        #module_prefix::Tracked::create_with_edge(
                             ::std::rc::Rc::new(
                                 #module_prefix::Edge::new(
                                     ::std::clone::Clone::clone(& #incoming_edge),
@@ -321,9 +321,7 @@ fn derive_main(
                                 colon_token: Some(Default::default()),
                                 ident: Some(variant_field_member),
                                 ty: variant_field.ty.clone(),
-                                vis: syn::Visibility::Public(VisPublic {
-                                    pub_token: Default::default(),
-                                }),
+                                vis: ast.vis.clone(),
                             };
                             for_each_field(
                                 idx,
@@ -461,7 +459,7 @@ fn derive_main(
                 &self. #incoming_edge_member
             }
             fn invalidate_outside_down(&self) {
-                #module_prefix::EdgeTrait::invalidate_outside_here(#module_prefix::TrackedNode::edge(self));
+                #module_prefix::TrackedEdge::invalidate_outside_here(#module_prefix::TrackedNode::edge(self));
                 #(#field_invalidates)*
             }
         }

@@ -6,7 +6,7 @@ use std::{
 
 use crate::{
     deref_optional::{ProjectedDeref, ProjectedDerefMut},
-    edge::{Edge, EdgeTrait},
+    edge::{Edge, TrackedEdge},
     listeners::Listeners,
     mapper::Mapper,
     optional::OptionalNo,
@@ -29,24 +29,22 @@ impl<T> Mapper for NoOpMapper<T> {
         Some(input)
     }
 }
-pub(crate) type RootEdge<T> = Edge<Store<T>, NoOpMapper<T>, OptionalNo>;
-pub type Handle<T> = Tracked<<T as Trackable<RootEdge<T>>>::TrackedNode>;
-pub struct Store<T> {
+pub(crate) type RootEdge<T> = Edge<RootNode<T>, NoOpMapper<T>, OptionalNo>;
+pub type Store<T> = Tracked<<T as Trackable<RootEdge<T>>>::TrackedNode>;
+pub struct RootNode<T> {
     data: RefCell<T>,
 }
 
-impl<T> Store<T>
+pub fn create_store<T>(data: T) -> Store<T>
 where
     T: Trackable<RootEdge<T>>,
 {
-    pub fn new(data: T) -> Handle<T> {
-        let s = Rc::new(Self {
-            data: RefCell::new(data),
-        });
-        Tracked::new(Rc::new(Edge::new(s, NoOpMapper(PhantomData))))
-    }
+    let s = Rc::new(RootNode {
+        data: RefCell::new(data),
+    });
+    Tracked::create_with_edge(Rc::new(Edge::new(s, NoOpMapper(PhantomData))))
 }
-impl<T> EdgeTrait for Store<T> {
+impl<T> TrackedEdge for RootNode<T> {
     type Data = T;
     type BorrowGuard<'b> = Ref<'b, T>
     where

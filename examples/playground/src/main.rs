@@ -1,4 +1,4 @@
-use x_bow::Store;
+use x_bow::{create_store, Store};
 
 pub mod play {
     #[derive(x_bow::Track)]
@@ -49,7 +49,7 @@ pub mod play {
 }
 fn main() {
     use play::*;
-    let proj = Store::new(MyStruct {
+    let proj = create_store(MyStruct {
         field1: 42,
         field2: 0,
         field3: InnerStruct {
@@ -86,5 +86,9 @@ fn main() {
     let _e = proj.edge();
     *proj.oi.borrow_mut() = Some(InnerTuple(false));
 
+    take_store(&proj);
+    fn take_store(store: &Store<MyStruct<impl FnOnce(i32)>>) {
+        let _v = *store.field3.inner2.value.borrow();
+    }
     println!("Hello, world!");
 }

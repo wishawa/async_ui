@@ -6,7 +6,7 @@ use crate::{
     mapper::Mapper,
     optional::IsOptional,
 };
-pub trait EdgeTrait {
+pub trait TrackedEdge {
     type Data;
     type BorrowGuard<'b>: ProjectedDeref<Target = Self::Data>
     where
@@ -24,7 +24,7 @@ pub trait EdgeTrait {
 
 pub struct Edge<E, M, Y>
 where
-    E: EdgeTrait,
+    E: TrackedEdge,
     M: Mapper<In = E::Data> + Clone,
     Y: IsOptional,
 {
@@ -36,7 +36,7 @@ where
 
 impl<E, M, Y> Edge<E, M, Y>
 where
-    E: EdgeTrait,
+    E: TrackedEdge,
     M: Mapper<In = E::Data> + Clone,
     Y: IsOptional,
 {
@@ -51,9 +51,9 @@ where
     }
 }
 
-impl<E, M, Y> EdgeTrait for Edge<E, M, Y>
+impl<E, M, Y> TrackedEdge for Edge<E, M, Y>
 where
-    E: EdgeTrait,
+    E: TrackedEdge,
     M: Mapper<In = E::Data> + Clone,
     Y: IsOptional,
 {
@@ -69,7 +69,6 @@ where
     fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
         BorrowWrapped::new(self.parent.borrow_edge(), self.mapper.clone())
     }
-
     fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
         BorrowWrapped::new(self.parent.borrow_edge_mut(), self.mapper.clone())
     }

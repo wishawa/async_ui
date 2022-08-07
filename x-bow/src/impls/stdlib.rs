@@ -4,7 +4,7 @@ mod primitives {
         ($primitive:ty) => {
             impl<E> Trackable<E> for $primitive
             where
-                E: crate::edge::EdgeTrait<Data = $primitive>,
+                E: crate::edge::TrackedEdge<Data = $primitive>,
             {
                 type TrackedNode = crate::impls::XBowLeaf<$primitive, E>;
             }
@@ -26,6 +26,7 @@ mod primitives {
     leaf_primitive!(u64);
     leaf_primitive!(u8);
     leaf_primitive!(usize);
+    leaf_primitive!(());
 }
 
 mod option {
@@ -64,7 +65,7 @@ mod collections {
         };
 
         use crate::{
-            edge::{Edge, EdgeTrait},
+            edge::{Edge, TrackedEdge},
             mapper::Mapper,
             optional::OptionalYes,
             trackable::Trackable,
@@ -74,7 +75,7 @@ mod collections {
         #[allow(non_camel_case_types)]
         pub struct XBowTracked_Vec<T, E>
         where
-            E: EdgeTrait<Data = Vec<T>>,
+            E: TrackedEdge<Data = Vec<T>>,
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
         {
             items:
@@ -106,7 +107,7 @@ mod collections {
         }
         impl<T, E> TrackedNode for XBowTracked_Vec<T, E>
         where
-            E: EdgeTrait<Data = Vec<T>>,
+            E: TrackedEdge<Data = Vec<T>>,
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
         {
             type Edge = E;
@@ -129,7 +130,7 @@ mod collections {
 
         impl<T, E> XBowTracked_Vec<T, E>
         where
-            E: EdgeTrait<Data = Vec<T>>,
+            E: TrackedEdge<Data = Vec<T>>,
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
         {
             fn create_item(
@@ -143,7 +144,7 @@ mod collections {
                         _phantom: PhantomData,
                     },
                 );
-                Rc::new(Tracked::new(Rc::new(edge)))
+                Rc::new(Tracked::create_with_edge(Rc::new(edge)))
             }
             pub fn handle_at(
                 &self,
@@ -170,7 +171,7 @@ mod collections {
         }
         impl<T, E> Trackable<E> for Vec<T>
         where
-            E: EdgeTrait<Data = Vec<T>>,
+            E: TrackedEdge<Data = Vec<T>>,
             T: Trackable<Edge<E, MapperVec<T>, OptionalYes>>,
         {
             type TrackedNode = XBowTracked_Vec<T, E>;
@@ -186,7 +187,7 @@ mod collections {
         };
 
         use crate::{
-            edge::{Edge, EdgeTrait},
+            edge::{Edge, TrackedEdge},
             mapper::Mapper,
             optional::OptionalYes,
             trackable::Trackable,
@@ -196,7 +197,7 @@ mod collections {
         pub struct XBowTracked_HashMap<K, V, E>
         where
             K: Clone + Eq + Hash,
-            E: EdgeTrait<Data = HashMap<K, V>>,
+            E: TrackedEdge<Data = HashMap<K, V>>,
             V: Trackable<Edge<E, MapperHashMap<K, V>, OptionalYes>>,
         {
             items: RefCell<
@@ -242,7 +243,7 @@ mod collections {
         impl<K, V, E> TrackedNode for XBowTracked_HashMap<K, V, E>
         where
             K: Clone + Eq + Hash,
-            E: EdgeTrait<Data = HashMap<K, V>>,
+            E: TrackedEdge<Data = HashMap<K, V>>,
             V: Trackable<Edge<E, MapperHashMap<K, V>, OptionalYes>>,
         {
             type Edge = E;
@@ -264,7 +265,7 @@ mod collections {
         impl<K, V, E> XBowTracked_HashMap<K, V, E>
         where
             K: Clone + Eq + Hash,
-            E: EdgeTrait<Data = HashMap<K, V>>,
+            E: TrackedEdge<Data = HashMap<K, V>>,
             V: Trackable<Edge<E, MapperHashMap<K, V>, OptionalYes>>,
         {
             fn create_item(
@@ -278,7 +279,7 @@ mod collections {
                         _phantom: PhantomData,
                     },
                 );
-                Rc::new(Tracked::new(Rc::new(edge)))
+                Rc::new(Tracked::create_with_edge(Rc::new(edge)))
             }
             pub fn handle_at(
                 &self,
@@ -308,7 +309,7 @@ mod collections {
         impl<K, V, E> Trackable<E> for HashMap<K, V>
         where
             K: Clone + Eq + Hash,
-            E: EdgeTrait<Data = HashMap<K, V>>,
+            E: TrackedEdge<Data = HashMap<K, V>>,
             V: Trackable<Edge<E, MapperHashMap<K, V>, OptionalYes>>,
         {
             type TrackedNode = XBowTracked_HashMap<K, V, E>;
@@ -320,7 +321,7 @@ mod collections {
 // pub struct POption<T, E>
 // where
 //     T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
-//     E: EdgeTrait<Data = Option<T>>,
+//     E: TrackedEdge<Data = Option<T>>,
 // {
 //     pub Some: Tracked<T, Edge<E, MapperOption<T>, OptionalYes>>,
 //     incoming_edge: Rc<E>,
@@ -346,7 +347,7 @@ mod collections {
 // }
 // impl<T, E> Tracked for POption<T, E>
 // where
-//     E: EdgeTrait<Data = Option<T>>,
+//     E: TrackedEdge<Data = Option<T>>,
 //     T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
 // {
 //     type Edge = E;
@@ -367,7 +368,7 @@ mod collections {
 // impl<T, E> Trackable<E> for Option<T>
 // where
 //     T: Trackable<Edge<E, MapperOption<T>, OptionalYes>>,
-//     E: EdgeTrait<Data = Option<T>>,
+//     E: TrackedEdge<Data = Option<T>>,
 // {
 //     type Tracked = POption<T, E>;
 // }

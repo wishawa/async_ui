@@ -1,18 +1,18 @@
 use std::rc::Rc;
 
-use crate::{edge::EdgeTrait, tracked::TrackedNode};
+use crate::{edge::TrackedEdge, tracked::TrackedNode};
 
 mod stdlib;
 pub struct XBowLeaf<T, E>
 where
-    E: EdgeTrait<Data = T>,
+    E: TrackedEdge<Data = T>,
 {
     incoming_edge: Rc<E>,
 }
 
 impl<T, E> TrackedNode for XBowLeaf<T, E>
 where
-    E: EdgeTrait<Data = T>,
+    E: TrackedEdge<Data = T>,
 {
     type Edge = E;
 
