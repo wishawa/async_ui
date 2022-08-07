@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Deref, rc::Rc, task::Waker};
+use std::{marker::PhantomData, ops::Deref, pin::Pin, rc::Rc, task::Waker};
 
 use observables::{Observable, ObservableBase};
 
@@ -87,18 +87,19 @@ impl<N> ObservableBase for Tracked<N>
 where
     N: TrackedNode,
 {
-    fn add_waker(&self, waker: Waker) {
+    fn add_waker(self: Pin<&Self>, waker: Waker) {
         self.inner.edge().listeners().add_outside_waker(waker);
     }
-    fn get_version(&self) -> u64 {
+    fn get_version(self: Pin<&Self>) -> u64 {
         self.inner.edge().listeners().outside_version()
     }
 }
-impl<N> Observable<<N::Edge as TrackedEdge>::Data> for Tracked<N>
+impl<N> Observable for Tracked<N>
 where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
 {
+    type Data = <N::Edge as TrackedEdge>::Data;
     fn visit<R, F: FnOnce(&<N::Edge as TrackedEdge>::Data) -> R>(&self, func: F) -> R {
         let b = self.borrow();
         func(&*b)
