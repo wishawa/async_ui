@@ -1,4 +1,3 @@
-#![feature(into_future)]
 pub mod backend;
 pub use mount::mount;
 mod executor;

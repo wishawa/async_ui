@@ -1,5 +1,5 @@
-use pin_utils::pin_mut;
-use scoped_async_spawn::SpawnGuard;
+// use pin_utils::pin_mut;
+// use scoped_async_spawn::SpawnGuard;
 
 #[test]
 fn test_lifetime() {

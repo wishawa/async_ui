@@ -1,6 +1,8 @@
 use x_bow::{create_store, Store};
 
 pub mod play {
+    use crate::RunOnDrop;
+
     #[derive(x_bow::Track)]
     pub struct InnerTuple(#[x_bow(no_track)] pub bool);
 
@@ -29,13 +31,7 @@ pub mod play {
         #[x_bow(no_track)]
         pub wrapped: T,
     }
-    #[derive(x_bow::Track)]
-    pub struct RunOnDrop<V, T: FnOnce(V)> {
-        #[x_bow(no_track)]
-        pub closure: T,
-        #[x_bow(no_track)]
-        pub value: V,
-    }
+
     #[derive(x_bow::Track)]
     pub enum MyEnum {
         A(bool),
@@ -46,6 +42,13 @@ pub mod play {
         Pointer(#[x_bow(no_track)] T),
         Value(#[x_bow(no_track)] U),
     }
+}
+#[derive(x_bow::Track)]
+pub struct RunOnDrop<V, T: FnOnce(V)> {
+    #[x_bow(no_track)]
+    pub closure: T,
+    #[x_bow(no_track)]
+    value: V,
 }
 fn main() {
     use play::*;
@@ -82,8 +85,6 @@ fn main() {
     let _b = proj.field3.inner3.Pointer.borrow_opt().unwrap();
     let _b = proj.oi.Some.borrow_opt();
     let _b = *proj.oi.Some.0.borrow_opt().unwrap();
-    use x_bow::__private_macro_only::TrackedNode;
-    let _e = proj.edge();
     *proj.oi.borrow_mut() = Some(InnerTuple(false));
 
     take_store(&proj);
