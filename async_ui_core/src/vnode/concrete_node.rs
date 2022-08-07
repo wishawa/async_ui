@@ -8,6 +8,15 @@ pub struct ConcreteNodeVNode<B: BackendTrait> {
     pub node: RefNode<B>,
     children: RefCell<BTreeMap<PositionIndex, B::Node>>,
 }
+
+impl<B: BackendTrait> ConcreteNodeVNode<B> {
+    pub fn new(node: RefNode<B>) -> Self {
+        Self {
+            node,
+            children: Default::default(),
+        }
+    }
+}
 pub enum RefNode<B: BackendTrait> {
     Parent { parent: B::Node },
     Sibling { parent: B::Node, sibling: B::Node },

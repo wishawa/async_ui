@@ -3,6 +3,8 @@ use backend::Backend;
 
 pub mod backend;
 pub mod executor;
+mod mount;
+pub use mount::{mount, mount_at};
 
 pub type Render<'c> = RenderBase<'c, Backend>;
 
