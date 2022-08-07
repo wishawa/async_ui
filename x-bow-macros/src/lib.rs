@@ -112,7 +112,7 @@ fn derive_main(
 
             field_invalidates.push(Stmt::Semi(
                 Expr::Call(parse_quote! {
-                    #module_prefix::TrackedNode::invalidate_outside_down(&* self . #field_member)
+                    #module_prefix::Tracked::invalidate_outside_down(& self . #field_member)
                 }),
                 Default::default(),
             ));
@@ -335,49 +335,6 @@ fn derive_main(
         _ => unreachable!(),
     };
     let incoming_edge_ident = get_incoming_edge_ident();
-    let (incoming_edge_field, incoming_edge_colon, incoming_edge_member) = if is_tuple {
-        (None, None, Member::Unnamed(num_fields.into()))
-    } else {
-        (
-            Some(incoming_edge_ident.clone()),
-            Some(<Token![:]>::default()),
-            Member::Named(incoming_edge_ident.clone()),
-        )
-    };
-    field_types.push({
-        let ty = parse_quote! (
-            ::std::rc::Rc<#edge_generic_ident>
-        );
-        Field {
-            attrs: Vec::new(),
-            vis: syn::Visibility::Inherited,
-            ident: incoming_edge_field.clone(),
-            colon_token: incoming_edge_colon,
-            ty,
-        }
-    });
-    field_constructors.push({
-        let expr = Expr::Path(ExprPath {
-            attrs: Vec::new(),
-            qself: None,
-            path: Path {
-                leading_colon: None,
-                segments: [PathSegment {
-                    ident: incoming_edge_ident.clone(),
-                    arguments: syn::PathArguments::None,
-                }]
-                .into_iter()
-                .collect(),
-            },
-        });
-        FieldValue {
-            attrs: Vec::new(),
-            member: incoming_edge_member.clone(),
-            colon_token: incoming_edge_colon,
-            expr,
-        }
-    });
-
     let mut modified_generics = ast.generics.clone();
     modified_generics
         .params
@@ -455,11 +412,7 @@ fn derive_main(
             fn new(#incoming_edge_ident: ::std::rc::Rc<#edge_generic_ident>) -> Self {
                 #constructor
             }
-            fn edge(&self) -> &::std::rc::Rc<Self::Edge> {
-                &self. #incoming_edge_member
-            }
             fn invalidate_outside_down(&self) {
-                #module_prefix::TrackedEdge::invalidate_outside_here(#module_prefix::TrackedNode::edge(self));
                 #(#field_invalidates)*
             }
         }

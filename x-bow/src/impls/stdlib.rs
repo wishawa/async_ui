@@ -118,12 +118,8 @@ mod collections {
                     incoming_edge: edge,
                 }
             }
-            fn edge(&self) -> &Rc<Self::Edge> {
-                &self.incoming_edge
-            }
             fn invalidate_outside_down(&self) {
                 use super::invalidate_and_retain;
-                self.edge().invalidate_outside_here();
                 self.items.borrow_mut().retain(invalidate_and_retain);
             }
         }
@@ -253,12 +249,8 @@ mod collections {
                     incoming_edge: edge,
                 }
             }
-            fn edge(&self) -> &Rc<Self::Edge> {
-                &self.incoming_edge
-            }
             fn invalidate_outside_down(&self) {
                 use super::invalidate_and_retain;
-                self.edge().invalidate_outside_here();
                 self.items.borrow_mut().retain(invalidate_and_retain);
             }
         }

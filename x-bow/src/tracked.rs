@@ -12,18 +12,14 @@ use crate::{
 pub trait TrackedNode {
     type Edge: TrackedEdge;
     fn new(edge: Rc<Self::Edge>) -> Self;
-    #[doc(hidden)]
-    fn edge(&self) -> &Rc<Self::Edge>;
     fn invalidate_outside_down(&self);
-    fn invalidate_inside_up(&self) {
-        self.edge().invalidate_inside_up();
-    }
 }
-pub struct Tracked<T>
+pub struct Tracked<N>
 where
-    T: TrackedNode,
+    N: TrackedNode,
 {
-    inner: T,
+    inner: N,
+    edge: Rc<<N as TrackedNode>::Edge>,
 }
 
 impl<N> Deref for Tracked<N>
@@ -43,8 +39,15 @@ where
     N: TrackedNode,
 {
     pub fn create_with_edge(edge: Rc<N::Edge>) -> Self {
-        let inner = TrackedNode::new(edge);
-        Self { inner }
+        let inner = TrackedNode::new(edge.clone());
+        Self { inner, edge }
+    }
+    pub fn invalidate_inside_up(&self) {
+        self.edge.invalidate_inside_up();
+    }
+    pub fn invalidate_outside_down(&self) {
+        self.edge.invalidate_outside_here();
+        self.inner.invalidate_outside_down();
     }
 }
 impl<N> Tracked<N>
@@ -55,12 +58,12 @@ where
     pub fn borrow<'b>(
         &'b self,
     ) -> XBowBorrow<NotMutable, <N::Edge as TrackedEdge>::BorrowGuard<'b>> {
-        XBowBorrow::new_without_check(self.inner.edge().borrow_edge(), NotMutable(PhantomData))
+        XBowBorrow::new_without_check(self.edge.borrow_edge(), NotMutable(PhantomData))
     }
     pub fn borrow_mut<'b>(
         &'b self,
     ) -> XBowBorrow<Mutable<'b, N>, <N::Edge as TrackedEdge>::BorrowMutGuard<'b>> {
-        XBowBorrow::new_without_check(self.inner.edge().borrow_edge_mut(), Mutable(&self.inner))
+        XBowBorrow::new_without_check(self.edge.borrow_edge_mut(), Mutable(&self))
     }
 }
 impl<N> Tracked<N>
@@ -71,12 +74,12 @@ where
     pub fn borrow_opt<'b>(
         &'b self,
     ) -> Option<XBowBorrow<NotMutable, <N::Edge as TrackedEdge>::BorrowGuard<'b>>> {
-        XBowBorrow::new(self.inner.edge().borrow_edge(), NotMutable(PhantomData))
+        XBowBorrow::new(self.edge.borrow_edge(), NotMutable(PhantomData))
     }
     pub fn borrow_mut_opt<'b>(
         &'b self,
     ) -> Option<XBowBorrow<Mutable<'b, N>, <N::Edge as TrackedEdge>::BorrowMutGuard<'b>>> {
-        XBowBorrow::new(self.inner.edge().borrow_edge_mut(), Mutable(&self.inner))
+        XBowBorrow::new(self.edge.borrow_edge_mut(), Mutable(&self))
     }
 }
 
@@ -88,10 +91,10 @@ where
     N: TrackedNode,
 {
     fn add_waker(self: Pin<&Self>, waker: Waker) {
-        self.inner.edge().listeners().add_outside_waker(waker);
+        self.edge.listeners().add_outside_waker(waker);
     }
     fn get_version(self: Pin<&Self>) -> u64 {
-        self.inner.edge().listeners().outside_version()
+        self.edge.listeners().outside_version()
     }
 }
 impl<N> Observable for Tracked<N>

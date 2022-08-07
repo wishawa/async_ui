@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{marker::PhantomData, rc::Rc};
 
 use crate::{edge::TrackedEdge, tracked::TrackedNode};
 
@@ -7,7 +7,7 @@ pub struct XBowLeaf<T, E>
 where
     E: TrackedEdge<Data = T>,
 {
-    incoming_edge: Rc<E>,
+    _phantom: PhantomData<E>,
 }
 
 impl<T, E> TrackedNode for XBowLeaf<T, E>
@@ -16,15 +16,10 @@ where
 {
     type Edge = E;
 
-    fn new(edge: Rc<E>) -> Self {
+    fn new(_edge: Rc<E>) -> Self {
         Self {
-            incoming_edge: edge,
+            _phantom: PhantomData,
         }
     }
-    fn edge(&self) -> &Rc<Self::Edge> {
-        &self.incoming_edge
-    }
-    fn invalidate_outside_down(&self) {
-        self.edge().invalidate_outside_here();
-    }
+    fn invalidate_outside_down(&self) {}
 }
