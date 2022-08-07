@@ -1,19 +1,19 @@
-use async_ui_core::children::Children as ChildrenBase;
+use async_ui_core::render::Render as RenderBase;
 use backend::Backend;
 
 pub mod backend;
 pub mod executor;
 
-pub type Children<'c> = ChildrenBase<'c, Backend>;
+pub type Render<'c> = RenderBase<'c, Backend>;
 
 pub mod __private_macro_only {
-    pub use super::Children;
-    pub use async_ui_core::children as children_base;
+    pub use super::Render;
+    pub use async_ui_core::render as render_base;
     #[macro_export]
     macro_rules! children {
         [$($ch:expr),*] => {
             ({
-                let children: $crate::__private_macro_only::Children = $crate::__private_macro_only::children_base![
+                let children: $crate::__private_macro_only::Render = $crate::__private_macro_only::render_base![
                     $($ch),*
                 ];
                 children

@@ -15,12 +15,12 @@ use crate::{backend::BackendTrait, vnode::PassVNode};
 #[doc(hidden)]
 pub mod __private_macro_only {
     pub use super::child::Child;
-    pub use super::Children;
+    pub use super::Render;
 
     #[macro_export]
-    macro_rules! children {
+    macro_rules! render {
         [$($ch:expr),*] => {
-            $crate::__private_macro_only::Children::new(::std::vec![
+            $crate::__private_macro_only::Render::new(::std::vec![
                 $($crate::__private_macro_only::Child::new($ch)),*
             ])
         }
@@ -28,7 +28,7 @@ pub mod __private_macro_only {
 }
 
 pin_project! {
-    pub struct Children<'c, B>
+    pub struct Render<'c, B>
     where
         B: BackendTrait
     {
@@ -39,7 +39,7 @@ pin_project! {
     }
 }
 
-impl<'c, B> Children<'c, B>
+impl<'c, B> Render<'c, B>
 where
     B: BackendTrait,
 {
@@ -51,7 +51,7 @@ where
         }
     }
 }
-impl<'c, B> Future for Children<'c, B>
+impl<'c, B> Future for Render<'c, B>
 where
     B: BackendTrait,
 {
