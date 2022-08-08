@@ -10,7 +10,7 @@ use child::Child;
 use pin_project_lite::pin_project;
 use scoped_async_spawn::SpawnGuard;
 
-use crate::{backend::BackendTrait, vnode::pass::PassVNode};
+use crate::{backend::BackendTrait, vnode::node_pass::PassVNode};
 
 #[doc(hidden)]
 pub mod __private_macro_only {

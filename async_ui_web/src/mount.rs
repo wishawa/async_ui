@@ -2,19 +2,22 @@ use std::rc::Rc;
 
 use async_ui_core::{
     mount as core_mount,
-    vnode::{
-        concrete_node::{ConcreteNodeVNode, RefNode},
-        GiveVNode,
-    },
+    vnode::node_concrete::{ConcreteNodeVNode, RefNode, WithNode},
 };
 use web_sys::Node;
 
 use crate::{backend::Backend, Render};
 
 pub fn mount_at(render: Render<'static>, node: Node) {
-    let fut = GiveVNode::new(
+    let fut = WithNode::new(
         render,
-        Rc::new(ConcreteNodeVNode::new(RefNode::<Backend>::Parent { parent: node }).into()),
+        Rc::new(
+            ConcreteNodeVNode::new(
+                RefNode::<Backend>::Parent { parent: node },
+                Default::default(),
+            )
+            .into(),
+        ),
     );
     core_mount::<Backend, _>(fut)
 }

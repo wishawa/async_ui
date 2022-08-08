@@ -1,19 +1,30 @@
-use std::{cell::RefCell, collections::BTreeMap};
+use std::{
+    cell::RefCell,
+    collections::BTreeMap,
+    future::Future,
+    pin::Pin,
+    rc::Rc,
+    task::{Context, Poll},
+};
 
-use crate::{backend::BackendTrait, position::PositionIndex};
+use pin_project_lite::pin_project;
 
-use super::VNodeTrait;
+use crate::{backend::BackendTrait, context::ContextMap, position::PositionIndex};
+
+use super::{VNode, VNodeTrait};
 
 pub struct ConcreteNodeVNode<B: BackendTrait> {
-    pub node: RefNode<B>,
+    node: RefNode<B>,
     children: RefCell<BTreeMap<PositionIndex, B::Node>>,
+    context: ContextMap,
 }
 
 impl<B: BackendTrait> ConcreteNodeVNode<B> {
-    pub fn new(node: RefNode<B>) -> Self {
+    pub fn new(node: RefNode<B>, context: ContextMap) -> Self {
         Self {
             node,
             children: Default::default(),
+            context,
         }
     }
 }
@@ -49,5 +60,44 @@ impl<B: BackendTrait> VNodeTrait<B> for ConcreteNodeVNode<B> {
                 RefNode::Sibling { parent, .. } => B::del_child_node(parent, &removed),
             }
         }
+    }
+
+    fn get_context_map<'s>(&'s self) -> &'s ContextMap {
+        &self.context
+    }
+}
+
+pin_project! {
+    pub struct WithNode<B, F>
+    where
+        F: Future,
+        B: BackendTrait
+    {
+        #[pin]
+        future: F,
+        vnode: Rc<VNode<B>>
+    }
+}
+
+impl<B, F> WithNode<B, F>
+where
+    F: Future,
+    B: BackendTrait,
+{
+    pub fn new(future: F, vnode: Rc<VNode<B>>) -> Self {
+        Self { future, vnode }
+    }
+}
+
+impl<B, F> Future for WithNode<B, F>
+where
+    F: Future,
+    B: BackendTrait,
+{
+    type Output = F::Output;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let this = self.project();
+        B::get_vnode_key().set(this.vnode, || this.future.poll(cx))
     }
 }
