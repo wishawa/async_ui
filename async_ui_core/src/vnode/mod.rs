@@ -2,11 +2,15 @@ use enum_dispatch::enum_dispatch;
 pub mod node_concrete;
 pub mod node_context;
 pub mod node_pass;
+pub mod node_portal;
 use crate::context::ContextMap;
 
 use crate::{backend::BackendTrait, position::PositionIndex};
 
-use self::{node_concrete::ConcreteNodeVNode, node_context::ContextVNode, node_pass::PassVNode};
+use self::{
+    node_concrete::ConcreteNodeVNode, node_context::ContextVNode, node_pass::PassVNode,
+    node_portal::PortalVNode,
+};
 
 #[enum_dispatch]
 pub(crate) trait VNodeTrait<B: BackendTrait> {
@@ -20,4 +24,5 @@ pub enum VNode<B: BackendTrait> {
     ConcreteNode(ConcreteNodeVNode<B>),
     Context(ContextVNode<B>),
     Pass(PassVNode<B>),
+    Portal(PortalVNode<B>),
 }

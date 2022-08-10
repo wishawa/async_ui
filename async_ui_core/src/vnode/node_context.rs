@@ -1,6 +1,6 @@
 use std::{
     any::{Any, TypeId},
-    future::Future,
+    future::{Future, IntoFuture},
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
@@ -105,9 +105,9 @@ where
     B: BackendTrait,
     F: Future,
 {
-    pub fn new<T: 'static>(future: F, value: Rc<T>) -> Self {
+    pub fn new<T: 'static, I: IntoFuture<IntoFuture = F>>(into_future: I, value: Rc<T>) -> Self {
         Self {
-            future,
+            future: into_future.into_future(),
             state: WithContextState::NotStarted { value },
         }
     }
