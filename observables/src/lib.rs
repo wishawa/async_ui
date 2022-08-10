@@ -6,6 +6,7 @@ use std::{
 
 use transformers::map::Map;
 pub use version::Version;
+mod impls;
 mod transformers;
 mod version;
 
@@ -18,7 +19,7 @@ pub trait ObservableBase {
     fn get_version(&self) -> Version;
 }
 pub trait Observable: ObservableBase {
-    type Data;
+    type Data: ?Sized;
     fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R;
 }
 

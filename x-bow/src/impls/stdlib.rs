@@ -26,6 +26,7 @@ mod primitives {
     leaf_primitive!(u64);
     leaf_primitive!(u8);
     leaf_primitive!(usize);
+    leaf_primitive!(String);
     leaf_primitive!(());
 }
 
