@@ -86,7 +86,7 @@ where
 pub type TrackedNodeAlias<T, E> = <T as Trackable<E>>::TrackedNode;
 pub type TrackedAlias<T, E> = Tracked<TrackedNodeAlias<T, E>>;
 
-impl<N> ObservableBase<<N::Edge as TrackedEdge>::Data> for Tracked<N>
+impl<N> ObservableBase for Tracked<N>
 where
     N: TrackedNode,
 {
@@ -97,11 +97,12 @@ where
         self.edge.listeners().outside_version()
     }
 }
-impl<N> Observable<<N::Edge as TrackedEdge>::Data> for Tracked<N>
+impl<N> Observable for Tracked<N>
 where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
 {
+    type Data = <N::Edge as TrackedEdge>::Data;
     fn visit<R, F: FnOnce(&<N::Edge as TrackedEdge>::Data) -> R>(&self, func: F) -> R {
         let b = self.borrow();
         func(&*b)

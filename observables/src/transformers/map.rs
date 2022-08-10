@@ -1,37 +1,34 @@
-use std::{marker::PhantomData, task::Waker};
+use std::task::Waker;
 
 use crate::{Observable, ObservableBase, Version};
 
-pub struct Map<W, I, O, M>
+pub struct Map<I, O, M>
 where
-    W: Observable<I>,
-    M: Fn(&I) -> O,
+    I: Observable,
+    M: Fn(&I::Data) -> O,
 {
-    wrapped: W,
+    wrapped: I,
     mapper: M,
-    _phantom: PhantomData<(I, O)>,
 }
 
-impl<W, I, O, M> Map<W, I, O, M>
+impl<I, O, M> Map<I, O, M>
 where
-    W: Observable<I>,
-    M: Fn(&I) -> O,
+    I: Observable,
+    M: Fn(&I::Data) -> O,
 {
-    pub(crate) fn new(wrapped: W, mapper: M) -> Self {
-        Self {
-            wrapped,
-            mapper,
-            _phantom: PhantomData,
-        }
+    pub(crate) fn new(wrapped: I, mapper: M) -> Self {
+        Self { wrapped, mapper }
     }
 }
 
-impl<W, I, O, M> Observable<O> for Map<W, I, O, M>
+impl<I, O, M> Observable for Map<I, O, M>
 where
-    W: Observable<I>,
-    M: Fn(&I) -> O,
+    I: Observable,
+    M: Fn(&I::Data) -> O,
 {
-    fn visit<R, F: FnOnce(&O) -> R>(&self, func: F) -> R {
+    type Data = O;
+
+    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
         self.wrapped.visit(|input| {
             let output = (self.mapper)(input);
             func(&output)
@@ -39,10 +36,10 @@ where
     }
 }
 
-impl<W, I, O, M> ObservableBase<O> for Map<W, I, O, M>
+impl<I, O, M> ObservableBase for Map<I, O, M>
 where
-    W: Observable<I>,
-    M: Fn(&I) -> O,
+    I: Observable,
+    M: Fn(&I::Data) -> O,
 {
     fn add_waker(&self, waker: Waker) {
         self.wrapped.add_waker(waker)
