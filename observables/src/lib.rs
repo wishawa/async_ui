@@ -1,5 +1,6 @@
 use std::{
     future::Future,
+    marker::PhantomData,
     pin::Pin,
     task::{Context, Poll, Waker},
 };
@@ -13,45 +14,46 @@ pub mod cell;
 #[cfg(feature = "futures-signals")]
 pub mod futures_signals;
 
-pub trait ObservableBase {
+pub trait ObservableBase<V> {
     fn add_waker(&self, waker: Waker);
     fn get_version(&self) -> Version;
 }
-pub trait Observable: ObservableBase {
-    type Data;
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R;
+pub trait Observable<V>: ObservableBase<V> {
+    fn visit<R, F: FnOnce(&V) -> R>(&self, func: F) -> R;
 }
 
-pub trait ObservableExt: Observable {
-    fn map<O, M>(self, mapper: M) -> Map<Self, O, M>
+pub trait ObservableExt<V>: Observable<V> {
+    fn map<O, M>(self, mapper: M) -> Map<Self, V, O, M>
     where
-        M: Fn(&Self::Data) -> O,
+        M: Fn(&V) -> O,
         Self: Sized,
     {
         Map::new(self, mapper)
     }
-    fn until_change<'i>(&'i self) -> NextChangeFuture<'i, Self> {
+    fn until_change<'s>(&'s self) -> NextChangeFuture<'s, Self, V> {
         NextChangeFuture {
             inner: self,
             start_version: Version::new_null(),
+            _phantom: PhantomData,
         }
     }
 }
-impl<T: Observable> ObservableExt for T {}
+impl<V, T: Observable<V>> ObservableExt<V> for T {}
 
-pub struct NextChangeFuture<'i, I>
+pub struct NextChangeFuture<'w, W, V>
 where
-    I: ObservableBase,
-    I: ?Sized,
+    W: ObservableBase<V>,
+    W: ?Sized,
 {
-    inner: &'i I,
+    inner: &'w W,
     start_version: Version,
+    _phantom: PhantomData<Box<V>>,
 }
 
-impl<'i, I> Future for NextChangeFuture<'i, I>
+impl<'w, W, V> Future for NextChangeFuture<'w, W, V>
 where
-    I: ObservableBase,
-    I: ?Sized,
+    W: ObservableBase<V>,
+    W: ?Sized,
 {
     type Output = ();
 
@@ -66,5 +68,15 @@ where
         } else {
             Poll::Pending
         }
+    }
+}
+
+impl<T> ObservableBase<T> for (T,) {
+    fn add_waker(&self, waker: Waker) {
+        todo!()
+    }
+
+    fn get_version(&self) -> Version {
+        todo!()
     }
 }

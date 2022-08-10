@@ -1,5 +1,6 @@
 use std::{
     cell::{Cell, RefCell},
+    marker::PhantomData,
     pin::Pin,
     sync::{Arc, Mutex},
     task::{Context, Poll, Waker},
@@ -10,36 +11,38 @@ use waker_fn::waker_fn;
 
 use crate::{Observable, ObservableBase, Version};
 
-pub struct ToSignal<'i, I, O, M>
+pub struct ToSignal<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
     Self: Unpin,
 {
-    wrapped: &'i I,
+    wrapped: &'w W,
     mapper: M,
     last_version: Version,
+    _phantom: PhantomData<(I, O)>,
 }
 
-impl<'i, I, O, M> ToSignal<'i, I, O, M>
+impl<'w, W, I, O, M> ToSignal<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
     Self: Unpin,
 {
-    pub fn new(wrapped: &'i I, mapper: M) -> Self {
+    pub fn new(wrapped: &'w W, mapper: M) -> Self {
         Self {
             wrapped,
             mapper,
             last_version: Version::new_null(),
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<'i, I, O, M> Signal for ToSignal<'i, I, O, M>
+impl<'w, W, I, O, M> Signal for ToSignal<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
     Self: Unpin,
 {
     type Item = O;
@@ -96,20 +99,19 @@ where
         }
     }
 }
-impl<S> Observable for FromSignal<S>
+impl<S> Observable<S::Item> for FromSignal<S>
 where
     S: Signal + Unpin,
     S::Item: Default,
 {
-    type Data = S::Item;
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
+    fn visit<R, F: FnOnce(&S::Item) -> R>(&self, func: F) -> R {
         let mut bm = self.value.borrow_mut();
         let value = bm.get_or_insert_with(Default::default);
         func(value)
     }
 }
 
-impl<S> ObservableBase for FromSignal<S>
+impl<S> ObservableBase<S::Item> for FromSignal<S>
 where
     S: Signal + Unpin,
     S::Item: Default,

@@ -22,7 +22,7 @@ impl<T> ObservableCell<T> {
         Self { inner }
     }
 }
-impl<T> ObservableBase for ObservableCell<T> {
+impl<T> ObservableBase<T> for ObservableCell<T> {
     fn add_waker(&self, waker: Waker) {
         self.inner.borrow_mut().listeners.push(waker);
     }
@@ -30,8 +30,7 @@ impl<T> ObservableBase for ObservableCell<T> {
         self.inner.borrow().version
     }
 }
-impl<T> Observable for ObservableCell<T> {
-    type Data = T;
+impl<T> Observable<T> for ObservableCell<T> {
     fn visit<R, F: FnOnce(&T) -> R>(&self, func: F) -> R {
         let b = self.inner.borrow();
         func(&b.data)
