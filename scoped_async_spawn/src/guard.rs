@@ -22,6 +22,7 @@ struct SpawnedTracker<'s>(SmallVec<[PinWeak<dyn InnerTrait + 's>; 1]>);
 pin_project! {
     pub struct SpawnGuard<'s> {
         spawned: SpawnedTracker<'s>,
+        #[pin]
         _phantom_pin: PhantomPinned,
         _phantom_data: PhantomData<Invariant<'s>>,
     }
