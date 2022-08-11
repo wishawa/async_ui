@@ -1,7 +1,6 @@
 use async_ui_web::{
-    children,
     components::{Button, Text},
-    mount,
+    fragment, mount,
 };
 use observables::{cell::ObservableCell, ObservableExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -10,11 +9,11 @@ use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 pub fn run() -> Result<(), JsValue> {
     use std::panic;
     panic::set_hook(Box::new(console_error_panic_hook::hook));
-    mount(children![root()]);
+    mount(fragment![root()]);
     Ok(())
 }
 async fn root() {
-    children![
+    fragment![
         (Text {
             text: "hello world"
         }),
@@ -24,17 +23,18 @@ async fn root() {
 }
 async fn counter() {
     let value = ObservableCell::new(0);
-    children![
+    let _a = Button::<fn(_)>::default();
+    fragment![
         Button {
-            children: children![Text { text: "decrement" }],
-            on_press: |_ev| { *value.borrow_mut() -= 1 }
+            children: fragment![Text { text: "decrement" }],
+            on_press: Some(|_ev| { *value.borrow_mut() -= 1 })
         },
         Text {
             text: (&value).map(|v| format!("{}", v))
         },
         Button {
-            children: children![Text { text: "increment" }],
-            on_press: |_ev| { *value.borrow_mut() += 1 }
+            children: fragment![Text { text: "increment" }],
+            on_press: Some(|_ev| { *value.borrow_mut() += 1 })
         },
         async {
             loop {
