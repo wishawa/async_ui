@@ -14,16 +14,7 @@ use super::{event_handler::EventHandler, ElementFuture};
 
 pub struct Button<'c, OnPress: FnMut(MouseEvent) = fn(MouseEvent)> {
     pub children: Render<'c>,
-    pub on_press: Option<OnPress>,
-}
-
-impl<'c, OnPress: FnMut(MouseEvent)> Default for Button<'c, OnPress> {
-    fn default() -> Self {
-        Self {
-            children: Default::default(),
-            on_press: None,
-        }
-    }
+    pub on_press: OnPress,
 }
 
 pin_project! {
@@ -31,7 +22,7 @@ pin_project! {
         #[pin]
         children: Render<'c>,
         #[pin]
-        on_press: Option<EventHandler<MouseEvent, OnPress>>
+        on_press: EventHandler<MouseEvent, OnPress>
     }
 }
 impl<'c, OnPress: FnMut(MouseEvent)> Future for ButtonFuture<'c, OnPress> {
@@ -39,7 +30,7 @@ impl<'c, OnPress: FnMut(MouseEvent)> Future for ButtonFuture<'c, OnPress> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        let _ = this.on_press.as_pin_mut().map(|pinned| pinned.poll(cx));
+        let _ = this.on_press.poll(cx);
         this.children.poll(cx)
     }
 }
@@ -53,12 +44,9 @@ impl<'c, OnPress: FnMut(MouseEvent)> IntoFuture for Button<'c, OnPress> {
             let elem: HtmlButtonElement = elem.unchecked_into();
             elem
         });
-        let on_press = self.on_press.map(|on_press| {
-            let on_press = EventHandler::new(on_press);
-            let onclick_function = on_press.get_function();
-            button.set_onclick(Some(onclick_function));
-            on_press
-        });
+        let on_press = EventHandler::new(self.on_press);
+        let onclick_function = on_press.get_function();
+        button.set_onclick(Some(onclick_function));
         let future = ButtonFuture {
             children: self.children,
             on_press,

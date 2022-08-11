@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 futures-signals = { version = "0.3.30", optional = true }
 waker-fn = { version = "1.1.0", optional = true }
+pin-project-lite = "0.2.9"
 
 [features]
 default = ["futures-signals"]

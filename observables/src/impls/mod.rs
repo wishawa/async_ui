@@ -16,3 +16,25 @@ impl<T> Observable for NoChange<T> {
         func(&self.0)
     }
 }
+
+impl<'t, T> ObservableBase for &'t T
+where
+    T: ObservableBase,
+{
+    fn add_waker(&self, waker: std::task::Waker) {
+        <T as ObservableBase>::add_waker(self, waker)
+    }
+    fn get_version(&self) -> Version {
+        <T as ObservableBase>::get_version(self)
+    }
+}
+impl<'t, T> Observable for &'t T
+where
+    T: Observable,
+{
+    type Data = T::Data;
+
+    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
+        <T as Observable>::visit(self, func)
+    }
+}

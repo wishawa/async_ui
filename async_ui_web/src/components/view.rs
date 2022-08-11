@@ -4,7 +4,6 @@ use crate::Render;
 
 use super::{create_element_future, ElementFuture};
 
-#[derive(Default)]
 pub struct View<'c> {
     pub children: Render<'c>,
 }

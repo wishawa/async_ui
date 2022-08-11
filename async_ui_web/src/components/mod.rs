@@ -17,6 +17,7 @@ use pin_project_lite::pin_project;
 use web_sys::Node;
 mod button;
 mod event_handler;
+mod text;
 mod view;
 
 use crate::{backend::Backend, window::DOCUMENT};
@@ -68,13 +69,4 @@ fn create_element_future<F: Future>(fut: F, name: &'static str) -> ElementFuture
             .with(|doc| doc.create_element(name).expect("create element failed"))
             .into(),
     )
-}
-
-fn test() {
-    use crate::children;
-    use button::Button;
-    let b = Button {
-        children: children![],
-        ..Default::default()
-    };
 }

@@ -1,11 +1,12 @@
+use pin_project_lite::pin_project;
 use std::{
+    borrow::Borrow,
     future::Future,
     marker::PhantomData,
     pin::Pin,
     task::{Context, Poll, Waker},
 };
 
-use borrowed::Borrowed;
 use transformers::map::Map;
 pub use version::Version;
 mod impls;
@@ -33,35 +34,27 @@ pub trait ObservableExt: Observable {
     {
         Map::new(self, mapper)
     }
-    fn until_change<'i>(&'i self) -> NextChangeFuture<Borrowed<'i, Self>, Self> {
-        NextChangeFuture::new(Borrowed(self))
+    fn until_change<'i>(&'i self) -> NextChangeFuture<Self, &'i Self> {
+        NextChangeFuture::new(self)
     }
 }
 impl<T: Observable> ObservableExt for T {}
-mod borrowed {
-    pub struct Borrowed<'t, T: ?Sized>(pub &'t T);
 
-    impl<'t, T: ?Sized> AsRef<T> for Borrowed<'t, T> {
-        fn as_ref(&self) -> &T {
-            &self.0
-        }
+pin_project! {
+    pub struct NextChangeFuture<I, A>
+    where
+        A: Borrow<I>,
+        I: ObservableBase,
+        I: ?Sized,
+    {
+        inner: A,
+        start_version: Version,
+        _phantom: PhantomData<Box<I>>,
     }
 }
-
-pub struct NextChangeFuture<A, I>
+impl<I, A> NextChangeFuture<I, A>
 where
-    A: AsRef<I> + Unpin,
-    I: ObservableBase,
-    I: ?Sized,
-{
-    inner: A,
-    start_version: Version,
-    _phantom: PhantomData<Box<I>>,
-}
-
-impl<A, I> NextChangeFuture<A, I>
-where
-    A: AsRef<I> + Unpin,
+    A: Borrow<I>,
     I: ObservableBase,
     I: ?Sized,
 {
@@ -72,24 +65,30 @@ where
             _phantom: PhantomData,
         }
     }
+    pub fn observable(&self) -> &A {
+        &self.inner
+    }
+    pub fn rewind(&mut self) {
+        self.start_version = self.inner.borrow().get_version();
+    }
 }
 
-impl<A, I> Future for NextChangeFuture<A, I>
+impl<I, A> Future for NextChangeFuture<I, A>
 where
-    A: AsRef<I> + Unpin,
+    A: Borrow<I>,
     I: ObservableBase,
     I: ?Sized,
 {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.get_mut();
-        let inner = this.inner.as_ref();
+        let this = self.project();
+        let inner: &I = (&*this.inner).borrow();
         if this.start_version.is_null() {
-            this.start_version = inner.get_version();
+            *this.start_version = inner.get_version();
             inner.add_waker(cx.waker().to_owned());
         }
-        if inner.get_version() > this.start_version {
+        if inner.get_version() > *this.start_version {
             Poll::Ready(())
         } else {
             Poll::Pending

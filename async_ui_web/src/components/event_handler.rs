@@ -13,7 +13,7 @@ pin_project! {
         handler: Handler,
         closure: Closure<dyn Fn(Event)>,
         cell: Rc<ObservableCell<Option<Event>>>,
-        listener: NextChangeFuture<Rc<ObservableCell<Option<Event>>>, ObservableCell<Option<Event>>>
+        listener: NextChangeFuture<ObservableCell<Option<Event>>, Rc<ObservableCell<Option<Event>>>>
     }
 }
 
@@ -49,7 +49,7 @@ impl<Event, Handler: FnMut(Event)> Future for EventHandler<Event, Handler> {
                         (this.handler)(event);
                     }
                 }
-                this.listener = NextChangeFuture::new(this.cell.clone());
+                this.listener.rewind();
             }
             Poll::Pending => {}
         }
