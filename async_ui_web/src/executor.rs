@@ -7,7 +7,8 @@ use std::{
 
 use futures::FutureExt;
 use wasm_bindgen::{closure::Closure, JsCast, UnwrapThrowExt};
-use web_sys::Window;
+
+use crate::window::WINDOW;
 
 thread_local! {
     static EXECUTOR: ExecutorSingleton = ExecutorSingleton::new()
@@ -17,7 +18,6 @@ struct ExecutorSingleton {
     future: RefCell<Option<Pin<Box<dyn Future<Output = ()>>>>>,
     scheduled: Cell<bool>,
     active: Cell<bool>,
-    window: Window,
 }
 
 impl ExecutorSingleton {
@@ -28,7 +28,6 @@ impl ExecutorSingleton {
             future: RefCell::new(None),
             scheduled: Cell::new(false),
             active: Cell::new(false),
-            window: web_sys::window().expect_throw("failed to get window object"),
         }
     }
 }
@@ -54,9 +53,11 @@ pub fn schedule() {
     EXECUTOR.with(|exe| {
         if !exe.scheduled.replace(true) && !exe.active.get() {
             let closure = Closure::once_into_js(run_now);
-            exe.window
-                .set_timeout_with_callback(&closure.as_ref().unchecked_ref())
-                .expect_throw("failed to schedule task");
+            WINDOW.with(|window| {
+                window
+                    .set_timeout_with_callback(&closure.as_ref().unchecked_ref())
+                    .expect_throw("failed to schedule task");
+            })
         }
     })
 }

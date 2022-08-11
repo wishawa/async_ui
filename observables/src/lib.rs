@@ -1,9 +1,11 @@
 use std::{
     future::Future,
+    marker::PhantomData,
     pin::Pin,
     task::{Context, Poll, Waker},
 };
 
+use borrowed::Borrowed;
 use transformers::map::Map;
 pub use version::Version;
 mod impls;
@@ -31,26 +33,50 @@ pub trait ObservableExt: Observable {
     {
         Map::new(self, mapper)
     }
-    fn until_change<'i>(&'i self) -> NextChangeFuture<'i, Self> {
-        NextChangeFuture {
-            inner: self,
-            start_version: Version::new_null(),
-        }
+    fn until_change<'i>(&'i self) -> NextChangeFuture<Borrowed<'i, Self>, Self> {
+        NextChangeFuture::new(Borrowed(self))
     }
 }
 impl<T: Observable> ObservableExt for T {}
+mod borrowed {
+    pub struct Borrowed<'t, T: ?Sized>(pub &'t T);
 
-pub struct NextChangeFuture<'i, I>
+    impl<'t, T: ?Sized> AsRef<T> for Borrowed<'t, T> {
+        fn as_ref(&self) -> &T {
+            &self.0
+        }
+    }
+}
+
+pub struct NextChangeFuture<A, I>
 where
+    A: AsRef<I> + Unpin,
     I: ObservableBase,
     I: ?Sized,
 {
-    inner: &'i I,
+    inner: A,
     start_version: Version,
+    _phantom: PhantomData<Box<I>>,
 }
 
-impl<'i, I> Future for NextChangeFuture<'i, I>
+impl<A, I> NextChangeFuture<A, I>
 where
+    A: AsRef<I> + Unpin,
+    I: ObservableBase,
+    I: ?Sized,
+{
+    pub fn new(observable: A) -> Self {
+        Self {
+            inner: observable,
+            start_version: Version::new_null(),
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<A, I> Future for NextChangeFuture<A, I>
+where
+    A: AsRef<I> + Unpin,
     I: ObservableBase,
     I: ?Sized,
 {
@@ -58,11 +84,12 @@ where
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
+        let inner = this.inner.as_ref();
         if this.start_version.is_null() {
-            this.start_version = this.inner.get_version();
-            this.inner.add_waker(cx.waker().to_owned());
+            this.start_version = inner.get_version();
+            inner.add_waker(cx.waker().to_owned());
         }
-        if this.inner.get_version() > this.start_version {
+        if inner.get_version() > this.start_version {
             Poll::Ready(())
         } else {
             Poll::Pending

@@ -4,7 +4,7 @@ pub mod context;
 mod executor;
 pub mod list;
 pub mod mount;
-mod position;
+pub mod position;
 pub mod render;
 pub mod vnode;
 pub use render::__private_macro_only;

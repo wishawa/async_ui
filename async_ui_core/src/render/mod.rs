@@ -35,10 +35,17 @@ pin_project! {
         children: Vec<Child<'c, B>>,
         mounted: bool,
         #[pin]
-        guard: SpawnGuard<'c>
+        guard: SpawnGuard<'c>,
     }
 }
-
+impl<'c, B> Default for Render<'c, B>
+where
+    B: BackendTrait,
+{
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
+}
 impl<'c, B> Render<'c, B>
 where
     B: BackendTrait,

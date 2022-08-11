@@ -13,7 +13,7 @@ use self::{
 };
 
 #[enum_dispatch]
-pub(crate) trait VNodeTrait<B: BackendTrait> {
+pub trait VNodeTrait<B: BackendTrait> {
     fn add_child_node(&self, node: B::Node, position: PositionIndex);
     fn del_child_node(&self, position: PositionIndex);
     fn get_context_map<'s>(&'s self) -> &'s ContextMap;
