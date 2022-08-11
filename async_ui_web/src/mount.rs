@@ -6,9 +6,9 @@ use async_ui_core::{
 };
 use web_sys::Node;
 
-use crate::{backend::Backend, Render};
+use crate::{backend::Backend, Fragment};
 
-pub fn mount_at(render: Render<'static>, node: Node) {
+pub fn mount_at(render: Fragment<'static>, node: Node) {
     let fut = WithNode::new(
         render,
         Rc::new(
@@ -22,7 +22,7 @@ pub fn mount_at(render: Render<'static>, node: Node) {
     core_mount::<Backend, _>(fut)
 }
 
-pub fn mount(render: Render<'static>) {
+pub fn mount(render: Fragment<'static>) {
     let node = web_sys::window()
         .unwrap()
         .document()

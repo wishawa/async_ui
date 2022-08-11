@@ -1,4 +1,4 @@
-use async_ui_core::render::Render as RenderBase;
+use async_ui_core::render::Fragment as FragmentBase;
 use backend::Backend;
 
 pub mod backend;
@@ -8,16 +8,16 @@ mod mount;
 mod window;
 pub use mount::{mount, mount_at};
 
-pub type Render<'c> = RenderBase<'c, Backend>;
+pub type Fragment<'c> = FragmentBase<'c, Backend>;
 
 pub mod __private_macro_only {
-    pub use super::Render;
-    pub use async_ui_core::render as render_base;
+    pub use super::Fragment;
+    pub use async_ui_core::fragment as fragment_base;
     #[macro_export]
-    macro_rules! children {
+    macro_rules! fragment {
         [$($ch:expr),*] => {
             ({
-                let children: $crate::__private_macro_only::Render = $crate::__private_macro_only::render_base![
+                let children: $crate::__private_macro_only::Fragment = $crate::__private_macro_only::fragment_base![
                     $($ch),*
                 ];
                 children
@@ -28,7 +28,7 @@ pub mod __private_macro_only {
 
 #[cfg(test)]
 mod tests {
-    use super::children;
+    use super::fragment;
 
     #[test]
     fn it_works() {
@@ -42,6 +42,6 @@ mod tests {
         let _ = async {
             test(&String::from("hi")).await;
         };
-        let _a = children![async {}];
+        let _a = fragment![async {}];
     }
 }
