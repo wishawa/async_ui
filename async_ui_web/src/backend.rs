@@ -4,7 +4,7 @@ use std::{future::Future, rc::Rc};
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::Node;
 
-use crate::executor::set_executor_future;
+use crate::executor::{set_executor_future, schedule};
 
 pub struct Backend;
 impl BackendTrait for Backend {
@@ -25,6 +25,7 @@ impl BackendTrait for Backend {
     }
     fn drive_executor<F: Future<Output = ()> + 'static>(fut: F) {
         set_executor_future(Box::new(fut) as _);
+        schedule();
     }
     fn initialize() {}
 

@@ -2,7 +2,7 @@ use async_ui_core::render::Render as RenderBase;
 use backend::Backend;
 
 pub mod backend;
-mod components;
+pub mod components;
 pub mod executor;
 mod mount;
 mod window;

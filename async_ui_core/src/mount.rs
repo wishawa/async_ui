@@ -8,6 +8,6 @@ use crate::{
 };
 
 pub fn mount<B: BackendTrait, F: Future<Output = ()> + 'static>(fut: F) {
-    B::drive_executor(get_driving_future());
     spawn_local(GiveUnforgettableScope::new_static(fut)).detach();
+    B::drive_executor(get_driving_future());
 }

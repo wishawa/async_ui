@@ -19,6 +19,9 @@ mod button;
 mod event_handler;
 mod text;
 mod view;
+pub use text::Text;
+pub use button::Button;
+pub use view::View;
 
 use crate::{backend::Backend, window::DOCUMENT};
 
