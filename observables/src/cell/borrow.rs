@@ -36,6 +36,7 @@ impl<'b, T> Deref for ObservableCellBorrowMut<'b, T> {
 
 impl<'b, T> Drop for ObservableCellBorrowMut<'b, T> {
     fn drop(&mut self) {
+        self.reference.version = self.reference.version.incremented();
         self.reference.listeners.drain(..).for_each(Waker::wake);
     }
 }

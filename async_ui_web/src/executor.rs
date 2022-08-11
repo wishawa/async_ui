@@ -37,7 +37,7 @@ pub(crate) fn set_executor_future(future: Box<dyn Future<Output = ()>>) {
 pub fn run_now() {
     EXECUTOR.with(|exe| {
         exe.active.set(true);
-        while !exe.scheduled.replace(false) {
+        while exe.scheduled.replace(false) {
             let mut cx = Context::from_waker(&exe.waker);
             match exe.future.borrow_mut().as_mut() {
                 Some(fu) => {

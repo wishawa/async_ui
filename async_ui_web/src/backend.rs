@@ -4,7 +4,7 @@ use std::{future::Future, rc::Rc};
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::Node;
 
-use crate::executor::{set_executor_future, schedule};
+use crate::executor::{schedule, set_executor_future};
 
 pub struct Backend;
 impl BackendTrait for Backend {

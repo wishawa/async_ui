@@ -69,7 +69,7 @@ where
         &self.inner
     }
     pub fn rewind(&mut self) {
-        self.start_version = self.inner.borrow().get_version();
+        self.start_version = Version::new_null();
     }
 }
 

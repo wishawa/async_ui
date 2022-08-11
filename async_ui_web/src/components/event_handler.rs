@@ -8,6 +8,8 @@ use pin_project_lite::pin_project;
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
+use crate::executor::schedule;
+
 pin_project! {
     pub(super) struct EventHandler<Event, Handler: FnMut(Event) = fn(Event)> {
         handler: Handler,
@@ -26,6 +28,7 @@ impl<Event: wasm_bindgen::convert::FromWasmAbi + 'static, Handler: FnMut(Event)>
         let cell_cloned = cell.clone();
         let closure = Closure::new(move |event| {
             *cell_cloned.borrow_mut() = Some(event);
+            schedule();
         });
         Self {
             handler,
@@ -50,6 +53,7 @@ impl<Event, Handler: FnMut(Event)> Future for EventHandler<Event, Handler> {
                     }
                 }
                 this.listener.rewind();
+                let _ = Pin::new(&mut this.listener).poll(cx);
             }
             Poll::Pending => {}
         }
