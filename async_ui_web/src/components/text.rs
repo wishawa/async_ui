@@ -7,8 +7,6 @@ use std::{
 
 use observables::{NextChangeFuture, Observable};
 use pin_project_lite::pin_project;
-use wasm_bindgen::JsCast;
-use web_sys::HtmlSpanElement;
 
 use crate::window::DOCUMENT;
 
@@ -27,7 +25,7 @@ pin_project! {
     {
         #[pin]
         change_fut: NextChangeFuture<V, V>,
-        node: HtmlSpanElement,
+        node: web_sys::Text,
         set: bool
     }
 }
@@ -48,7 +46,7 @@ impl<V: Observable<Data = T>, T: Borrow<str> + ?Sized> Future for TextFuture<V, 
         if reset || !*this.set {
             *this.set = true;
             this.change_fut.observable().visit(|st| {
-                this.node.set_text_content(Some(st.borrow()));
+                this.node.set_data(st.borrow());
             });
         }
         Poll::Pending
@@ -60,9 +58,7 @@ impl<V: Observable<Data = T>, T: Borrow<str> + ?Sized> IntoFuture for Text<V, T>
     type IntoFuture = ElementFuture<TextFuture<V, T>>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let node: HtmlSpanElement = DOCUMENT
-            .with(|doc| doc.create_element("span").expect("create element failed"))
-            .unchecked_into();
+        let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
         let fut = TextFuture {
             change_fut: NextChangeFuture::new(self.text),
             node: node.clone(),

@@ -18,6 +18,7 @@ use web_sys::Node;
 mod button;
 mod event_handler;
 mod text;
+mod text_input;
 mod view;
 pub use button::Button;
 pub use text::Text;

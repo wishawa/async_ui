@@ -22,19 +22,23 @@ async fn root() {
     .await
 }
 async fn counter() {
-    let value = ObservableCell::new(0);
-    let _a = Button::<fn(_)>::default();
+    let value = &ObservableCell::new(0);
+    let on_press_decr = |_ev| *value.borrow_mut() -= 1;
+    let on_press_incr = |_ev| *value.borrow_mut() += 1;
+
     fragment![
         Button {
             children: fragment![Text { text: "decrement" }],
-            on_press: Some(|_ev| { *value.borrow_mut() -= 1 })
+            on_press: &on_press_decr,
+            ..Default::default()
         },
         Text {
-            text: (&value).map(|v| format!("{}", v))
+            text: value.map(|v| format!("{}", v))
         },
         Button {
             children: fragment![Text { text: "increment" }],
-            on_press: Some(|_ev| { *value.borrow_mut() += 1 })
+            on_press: &on_press_incr,
+            ..Default::default()
         },
         async {
             loop {

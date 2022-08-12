@@ -11,18 +11,16 @@ use wasm_bindgen::JsCast;
 use crate::executor::schedule;
 
 pin_project! {
-    pub(super) struct EventHandler<Event, Handler: FnMut(Event) = fn(Event)> {
-        handler: Handler,
-        closure: Closure<dyn Fn(Event)>,
-        cell: Rc<ObservableCell<Option<Event>>>,
-        listener: NextChangeFuture<ObservableCell<Option<Event>>, Rc<ObservableCell<Option<Event>>>>
+    pub(super) struct EventHandler<'h, E> {
+        handler: &'h dyn Fn(E),
+        closure: Closure<dyn Fn(E)>,
+        cell: Rc<ObservableCell<Option<E>>>,
+        listener: NextChangeFuture<ObservableCell<Option<E>>, Rc<ObservableCell<Option<E>>>>
     }
 }
 
-impl<Event: wasm_bindgen::convert::FromWasmAbi + 'static, Handler: FnMut(Event)>
-    EventHandler<Event, Handler>
-{
-    pub fn new(handler: Handler) -> Self {
+impl<'h, E: wasm_bindgen::convert::FromWasmAbi + 'static> EventHandler<'h, E> {
+    pub fn new(handler: &'h dyn Fn(E)) -> Self {
         let cell = Rc::new(ObservableCell::new(None));
         let listener = NextChangeFuture::new(cell.clone());
         let cell_cloned = cell.clone();
@@ -41,7 +39,7 @@ impl<Event: wasm_bindgen::convert::FromWasmAbi + 'static, Handler: FnMut(Event)>
         self.closure.as_ref().unchecked_ref()
     }
 }
-impl<Event, Handler: FnMut(Event)> Future for EventHandler<Event, Handler> {
+impl<'h, Event> Future for EventHandler<'h, Event> {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();

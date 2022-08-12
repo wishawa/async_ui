@@ -31,5 +31,6 @@ features = [
 	'HtmlElement',
 	'HtmlButtonElement',
 	'HtmlSpanElement',
+	'Text',	
 	'MouseEvent',
 ]
