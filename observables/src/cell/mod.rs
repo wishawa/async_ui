@@ -1,9 +1,12 @@
-mod borrow;
-use std::{cell::RefCell, task::Waker};
+mod borrow_mut;
+use std::{
+    cell::{Ref, RefCell},
+    task::Waker,
+};
 
-use crate::{Observable, ObservableBase, Version};
+use crate::{Observable, ObservableBase, ObservableBorrowed, Version};
 
-use self::borrow::{ObservableCellBorrow, ObservableCellBorrowMut};
+use self::borrow_mut::ObservableCellBorrowMut;
 
 pub struct ObservableCell<T> {
     inner: RefCell<ObserbableCellInner<T>>,
@@ -24,11 +27,6 @@ impl<T> ObservableCell<T> {
         });
         Self { inner }
     }
-    pub fn borrow<'b>(&'b self) -> ObservableCellBorrow<'b, T> {
-        ObservableCellBorrow {
-            reference: self.inner.borrow(),
-        }
-    }
     pub fn borrow_mut<'b>(&'b self) -> ObservableCellBorrowMut<'b, T> {
         ObservableCellBorrowMut {
             reference: self.inner.borrow_mut(),
@@ -45,8 +43,8 @@ impl<T> ObservableBase for ObservableCell<T> {
 }
 impl<T> Observable for ObservableCell<T> {
     type Data = T;
-    fn visit<R, F: FnOnce(&T) -> R>(&self, func: F) -> R {
-        let b = self.inner.borrow();
-        func(&b.data)
+
+    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, T> {
+        ObservableBorrowed::RefCell(Ref::map(self.inner.borrow(), |r| &r.data))
     }
 }

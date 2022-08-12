@@ -3,7 +3,10 @@ use std::{cell::Ref, ops::Deref, rc::Rc, task::Waker};
 use observables::{Observable, ObservableBase, Version};
 
 use crate::{
-    edge::TrackedEdge, notify_guard::NotifyGuard, optional::OptionalNo, trackable::Trackable,
+    edge::TrackedEdge,
+    notify_guard::NotifyGuard,
+    optional::{OptionalNo, OptionalYes},
+    trackable::Trackable,
 };
 
 pub trait TrackedNode {
@@ -96,8 +99,8 @@ where
     N::Edge: TrackedEdge<Optional = OptionalNo>,
 {
     type Data = <N::Edge as TrackedEdge>::Data;
-    fn visit<R, F: FnOnce(&<N::Edge as TrackedEdge>::Data) -> R>(&self, func: F) -> R {
-        let b = self.borrow();
-        func(&*b)
+
+    fn obs_borrow<'b>(&'b self) -> observables::ObservableBorrowed<'b, Self::Data> {
+        observables::ObservableBorrowed::RefCell(self.borrow())
     }
 }

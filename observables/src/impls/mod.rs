@@ -1,4 +1,4 @@
-use crate::{Observable, ObservableBase, Version};
+use crate::{Observable, ObservableBase, ObservableBorrowed, Version};
 mod stdlib;
 
 pub struct NoChange<T>(pub T);
@@ -12,12 +12,12 @@ impl<T> ObservableBase for NoChange<T> {
 }
 impl<T> Observable for NoChange<T> {
     type Data = T;
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
-        func(&self.0)
+    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data> {
+        ObservableBorrowed::Ref(&self.0)
     }
 }
 
-impl<'t, T> ObservableBase for &'t T
+impl<'t, T: ?Sized> ObservableBase for &'t T
 where
     T: ObservableBase,
 {
@@ -28,13 +28,13 @@ where
         <T as ObservableBase>::get_version(self)
     }
 }
-impl<'t, T> Observable for &'t T
+impl<'t, T: ?Sized> Observable for &'t T
 where
     T: Observable,
 {
     type Data = T::Data;
 
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
-        <T as Observable>::visit(self, func)
+    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data> {
+        <T as Observable>::obs_borrow(self)
     }
 }

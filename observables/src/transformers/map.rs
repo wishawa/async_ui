@@ -1,6 +1,9 @@
-use std::task::Waker;
+use std::{
+    cell::{Ref, RefCell},
+    task::Waker,
+};
 
-use crate::{Observable, ObservableBase, Version};
+use crate::{Observable, ObservableBase, ObservableBorrowed, Version};
 
 pub struct Map<I, O, M>
 where
@@ -9,6 +12,7 @@ where
 {
     wrapped: I,
     mapper: M,
+    last_value: RefCell<Option<O>>,
 }
 
 impl<I, O, M> Map<I, O, M>
@@ -17,7 +21,11 @@ where
     M: Fn(&I::Data) -> O,
 {
     pub(crate) fn new(wrapped: I, mapper: M) -> Self {
-        Self { wrapped, mapper }
+        Self {
+            wrapped,
+            mapper,
+            last_value: Default::default(),
+        }
     }
 }
 
@@ -27,12 +35,13 @@ where
     M: Fn(&I::Data) -> O,
 {
     type Data = O;
-
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
-        self.wrapped.visit(|input| {
-            let output = (self.mapper)(input);
-            func(&output)
-        })
+    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data> {
+        let input = self.wrapped.obs_borrow();
+        let mapped = (self.mapper)(&*input);
+        {
+            *self.last_value.borrow_mut() = Some(mapped);
+        }
+        ObservableBorrowed::RefCell(Ref::map(self.last_value.borrow(), |v| v.as_ref().unwrap()))
     }
 }
 

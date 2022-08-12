@@ -49,10 +49,8 @@ where
         let current_version = this.wrapped.get_version();
         if current_version > this.last_version {
             this.last_version = current_version;
-            let out = this.wrapped.visit(|input| {
-                let output = (this.mapper)(input);
-                output
-            });
+            let val = this.wrapped.obs_borrow();
+            let out = (this.mapper)(&*val);
             this.wrapped.add_waker(cx.waker().to_owned());
             Poll::Ready(Some(out))
         } else {
@@ -67,7 +65,7 @@ where
     S::Item: Default,
 {
     signal: RefCell<S>,
-    value: RefCell<Option<S::Item>>,
+    value: RefCell<S::Item>,
     wakers: Arc<Mutex<Vec<Waker>>>,
     combined_waker: Waker,
     version: Cell<Version>,
@@ -83,7 +81,7 @@ where
         let wakers_cloned = wakers.clone();
         Self {
             signal: RefCell::new(signal),
-            value: RefCell::new(None),
+            value: RefCell::new(Default::default()),
             wakers,
             combined_waker: waker_fn(move || {
                 wakers_cloned
@@ -102,10 +100,9 @@ where
     S::Item: Default,
 {
     type Data = S::Item;
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R {
-        let mut bm = self.value.borrow_mut();
-        let value = bm.get_or_insert_with(Default::default);
-        func(value)
+
+    fn obs_borrow<'b>(&'b self) -> crate::ObservableBorrowed<'b, Self::Data> {
+        crate::ObservableBorrowed::RefCell(self.value.borrow())
     }
 }
 
@@ -124,7 +121,7 @@ where
         let sig = Pin::new(&mut *sig);
         match sig.poll_change(&mut cx) {
             Poll::Ready(Some(item)) => {
-                *self.value.borrow_mut() = Some(item);
+                *self.value.borrow_mut() = item;
                 let new_ver = self.version.get().incremented();
                 self.version.set(new_ver);
                 new_ver

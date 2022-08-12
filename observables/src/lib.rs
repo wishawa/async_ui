@@ -1,8 +1,10 @@
 use pin_project_lite::pin_project;
 use std::{
     borrow::Borrow,
+    cell::Ref,
     future::Future,
     marker::PhantomData,
+    ops::Deref,
     pin::Pin,
     task::{Context, Poll, Waker},
 };
@@ -21,9 +23,23 @@ pub trait ObservableBase {
     fn add_waker(&self, waker: Waker);
     fn get_version(&self) -> Version;
 }
+pub enum ObservableBorrowed<'b, T: ?Sized> {
+    Ref(&'b T),
+    RefCell(Ref<'b, T>),
+}
+
+impl<'b, T: ?Sized> Deref for ObservableBorrowed<'b, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        match self {
+            ObservableBorrowed::Ref(r) => *r,
+            ObservableBorrowed::RefCell(c) => c.deref(),
+        }
+    }
+}
 pub trait Observable: ObservableBase {
     type Data: ?Sized;
-    fn visit<R, F: FnOnce(&Self::Data) -> R>(&self, func: F) -> R;
+    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data>;
 }
 
 pub trait ObservableExt: Observable {
@@ -38,7 +54,7 @@ pub trait ObservableExt: Observable {
         NextChangeFuture::new(self)
     }
 }
-impl<T: Observable> ObservableExt for T {}
+impl<T: Observable + ?Sized> ObservableExt for T {}
 
 pin_project! {
     pub struct NextChangeFuture<I, A>
