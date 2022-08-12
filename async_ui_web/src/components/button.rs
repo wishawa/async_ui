@@ -14,9 +14,9 @@ use super::{event_handler::EventHandler, ElementFuture};
 
 pub struct Button<'c> {
     pub children: Fragment<'c>,
-    pub on_press: &'c dyn Fn(MouseEvent),
-    pub on_press_in: &'c dyn Fn(MouseEvent),
-    pub on_press_out: &'c dyn Fn(MouseEvent),
+    pub on_press: &'c (dyn Fn(MouseEvent) + 'c),
+    pub on_press_in: &'c (dyn Fn(MouseEvent) + 'c),
+    pub on_press_out: &'c (dyn Fn(MouseEvent) + 'c),
 }
 
 fn dummy_handler_fn(_me: MouseEvent) {}

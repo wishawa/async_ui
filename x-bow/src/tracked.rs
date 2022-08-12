@@ -3,10 +3,7 @@ use std::{cell::Ref, ops::Deref, rc::Rc, task::Waker};
 use observables::{Observable, ObservableBase, Version};
 
 use crate::{
-    edge::TrackedEdge,
-    notify_guard::NotifyGuard,
-    optional::{OptionalNo, OptionalYes},
-    trackable::Trackable,
+    edge::TrackedEdge, notify_guard::NotifyGuard, optional::OptionalNo, trackable::Trackable,
 };
 
 pub trait TrackedNode {

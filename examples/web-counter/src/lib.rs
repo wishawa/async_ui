@@ -15,7 +15,7 @@ pub fn run() -> Result<(), JsValue> {
 async fn root() {
     fragment![
         (Text {
-            text: "hello world"
+            text: &"hello world"
         }),
         counter()
     ]
@@ -25,18 +25,19 @@ async fn counter() {
     let value = &ObservableCell::new(0);
     let on_press_decr = |_ev| *value.borrow_mut() -= 1;
     let on_press_incr = |_ev| *value.borrow_mut() += 1;
+    let display_text = value.map(|v| format!("{}", v));
 
     fragment![
         Button {
-            children: fragment![Text { text: "decrement" }],
+            children: fragment![Text { text: &"decrement" }],
             on_press: &on_press_decr,
             ..Default::default()
         },
         Text {
-            text: value.map(|v| format!("{}", v))
+            text: &display_text
         },
         Button {
-            children: fragment![Text { text: "increment" }],
+            children: fragment![Text { text: &"increment" }],
             on_press: &on_press_incr,
             ..Default::default()
         },

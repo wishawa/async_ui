@@ -43,7 +43,7 @@ pub trait Observable: ObservableBase {
 }
 
 pub trait ObservableExt: Observable {
-    fn map<O, M>(self, mapper: M) -> Map<Self, O, M>
+    fn map<'i, O, M>(&'i self, mapper: M) -> Map<'i, Self, O, M>
     where
         M: Fn(&Self::Data) -> O,
         Self: Sized,

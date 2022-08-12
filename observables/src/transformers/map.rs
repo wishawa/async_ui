@@ -5,22 +5,22 @@ use std::{
 
 use crate::{Observable, ObservableBase, ObservableBorrowed, Version};
 
-pub struct Map<I, O, M>
+pub struct Map<'i, I, O, M>
 where
     I: Observable,
     M: Fn(&I::Data) -> O,
 {
-    wrapped: I,
+    wrapped: &'i I,
     mapper: M,
     last_value: RefCell<Option<O>>,
 }
 
-impl<I, O, M> Map<I, O, M>
+impl<'i, I, O, M> Map<'i, I, O, M>
 where
     I: Observable,
     M: Fn(&I::Data) -> O,
 {
-    pub(crate) fn new(wrapped: I, mapper: M) -> Self {
+    pub(crate) fn new(wrapped: &'i I, mapper: M) -> Self {
         Self {
             wrapped,
             mapper,
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<I, O, M> Observable for Map<I, O, M>
+impl<'i, I, O, M> Observable for Map<'i, I, O, M>
 where
     I: Observable,
     M: Fn(&I::Data) -> O,
@@ -45,7 +45,7 @@ where
     }
 }
 
-impl<I, O, M> ObservableBase for Map<I, O, M>
+impl<'i, I, O, M> ObservableBase for Map<'i, I, O, M>
 where
     I: Observable,
     M: Fn(&I::Data) -> O,

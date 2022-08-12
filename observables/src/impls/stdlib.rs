@@ -50,7 +50,6 @@ impl_primitive!(u64);
 impl_primitive!(u8);
 impl_primitive!(usize);
 impl_primitive!(String, str);
-impl_primitive!(str, str);
 
 impl<'a, T: Clone + ?Sized> ObservableBase for Cow<'a, T> {
     impl_base_inner!();
@@ -60,5 +59,16 @@ impl<'a, T: Clone + ?Sized> Observable for Cow<'a, T> {
 
     fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data> {
         ObservableBorrowed::Ref(self.borrow())
+    }
+}
+
+impl<'s> ObservableBase for &'s str {
+    impl_base_inner!();
+}
+impl<'s> Observable for &'s str {
+    type Data = str;
+
+    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data> {
+        ObservableBorrowed::Ref(self)
     }
 }
