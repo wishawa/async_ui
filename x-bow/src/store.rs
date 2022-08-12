@@ -5,7 +5,6 @@ use std::{
 };
 
 use crate::{
-    deref_optional::{ProjectedDeref, ProjectedDerefMut},
     edge::{Edge, TrackedEdge},
     listeners::Listeners,
     mapper::Mapper,
@@ -46,20 +45,13 @@ where
 }
 impl<T> TrackedEdge for RootNode<T> {
     type Data = T;
-    type BorrowGuard<'b> = Ref<'b, T>
-    where
-        Self: 'b;
-    type BorrowMutGuard<'b> = RefMut<'b, T>
-    where
-        Self: 'b;
-
     type Optional = OptionalNo;
-    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
-        self.data.borrow()
+    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Option<Ref<'b, Self::Data>> {
+        Some(self.data.borrow())
     }
 
-    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
-        self.data.borrow_mut()
+    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Option<RefMut<'b, Self::Data>> {
+        Some(self.data.borrow_mut())
     }
     fn invalidate_outside_here(self: &Rc<Self>) {
         unreachable!()
@@ -69,23 +61,5 @@ impl<T> TrackedEdge for RootNode<T> {
     }
     fn listeners<'s>(self: &'s Rc<Self>) -> &'s Listeners {
         unreachable!()
-    }
-}
-
-impl<'b, T> ProjectedDeref for Ref<'b, T> {
-    type Target = T;
-    fn deref_optional(&self) -> Option<&Self::Target> {
-        Some(&*self)
-    }
-}
-impl<'b, T> ProjectedDeref for RefMut<'b, T> {
-    type Target = T;
-    fn deref_optional(&self) -> Option<&Self::Target> {
-        Some(&*self)
-    }
-}
-impl<'b, T> ProjectedDerefMut for RefMut<'b, T> {
-    fn deref_mut_optional(&mut self) -> Option<&mut Self::Target> {
-        Some(&mut *self)
     }
 }

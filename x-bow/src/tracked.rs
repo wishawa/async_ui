@@ -1,12 +1,9 @@
-use std::{marker::PhantomData, ops::Deref, rc::Rc, task::Waker};
+use std::{cell::Ref, ops::Deref, rc::Rc, task::Waker};
 
 use observables::{Observable, ObservableBase, Version};
 
 use crate::{
-    borrow_output::{Mutable, NotMutable, XBowBorrow},
-    edge::TrackedEdge,
-    optional::{OptionalNo, OptionalYes},
-    trackable::Trackable,
+    edge::TrackedEdge, notify_guard::NotifyGuard, optional::OptionalNo, trackable::Trackable,
 };
 
 pub trait TrackedNode {
@@ -55,31 +52,27 @@ where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
 {
-    pub fn borrow<'b>(
-        &'b self,
-    ) -> XBowBorrow<NotMutable, <N::Edge as TrackedEdge>::BorrowGuard<'b>> {
-        XBowBorrow::new_without_check(self.edge.borrow_edge(), NotMutable(PhantomData))
+    pub fn borrow<'b>(&'b self) -> Ref<'b, <N::Edge as TrackedEdge>::Data> {
+        self.borrow_opt().unwrap()
     }
-    pub fn borrow_mut<'b>(
-        &'b self,
-    ) -> XBowBorrow<Mutable<'b, N>, <N::Edge as TrackedEdge>::BorrowMutGuard<'b>> {
-        XBowBorrow::new_without_check(self.edge.borrow_edge_mut(), Mutable(&self))
+    pub fn borrow_mut<'b>(&'b self) -> NotifyGuard<'b, N> {
+        self.borrow_mut_opt().unwrap()
     }
 }
 impl<N> Tracked<N>
 where
     N: TrackedNode,
-    N::Edge: TrackedEdge<Optional = OptionalYes>,
+    N::Edge: TrackedEdge,
 {
-    pub fn borrow_opt<'b>(
-        &'b self,
-    ) -> Option<XBowBorrow<NotMutable, <N::Edge as TrackedEdge>::BorrowGuard<'b>>> {
-        XBowBorrow::new(self.edge.borrow_edge(), NotMutable(PhantomData))
+    pub fn borrow_opt<'b>(&'b self) -> Option<Ref<'b, <N::Edge as TrackedEdge>::Data>> {
+        self.edge.borrow_edge()
     }
-    pub fn borrow_mut_opt<'b>(
-        &'b self,
-    ) -> Option<XBowBorrow<Mutable<'b, N>, <N::Edge as TrackedEdge>::BorrowMutGuard<'b>>> {
-        XBowBorrow::new(self.edge.borrow_edge_mut(), Mutable(&self))
+    pub fn borrow_mut_opt<'b>(&'b self) -> Option<NotifyGuard<'b, N>> {
+        let inside = self.edge.borrow_edge_mut();
+        inside.map(|inside| NotifyGuard {
+            inside,
+            tracked: self,
+        })
     }
 }
 

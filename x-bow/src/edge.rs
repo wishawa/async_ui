@@ -1,22 +1,15 @@
-use std::{marker::PhantomData, rc::Rc};
-
-use crate::{
-    deref_optional::{BorrowWrapped, ProjectedDeref, ProjectedDerefMut},
-    listeners::Listeners,
-    mapper::Mapper,
-    optional::IsOptional,
+use std::{
+    cell::{Ref, RefMut},
+    marker::PhantomData,
+    rc::Rc,
 };
+
+use crate::{listeners::Listeners, mapper::Mapper, optional::IsOptional};
 pub trait TrackedEdge {
     type Data;
-    type BorrowGuard<'b>: ProjectedDeref<Target = Self::Data>
-    where
-        Self: 'b;
-    type BorrowMutGuard<'b>: ProjectedDeref<Target = Self::Data> + ProjectedDerefMut
-    where
-        Self: 'b;
     type Optional: IsOptional;
-    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b>;
-    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b>;
+    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Option<Ref<'b, Self::Data>>;
+    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Option<RefMut<'b, Self::Data>>;
     fn invalidate_outside_here(self: &Rc<Self>);
     fn invalidate_inside_up(self: &Rc<Self>);
     fn listeners<'s>(self: &'s Rc<Self>) -> &'s Listeners;
@@ -58,19 +51,17 @@ where
     Y: IsOptional,
 {
     type Data = M::Out;
-    type BorrowGuard<'b> = BorrowWrapped<E::BorrowGuard<'b>, M>
-    where
-        Self: 'b;
-    type BorrowMutGuard<'b> = BorrowWrapped< E::BorrowMutGuard<'b>, M>
-    where
-        Self: 'b;
     type Optional = Y;
 
-    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Self::BorrowGuard<'b> {
-        BorrowWrapped::new(self.parent.borrow_edge(), self.mapper.clone())
+    fn borrow_edge<'b>(self: &'b Rc<Self>) -> Option<Ref<'b, Self::Data>> {
+        self.parent
+            .borrow_edge()
+            .and_then(|b| Ref::filter_map(b, |v| self.mapper.map(v)).ok())
     }
-    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Self::BorrowMutGuard<'b> {
-        BorrowWrapped::new(self.parent.borrow_edge_mut(), self.mapper.clone())
+    fn borrow_edge_mut<'b>(self: &'b Rc<Self>) -> Option<RefMut<'b, Self::Data>> {
+        self.parent
+            .borrow_edge_mut()
+            .and_then(|b| RefMut::filter_map(b, |v| self.mapper.map_mut(v)).ok())
     }
     fn invalidate_outside_here(self: &Rc<Self>) {
         self.listeners.invalidate_outside();
