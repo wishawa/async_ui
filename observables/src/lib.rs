@@ -23,23 +23,23 @@ pub trait ObservableBase {
     fn add_waker(&self, waker: Waker);
     fn get_version(&self) -> Version;
 }
-pub enum ObservableBorrowed<'b, T: ?Sized> {
-    Ref(&'b T),
+pub enum ObservableBorrow<'b, T: ?Sized> {
+    Borrow(&'b T),
     RefCell(Ref<'b, T>),
 }
 
-impl<'b, T: ?Sized> Deref for ObservableBorrowed<'b, T> {
+impl<'b, T: ?Sized> Deref for ObservableBorrow<'b, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         match self {
-            ObservableBorrowed::Ref(r) => *r,
-            ObservableBorrowed::RefCell(c) => c.deref(),
+            ObservableBorrow::Borrow(r) => *r,
+            ObservableBorrow::RefCell(c) => c.deref(),
         }
     }
 }
 pub trait Observable: ObservableBase {
     type Data: ?Sized;
-    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data>;
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data>;
 }
 
 pub trait ObservableExt: Observable {

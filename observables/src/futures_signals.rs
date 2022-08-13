@@ -49,7 +49,7 @@ where
         let current_version = this.wrapped.get_version();
         if current_version > this.last_version {
             this.last_version = current_version;
-            let val = this.wrapped.obs_borrow();
+            let val = this.wrapped.get_borrow();
             let out = (this.mapper)(&*val);
             this.wrapped.add_waker(cx.waker().to_owned());
             Poll::Ready(Some(out))
@@ -101,8 +101,8 @@ where
 {
     type Data = S::Item;
 
-    fn obs_borrow<'b>(&'b self) -> crate::ObservableBorrowed<'b, Self::Data> {
-        crate::ObservableBorrowed::RefCell(self.value.borrow())
+    fn get_borrow<'b>(&'b self) -> crate::ObservableBorrow<'b, Self::Data> {
+        crate::ObservableBorrow::RefCell(self.value.borrow())
     }
 }
 

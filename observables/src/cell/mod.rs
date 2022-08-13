@@ -4,7 +4,7 @@ use std::{
     task::Waker,
 };
 
-use crate::{Observable, ObservableBase, ObservableBorrowed, Version};
+use crate::{Observable, ObservableBase, ObservableBorrow, Version};
 
 use self::borrow_mut::ObservableCellBorrowMut;
 
@@ -44,7 +44,7 @@ impl<T> ObservableBase for ObservableCell<T> {
 impl<T> Observable for ObservableCell<T> {
     type Data = T;
 
-    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, T> {
-        ObservableBorrowed::RefCell(Ref::map(self.inner.borrow(), |r| &r.data))
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
+        ObservableBorrow::RefCell(Ref::map(self.inner.borrow(), |r| &r.data))
     }
 }

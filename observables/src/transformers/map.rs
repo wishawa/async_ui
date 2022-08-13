@@ -3,7 +3,7 @@ use std::{
     task::Waker,
 };
 
-use crate::{Observable, ObservableBase, ObservableBorrowed, Version};
+use crate::{Observable, ObservableBase, ObservableBorrow, Version};
 
 pub struct Map<'i, I, O, M>
 where
@@ -35,13 +35,13 @@ where
     M: Fn(&I::Data) -> O,
 {
     type Data = O;
-    fn obs_borrow<'b>(&'b self) -> ObservableBorrowed<'b, Self::Data> {
-        let input = self.wrapped.obs_borrow();
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+        let input = self.wrapped.get_borrow();
         let mapped = (self.mapper)(&*input);
         {
             *self.last_value.borrow_mut() = Some(mapped);
         }
-        ObservableBorrowed::RefCell(Ref::map(self.last_value.borrow(), |v| v.as_ref().unwrap()))
+        ObservableBorrow::RefCell(Ref::map(self.last_value.borrow(), |v| v.as_ref().unwrap()))
     }
 }
 

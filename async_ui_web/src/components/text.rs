@@ -37,7 +37,7 @@ impl<'c, T: Borrow<str> + ?Sized> Future for TextFuture<'c, T> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.change_fut.observable().obs_borrow();
+            let txt = this.change_fut.observable().get_borrow();
             this.node.set_data((&*txt).borrow());
         }
         Poll::Pending

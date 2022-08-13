@@ -97,7 +97,7 @@ where
 {
     type Data = <N::Edge as TrackedEdge>::Data;
 
-    fn obs_borrow<'b>(&'b self) -> observables::ObservableBorrowed<'b, Self::Data> {
-        observables::ObservableBorrowed::RefCell(self.borrow())
+    fn get_borrow<'b>(&'b self) -> observables::ObservableBorrow<'b, Self::Data> {
+        observables::ObservableBorrow::RefCell(self.borrow())
     }
 }
