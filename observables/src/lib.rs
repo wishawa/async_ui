@@ -1,19 +1,12 @@
-use pin_project_lite::pin_project;
-use std::{
-    borrow::Borrow,
-    cell::Ref,
-    future::Future,
-    marker::PhantomData,
-    ops::Deref,
-    pin::Pin,
-    task::{Context, Poll, Waker},
-};
+use std::{cell::Ref, ops::Deref, task::Waker};
 
 use transformers::map::Map;
 pub use version::Version;
 mod impls;
+mod next_change;
 mod transformers;
 mod version;
+pub use next_change::NextChangeFuture;
 
 pub mod cell;
 #[cfg(feature = "futures-signals")]
@@ -55,59 +48,3 @@ pub trait ObservableExt: Observable {
     }
 }
 impl<T: Observable + ?Sized> ObservableExt for T {}
-
-pin_project! {
-    pub struct NextChangeFuture<I, A>
-    where
-        A: Borrow<I>,
-        I: ObservableBase,
-        I: ?Sized,
-    {
-        inner: A,
-        start_version: Version,
-        _phantom: PhantomData<Box<I>>,
-    }
-}
-impl<I, A> NextChangeFuture<I, A>
-where
-    A: Borrow<I>,
-    I: ObservableBase,
-    I: ?Sized,
-{
-    pub fn new(observable: A) -> Self {
-        Self {
-            inner: observable,
-            start_version: Version::new_null(),
-            _phantom: PhantomData,
-        }
-    }
-    pub fn observable(&self) -> &A {
-        &self.inner
-    }
-    pub fn rewind(&mut self) {
-        self.start_version = Version::new_null();
-    }
-}
-
-impl<I, A> Future for NextChangeFuture<I, A>
-where
-    A: Borrow<I>,
-    I: ObservableBase,
-    I: ?Sized,
-{
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        let inner: &I = (&*this.inner).borrow();
-        if this.start_version.is_null() {
-            *this.start_version = inner.get_version();
-            inner.add_waker(cx.waker().to_owned());
-        }
-        if inner.get_version() > *this.start_version {
-            Poll::Ready(())
-        } else {
-            Poll::Pending
-        }
-    }
-}
