@@ -38,9 +38,6 @@ where
     pub fn observable(&self) -> &A {
         &self.inner
     }
-    pub fn rewind(&mut self) {
-        self.start_version = Version::new_null();
-    }
 }
 
 impl<I, A> Future for NextChangeFuture<I, A>

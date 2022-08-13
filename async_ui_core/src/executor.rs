@@ -7,7 +7,7 @@ thread_local! {
         Rc::new(exe)
     }
 }
-pub(crate) fn spawn_local<F: Future + 'static>(fut: F) -> Task<F::Output> {
+pub fn spawn_local<F: Future + 'static>(fut: F) -> Task<F::Output> {
     EXECUTOR.with(|exe| exe.spawn(fut))
 }
 

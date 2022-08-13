@@ -67,29 +67,37 @@ impl<B: BackendTrait> VNodeTrait<B> for ConcreteNodeVNode<B> {
     }
 }
 
+enum WithConcreteNodeState<B: BackendTrait> {
+    NotStarted { node: RefNode<B> },
+    Started { vnode: Rc<VNode<B>> },
+    Null,
+}
 pin_project! {
-    pub struct WithNode<B, F>
+    pub struct WithConcreteNode<B, F>
     where
         F: Future,
         B: BackendTrait
     {
         #[pin]
         future: F,
-        vnode: Rc<VNode<B>>
+        state: WithConcreteNodeState<B>
     }
 }
 
-impl<B, F> WithNode<B, F>
+impl<B, F> WithConcreteNode<B, F>
 where
     F: Future,
     B: BackendTrait,
 {
-    pub fn new(future: F, vnode: Rc<VNode<B>>) -> Self {
-        Self { future, vnode }
+    pub fn new(future: F, node: RefNode<B>) -> Self {
+        Self {
+            future,
+            state: WithConcreteNodeState::NotStarted { node },
+        }
     }
 }
 
-impl<B, F> Future for WithNode<B, F>
+impl<B, F> Future for WithConcreteNode<B, F>
 where
     F: Future,
     B: BackendTrait,
@@ -98,6 +106,16 @@ where
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        B::get_vnode_key().set(this.vnode, || this.future.poll(cx))
+        let vnk = B::get_vnode_key();
+        let vnode = match std::mem::replace(this.state, WithConcreteNodeState::Null) {
+            WithConcreteNodeState::NotStarted { node } => Rc::new(
+                ConcreteNodeVNode::new(node, vnk.with(|vn| vn.get_context_map().to_owned())).into(),
+            ),
+            WithConcreteNodeState::Started { vnode } => vnode,
+            _ => unreachable!(),
+        };
+        let res = vnk.set(&vnode, || this.future.poll(cx));
+        *this.state = WithConcreteNodeState::Started { vnode };
+        res
     }
 }

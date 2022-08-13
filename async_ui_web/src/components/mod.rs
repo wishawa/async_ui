@@ -17,6 +17,7 @@ use pin_project_lite::pin_project;
 use web_sys::Node;
 mod button;
 mod event_handler;
+mod list;
 mod text;
 mod text_input;
 mod view;

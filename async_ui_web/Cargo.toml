@@ -19,6 +19,9 @@ waker-fn = "1.1.0"
 futures = "0.3.21"
 pin-project-lite = "0.2.9"
 
+im-rc = "15.1.0"
+slab = "0.4.7"
+
 wasm-bindgen = "0.2.81"
 js-sys = "0.3.59"
 parking_lot = { version = "0.11.1", features = ["wasm-bindgen"] }
@@ -30,7 +33,10 @@ features = [
 	'Document',
 	'HtmlElement',
 	'HtmlButtonElement',
+	'HtmlInputElement',
 	'HtmlSpanElement',
 	'Text',	
 	'MouseEvent',
+	'InputEvent',
+	'Comment',
 ]

@@ -12,8 +12,8 @@ use crate::executor::schedule;
 
 pin_project! {
     pub(super) struct EventHandler<'h, E> {
-        handler: &'h dyn Fn(E),
-        closure: Closure<dyn Fn(E)>,
+        handler: &'h (dyn Fn(E) + 'h),
+        closure: Closure<dyn Fn(E) + 'h>,
         cell: Rc<ObservableCell<Option<E>>>,
         listener: NextChangeFuture<ObservableCell<Option<E>>, Rc<ObservableCell<Option<E>>>>
     }
@@ -50,7 +50,7 @@ impl<'h, Event> Future for EventHandler<'h, Event> {
                         (this.handler)(event);
                     }
                 }
-                this.listener.rewind();
+                this.listener = NextChangeFuture::new(this.cell.clone());
                 let _ = Pin::new(&mut this.listener).poll(cx);
             }
             Poll::Pending => {}

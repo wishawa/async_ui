@@ -12,6 +12,7 @@ pin_project! {
     where
         T: ?Sized
     {
+        #[pin]
         _phantom: PhantomPinned,
         data: Pin<Box<T>>,
     }

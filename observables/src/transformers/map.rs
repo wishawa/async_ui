@@ -11,6 +11,7 @@ pub struct Map<'w, W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
+    I: ?Sized,
 {
     wrapped: &'w W,
     mapper: M,
@@ -22,6 +23,7 @@ impl<'w, W, I, O, M> Map<'w, W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
+    I: ?Sized,
 {
     pub(crate) fn new(wrapped: &'w W, mapper: M) -> Self {
         Self {
@@ -33,11 +35,13 @@ where
     }
 }
 
-impl<'w, W, I, O, M, Z: ?Sized> Observable<Z> for Map<'w, W, I, O, M>
+impl<'w, W, I, O, M, Z> Observable<Z> for Map<'w, W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
     O: Borrow<Z>,
+    I: ?Sized,
+    Z: ?Sized,
 {
     fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         let input = self.wrapped.get_borrow();
@@ -55,6 +59,7 @@ impl<'w, W, I, O, M> ObservableBase for Map<'w, W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
+    I: ?Sized,
 {
     fn add_waker(&self, waker: Waker) {
         self.wrapped.add_waker(waker)

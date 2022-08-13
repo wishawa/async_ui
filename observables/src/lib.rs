@@ -34,7 +34,7 @@ pub trait Observable<T: ?Sized>: ObservableBase {
     fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T>;
 }
 
-pub trait ObservableExt<T>: Observable<T> {
+pub trait ObservableExt<T: ?Sized>: Observable<T> {
     fn map<'w, O, M>(&'w self, mapper: M) -> Map<'w, Self, T, O, M>
     where
         M: Fn(&T) -> O,
@@ -46,4 +46,4 @@ pub trait ObservableExt<T>: Observable<T> {
         NextChangeFuture::new(self)
     }
 }
-impl<T, O: Observable<T> + ?Sized> ObservableExt<T> for O {}
+impl<T: ?Sized, O: Observable<T> + ?Sized> ObservableExt<T> for O {}

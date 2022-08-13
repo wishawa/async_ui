@@ -9,7 +9,7 @@ use im_rc::Vector;
 #[derive(Clone)]
 pub enum Change<T> {
     Splice {
-        remove_range: (Bound<usize>, Bound<usize>),
+        remove_range: Range<usize>,
         replace_with: Vector<T>,
     },
     Remove {
@@ -30,18 +30,18 @@ pub struct ListModel<T: Clone> {
 
 // taken from https://users.rust-lang.org/t/whats-the-best-way-to-convert-from-rangebounds-to-range/31607
 fn bound_to_idx(
-    (start, end): (Bound<usize>, Bound<usize>),
+    (start, end): (Bound<&usize>, Bound<&usize>),
     min: usize,
     max: usize,
 ) -> Range<usize> {
     let start = match start {
-        Bound::Included(start) => start,
+        Bound::Included(start) => *start,
         Bound::Excluded(start) => start + 1,
         Bound::Unbounded => min,
     };
     let end = match end {
         Bound::Included(end) => end + 1,
-        Bound::Excluded(end) => end,
+        Bound::Excluded(end) => *end,
         Bound::Unbounded => max,
     };
     start..end
@@ -52,7 +52,6 @@ fn apply_change<T: Clone>(vector: &mut Vector<T>, change: Change<T>) {
             remove_range,
             replace_with,
         } => {
-            let remove_range = bound_to_idx(remove_range, 0, vector.len());
             let n_items = ExactSizeIterator::len(&remove_range);
             let mut right = vector.split_off(remove_range.start);
             let right = right.split_off(n_items);
@@ -109,11 +108,13 @@ impl<T: Clone> ListModel<T> {
         remove_range: R,
         replace_with: I,
     ) {
+        let remove_range = bound_to_idx(
+            (remove_range.start_bound(), remove_range.end_bound()),
+            0,
+            self.head.len(),
+        );
         self.change(Change::Splice {
-            remove_range: (
-                remove_range.start_bound().cloned(),
-                remove_range.end_bound().cloned(),
-            ),
+            remove_range,
             replace_with: replace_with.collect(),
         })
     }
@@ -133,7 +134,7 @@ impl<T: Clone> ListModel<T> {
     }
 }
 
-pub struct ListModelPrivateAPIs<'l, T: Clone>(&'l ListModel<T>);
+pub struct ListModelPrivateAPIs<'l, T: Clone>(pub &'l ListModel<T>);
 
 impl<'l, T: Clone> ListModelPrivateAPIs<'l, T> {
     pub fn get_version(&self) -> u64 {

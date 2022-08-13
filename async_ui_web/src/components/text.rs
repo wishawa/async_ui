@@ -5,7 +5,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use observables::{NextChangeFuture, Observable};
+use observables::{NextChangeFuture, Observable, ObservableExt};
 
 use crate::window::DOCUMENT;
 
@@ -15,7 +15,14 @@ pub struct Text<'c> {
     pub text: &'c (dyn Observable<str> + 'c),
 }
 
+impl<'c> Default for Text<'c> {
+    fn default() -> Self {
+        Self { text: &"" }
+    }
+}
+
 pub struct TextFuture<'c> {
+    obs: &'c (dyn Observable<str> + 'c),
     change_fut: NextChangeFuture<dyn Observable<str> + 'c, &'c (dyn Observable<str> + 'c)>,
     node: web_sys::Text,
     set: bool,
@@ -28,7 +35,7 @@ impl<'c> Future for TextFuture<'c> {
         let this = self.get_mut();
         let reset = match Pin::new(&mut this.change_fut).poll(cx) {
             Poll::Ready(_) => {
-                this.change_fut.rewind();
+                this.change_fut = this.obs.until_change();
                 let _ = Pin::new(&mut this.change_fut).poll(cx);
                 true
             }
@@ -36,7 +43,7 @@ impl<'c> Future for TextFuture<'c> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.change_fut.observable().get_borrow();
+            let txt = this.obs.get_borrow();
             this.node.set_data((&*txt).borrow());
         }
         Poll::Pending
@@ -51,6 +58,7 @@ impl<'c> IntoFuture for Text<'c> {
         let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
         let fut = TextFuture {
             change_fut: NextChangeFuture::new(self.text),
+            obs: self.text,
             node: node.clone(),
             set: false,
         };
