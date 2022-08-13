@@ -30,15 +30,14 @@ impl<'b, T: ?Sized> Deref for ObservableBorrow<'b, T> {
         }
     }
 }
-pub trait Observable: ObservableBase {
-    type Data: ?Sized;
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data>;
+pub trait Observable<T: ?Sized>: ObservableBase {
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T>;
 }
 
-pub trait ObservableExt: Observable {
-    fn map<'i, O, M>(&'i self, mapper: M) -> Map<'i, Self, O, M>
+pub trait ObservableExt<T>: Observable<T> {
+    fn map<'w, O, M>(&'w self, mapper: M) -> Map<'w, Self, T, O, M>
     where
-        M: Fn(&Self::Data) -> O,
+        M: Fn(&T) -> O,
         Self: Sized,
     {
         Map::new(self, mapper)
@@ -47,4 +46,4 @@ pub trait ObservableExt: Observable {
         NextChangeFuture::new(self)
     }
 }
-impl<T: Observable + ?Sized> ObservableExt for T {}
+impl<T, O: Observable<T> + ?Sized> ObservableExt<T> for O {}

@@ -1,5 +1,6 @@
 mod borrow_mut;
 use std::{
+    borrow::Borrow,
     cell::{Ref, RefCell},
     task::Waker,
 };
@@ -41,10 +42,11 @@ impl<T> ObservableBase for ObservableCell<T> {
         self.inner.borrow().version
     }
 }
-impl<T> Observable for ObservableCell<T> {
-    type Data = T;
-
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
-        ObservableBorrow::RefCell(Ref::map(self.inner.borrow(), |r| &r.data))
+impl<T, Z: ?Sized> Observable<Z> for ObservableCell<T>
+where
+    T: Borrow<Z>,
+{
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+        ObservableBorrow::RefCell(Ref::map(self.inner.borrow(), |r| r.data.borrow()))
     }
 }

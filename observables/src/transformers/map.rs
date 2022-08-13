@@ -1,54 +1,60 @@
 use std::{
+    borrow::Borrow,
     cell::{Ref, RefCell},
+    marker::PhantomData,
     task::Waker,
 };
 
 use crate::{Observable, ObservableBase, ObservableBorrow, Version};
 
-pub struct Map<'i, I, O, M>
+pub struct Map<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
 {
-    wrapped: &'i I,
+    wrapped: &'w W,
     mapper: M,
     last_value: RefCell<Option<O>>,
+    _phantom: PhantomData<I>,
 }
 
-impl<'i, I, O, M> Map<'i, I, O, M>
+impl<'w, W, I, O, M> Map<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
 {
-    pub(crate) fn new(wrapped: &'i I, mapper: M) -> Self {
+    pub(crate) fn new(wrapped: &'w W, mapper: M) -> Self {
         Self {
             wrapped,
             mapper,
             last_value: Default::default(),
+            _phantom: PhantomData,
         }
     }
 }
 
-impl<'i, I, O, M> Observable for Map<'i, I, O, M>
+impl<'w, W, I, O, M, Z: ?Sized> Observable<Z> for Map<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
+    O: Borrow<Z>,
 {
-    type Data = O;
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         let input = self.wrapped.get_borrow();
         let mapped = (self.mapper)(&*input);
         {
             *self.last_value.borrow_mut() = Some(mapped);
         }
-        ObservableBorrow::RefCell(Ref::map(self.last_value.borrow(), |v| v.as_ref().unwrap()))
+        ObservableBorrow::RefCell(Ref::map(self.last_value.borrow(), |v| {
+            v.as_ref().unwrap().borrow()
+        }))
     }
 }
 
-impl<'i, I, O, M> ObservableBase for Map<'i, I, O, M>
+impl<'w, W, I, O, M> ObservableBase for Map<'w, W, I, O, M>
 where
-    I: Observable,
-    M: Fn(&I::Data) -> O,
+    W: Observable<I>,
+    M: Fn(&I) -> O,
 {
     fn add_waker(&self, waker: Waker) {
         self.wrapped.add_waker(waker)

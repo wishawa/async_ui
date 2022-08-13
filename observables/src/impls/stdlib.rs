@@ -25,9 +25,8 @@ macro_rules! impl_primitive {
     };
     ($primitive:ty, $derefto:ty) => {
         impl_base_primitive!($primitive);
-        impl Observable for $primitive {
-            type Data = $derefto;
-            fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+        impl Observable<$derefto> for $primitive {
+            fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, $derefto> {
                 ObservableBorrow::Borrow(self)
             }
         }
@@ -54,10 +53,8 @@ impl_primitive!(String, str);
 impl<'a, T: Clone + ?Sized> ObservableBase for Cow<'a, T> {
     impl_base_inner!();
 }
-impl<'a, T: Clone + ?Sized> Observable for Cow<'a, T> {
-    type Data = T;
-
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+impl<'a, T: Clone + ?Sized> Observable<T> for Cow<'a, T> {
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::Borrow(self.borrow())
     }
 }
@@ -65,10 +62,8 @@ impl<'a, T: Clone + ?Sized> Observable for Cow<'a, T> {
 impl<'s> ObservableBase for &'s str {
     impl_base_inner!();
 }
-impl<'s> Observable for &'s str {
-    type Data = str;
-
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+impl<'s> Observable<str> for &'s str {
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, str> {
         ObservableBorrow::Borrow(self)
     }
 }

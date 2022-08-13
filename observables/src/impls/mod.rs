@@ -10,9 +10,8 @@ impl<T> ObservableBase for NoChange<T> {
         Version::new()
     }
 }
-impl<T> Observable for NoChange<T> {
-    type Data = T;
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+impl<T> Observable<T> for NoChange<T> {
+    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::Borrow(&self.0)
     }
 }

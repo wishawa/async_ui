@@ -1,4 +1,4 @@
-use std::{cell::Ref, ops::Deref, rc::Rc, task::Waker};
+use std::{borrow::Borrow, cell::Ref, ops::Deref, rc::Rc, task::Waker};
 
 use observables::{Observable, ObservableBase, Version};
 
@@ -90,14 +90,13 @@ where
         self.edge.listeners().outside_version()
     }
 }
-impl<N> Observable for Tracked<N>
+impl<N, Z: ?Sized> Observable<Z> for Tracked<N>
 where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
+    <N::Edge as TrackedEdge>::Data: Borrow<Z>,
 {
-    type Data = <N::Edge as TrackedEdge>::Data;
-
-    fn get_borrow<'b>(&'b self) -> observables::ObservableBorrow<'b, Self::Data> {
-        observables::ObservableBorrow::RefCell(self.borrow())
+    fn get_borrow<'b>(&'b self) -> observables::ObservableBorrow<'b, Z> {
+        observables::ObservableBorrow::RefCell(Ref::map(self.borrow(), Borrow::borrow))
     }
 }
