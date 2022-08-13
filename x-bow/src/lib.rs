@@ -3,6 +3,7 @@ mod impls;
 mod listeners;
 mod mapper;
 mod notify_guard;
+mod observable;
 mod optional;
 mod store;
 mod trackable;

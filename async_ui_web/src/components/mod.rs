@@ -7,7 +7,6 @@ use std::{
 
 use async_ui_core::{
     backend::BackendTrait,
-    position::PositionIndex,
     vnode::{
         node_concrete::{ConcreteNodeVNode, RefNode},
         VNode, VNodeTrait,
@@ -22,25 +21,41 @@ mod text;
 mod text_input;
 mod view;
 pub use button::Button;
+pub use list::{List, ListModel};
 pub use text::Text;
+pub use text_input::TextInput;
 pub use view::View;
 
-use crate::{backend::Backend, window::DOCUMENT};
+use crate::backend::Backend;
 
 pin_project! {
     pub struct ElementFuture<F: Future> {
-        node: Node,
         #[pin]
         future: F,
-        vnode: Option<Rc<VNode<Backend>>>
+        inner: ElementFutureInner
+    }
+}
+struct ElementFutureInner {
+    node: Node,
+    vnodes: Option<MyAndParentVNodes>,
+}
+struct MyAndParentVNodes {
+    my: Rc<VNode<Backend>>,
+    parent: Rc<VNode<Backend>>,
+}
+
+impl Drop for ElementFutureInner {
+    fn drop(&mut self) {
+        if let Some(MyAndParentVNodes { parent, .. }) = &self.vnodes {
+            parent.del_child_node(Default::default())
+        }
     }
 }
 impl<F: Future> ElementFuture<F> {
     fn new(future: F, node: Node) -> Self {
         Self {
-            node,
             future,
-            vnode: None,
+            inner: ElementFutureInner { node, vnodes: None },
         }
     }
 }
@@ -49,29 +64,24 @@ impl<F: Future> Future for ElementFuture<F> {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
         let vnk = Backend::get_vnode_key();
-        let my_vnode = this.vnode.get_or_insert_with(|| {
-            let parent_context = vnk.with(|parent_vnode| {
-                parent_vnode.add_child_node(this.node.to_owned(), PositionIndex::default());
-                parent_vnode.get_context_map().clone()
-            });
-            Rc::new(
+        let vnodes = this.inner.vnodes.get_or_insert_with(|| {
+            let parent_vnode = vnk.with(Clone::clone);
+            parent_vnode.add_child_node(this.inner.node.to_owned(), Default::default());
+            let parent_context = parent_vnode.get_context_map().clone();
+            let my = Rc::new(
                 ConcreteNodeVNode::new(
                     RefNode::Parent {
-                        parent: this.node.clone(),
+                        parent: this.inner.node.clone(),
                     },
                     parent_context,
                 )
                 .into(),
-            )
+            );
+            MyAndParentVNodes {
+                my,
+                parent: parent_vnode,
+            }
         });
-        vnk.set(my_vnode, || this.future.poll(cx))
+        vnk.set(&vnodes.my, || this.future.poll(cx))
     }
-}
-fn create_element_future<F: Future>(fut: F, name: &'static str) -> ElementFuture<F> {
-    ElementFuture::new(
-        fut,
-        DOCUMENT
-            .with(|doc| doc.create_element(name).expect("create element failed"))
-            .into(),
-    )
 }

@@ -202,7 +202,6 @@ mod collections {
             >,
             incoming_edge: Rc<E>,
         }
-
         pub struct MapperHashMap<K, V>
         where
             K: Clone + Eq + Hash,
@@ -296,6 +295,34 @@ mod collections {
                             tracked
                         }
                     }
+                }
+            }
+            pub fn insert(&self, key: K, value: V) -> Option<V> {
+                let bm = self.incoming_edge.borrow_edge_mut();
+                let got = if let Some(mut bm) = bm {
+                    self.incoming_edge.invalidate_inside_up();
+                    bm.insert(key, value)
+                } else {
+                    None
+                };
+                got
+            }
+            pub fn remove(&self, key: &K) -> Option<V> {
+                let bm = self.incoming_edge.borrow_edge_mut();
+                if let Some(removed) = bm.map(|mut bm| bm.remove(key)).flatten() {
+                    self.incoming_edge.invalidate_inside_up();
+                    if let Some(child) = self
+                        .items
+                        .borrow_mut()
+                        .get_mut(key)
+                        .map(|got| got.upgrade())
+                        .flatten()
+                    {
+                        child.invalidate_outside_down();
+                    }
+                    Some(removed)
+                } else {
+                    None
                 }
             }
         }

@@ -52,6 +52,10 @@ impl<'s> SpawnGuard<'s> {
         this.spawned.0.push(PinWeak::downgrade(remote.clone()));
         unsafe { RemoteStaticFuture::new(remote) }
     }
+    pub fn clear_dead_futures(self: Pin<&mut Self>) {
+        let this = self.project();
+        this.spawned.0.retain(|el| PinWeak::strong_count(el) > 0);
+    }
 }
 
 impl<'s> Drop for SpawnedTracker<'s> {

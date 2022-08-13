@@ -1,17 +1,26 @@
-use std::future::IntoFuture;
+use std::{future::IntoFuture, rc::Rc};
 
 use async_ui_core::{
     mount as core_mount,
-    vnode::node_concrete::{RefNode, WithConcreteNode},
+    vnode::{
+        node_concrete::{ConcreteNodeVNode, RefNode},
+        WithVNode,
+    },
 };
 use web_sys::Node;
 
 use crate::backend::Backend;
 
 pub fn mount_at<F: IntoFuture<Output = ()> + 'static>(root: F, node: Node) {
-    let fut = WithConcreteNode::new(
+    let fut = WithVNode::new(
         root.into_future(),
-        RefNode::<Backend>::Parent { parent: node },
+        Rc::new(
+            ConcreteNodeVNode::new(
+                RefNode::<Backend>::Parent { parent: node },
+                Default::default(),
+            )
+            .into(),
+        ),
     );
     core_mount::<Backend, _>(fut)
 }

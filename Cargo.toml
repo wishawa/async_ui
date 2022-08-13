@@ -8,5 +8,6 @@ members = [
 	"x-bow",
 	"x-bow-macros/",
 	"examples/playground/",
-	"examples/web-counter/"
+	"examples/web-counter/",
+	"examples/web-todomvc/",
 ]

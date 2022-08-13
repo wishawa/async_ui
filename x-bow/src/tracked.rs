@@ -1,6 +1,4 @@
-use std::{borrow::Borrow, cell::Ref, ops::Deref, rc::Rc, task::Waker};
-
-use observables::{Observable, ObservableBase, Version};
+use std::{cell::Ref, ops::Deref, rc::Rc};
 
 use crate::{
     edge::TrackedEdge, notify_guard::NotifyGuard, optional::OptionalNo, trackable::Trackable,
@@ -16,7 +14,7 @@ where
     N: TrackedNode,
 {
     inner: N,
-    edge: Rc<<N as TrackedNode>::Edge>,
+    pub(crate) edge: Rc<<N as TrackedNode>::Edge>,
 }
 
 impl<N> Deref for Tracked<N>
@@ -78,25 +76,3 @@ where
 
 pub type TrackedNodeAlias<T, E> = <T as Trackable<E>>::TrackedNode;
 pub type TrackedAlias<T, E> = Tracked<TrackedNodeAlias<T, E>>;
-
-impl<N> ObservableBase for Tracked<N>
-where
-    N: TrackedNode,
-{
-    fn add_waker(&self, waker: Waker) {
-        self.edge.listeners().add_outside_waker(waker);
-    }
-    fn get_version(&self) -> Version {
-        self.edge.listeners().outside_version()
-    }
-}
-impl<N, Z: ?Sized> Observable<Z> for Tracked<N>
-where
-    N: TrackedNode,
-    N::Edge: TrackedEdge<Optional = OptionalNo>,
-    <N::Edge as TrackedEdge>::Data: Borrow<Z>,
-{
-    fn get_borrow<'b>(&'b self) -> observables::ObservableBorrow<'b, Z> {
-        observables::ObservableBorrow::RefCell(Ref::map(self.borrow(), Borrow::borrow))
-    }
-}

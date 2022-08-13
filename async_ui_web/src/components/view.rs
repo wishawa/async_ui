@@ -1,8 +1,8 @@
 use std::future::IntoFuture;
 
-use crate::Fragment;
+use crate::{window::DOCUMENT, Fragment};
 
-use super::{create_element_future, ElementFuture};
+use super::ElementFuture;
 
 pub struct View<'c> {
     pub children: Fragment<'c>,
@@ -13,6 +13,11 @@ impl<'c> IntoFuture for View<'c> {
     type IntoFuture = ElementFuture<Fragment<'c>>;
 
     fn into_future(self) -> Self::IntoFuture {
-        create_element_future(self.children, "div")
+        ElementFuture::new(
+            self.children,
+            DOCUMENT
+                .with(|doc| doc.create_element("div").expect("create element failed"))
+                .into(),
+        )
     }
 }

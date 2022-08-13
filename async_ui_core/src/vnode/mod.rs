@@ -1,4 +1,8 @@
+use std::future::Future;
+use std::rc::Rc;
+
 use enum_dispatch::enum_dispatch;
+use pin_project_lite::pin_project;
 pub mod node_concrete;
 pub mod node_context;
 pub mod node_pass;
@@ -25,4 +29,29 @@ pub enum VNode<B: BackendTrait> {
     Context(ContextVNode<B>),
     Pass(PassVNode<B>),
     Portal(PortalVNode<B>),
+}
+
+pin_project! {
+    pub struct WithVNode<B: BackendTrait, F: Future> {
+        #[pin]
+        future: F,
+        vnode: Rc<VNode<B>>
+    }
+}
+
+impl<B: BackendTrait, F: Future> WithVNode<B, F> {
+    pub fn new(future: F, vnode: Rc<VNode<B>>) -> Self {
+        Self { future, vnode }
+    }
+}
+impl<B: BackendTrait, F: Future> Future for WithVNode<B, F> {
+    type Output = F::Output;
+
+    fn poll(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Self::Output> {
+        let this = self.project();
+        B::get_vnode_key().set(this.vnode, || this.future.poll(cx))
+    }
 }

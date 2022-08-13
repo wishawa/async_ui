@@ -93,10 +93,6 @@ impl<'c> IntoFuture for Button<'c> {
             on_press_in,
             on_press_out,
         };
-        ElementFuture {
-            node: button.into(),
-            future,
-            vnode: None,
-        }
+        ElementFuture::new(future, button.into())
     }
 }
