@@ -43,7 +43,7 @@ async fn root() {
 }
 async fn list_item(store: &Store<State>, id: TodoId) {
     let handle = store.todos_map.handle_at(id);
-    let text = &handle.value.to_observable_or_default();
+    let text = &handle.value.as_observable_or_default();
     let on_press_delete = &|_ev| {
         store.todos_map.remove(&id);
         let mut list_model = store.todos_list.borrow_mut();
@@ -56,7 +56,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
             list_model.remove(to_remove);
         }
     };
-    let done = handle.done.to_observable_or_default();
+    let done = handle.done.as_observable_or_default();
     let done_text = done.map(|v| match *v {
         true => "done",
         false => "not done",
@@ -86,7 +86,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
 async fn list_content(store: &Store<State>) {
     let render = &|id| list_item(store, id);
     (List {
-        data: &store.todos_list.to_observable(),
+        data: &store.todos_list.as_observable(),
         render,
     })
     .await;
@@ -96,10 +96,8 @@ async fn input_box(store: &Store<State>) {
     fragment![
         TextInput {
             text: &value.as_observable(),
-            on_input: &|ev| {
-                if let Some(v) = ev.data() {
-                    *value.borrow_mut() = v;
-                }
+            on_input: &|txt| {
+                *value.borrow_mut() = txt;
             }
         },
         Button {
@@ -110,7 +108,7 @@ async fn input_box(store: &Store<State>) {
                     bm.0 += 1;
                     *bm
                 };
-                let value = str::to_string(&*value.as_observable().observable_borrow());
+                let value = str::to_string(&*value.as_observable().borrow_observable());
                 store
                     .todos_map
                     .insert(current_id, Todo { value, done: false });

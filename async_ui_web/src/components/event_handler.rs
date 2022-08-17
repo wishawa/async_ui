@@ -1,7 +1,7 @@
-use std::future::Future;
 use std::task::{Context, Poll};
 use std::{pin::Pin, rc::Rc};
 
+use futures::Stream;
 use js_sys::Function;
 use observables::cell::ObservableCell;
 use observables::{ObservableBase, Version};
@@ -11,14 +11,13 @@ use wasm_bindgen::JsCast;
 use crate::executor::schedule;
 
 pub(super) struct EventHandler<'h, E> {
-    handler: &'h (dyn Fn(E) + 'h),
     closure: Closure<dyn Fn(E) + 'h>,
     cell: Rc<ObservableCell<Option<E>>>,
     last_version: Version,
 }
 
 impl<'h, E: wasm_bindgen::convert::FromWasmAbi + 'static> EventHandler<'h, E> {
-    pub fn new(handler: &'h dyn Fn(E)) -> Self {
+    pub fn new() -> Self {
         let cell = Rc::new(ObservableCell::new(None));
         let cell_cloned = cell.clone();
         let closure = Closure::new(move |event| {
@@ -27,7 +26,6 @@ impl<'h, E: wasm_bindgen::convert::FromWasmAbi + 'static> EventHandler<'h, E> {
         });
         let last_version = Version::new_null();
         Self {
-            handler,
             cell,
             closure,
             last_version,
@@ -37,9 +35,10 @@ impl<'h, E: wasm_bindgen::convert::FromWasmAbi + 'static> EventHandler<'h, E> {
         self.closure.as_ref().unchecked_ref()
     }
 }
-impl<'h, Event> Future for EventHandler<'h, Event> {
-    type Output = ();
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+impl<'h, E> Stream for EventHandler<'h, E> {
+    type Item = E;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         let this = self.get_mut();
         let obs = this.cell.as_observable();
         let current_version = obs.get_version();
@@ -48,14 +47,18 @@ impl<'h, Event> Future for EventHandler<'h, Event> {
             obs.add_waker(cx.waker().to_owned());
         }
         if current_version > this.last_version {
-            {
+            let res = {
                 if let Some(event) = this.cell.borrow_mut().take() {
-                    (this.handler)(event);
+                    Poll::Ready(Some(event))
+                } else {
+                    Poll::Pending
                 }
-            }
+            };
             this.last_version = obs.get_version();
             obs.add_waker(cx.waker().to_owned());
+            res
+        } else {
+            Poll::Pending
         }
-        Poll::Pending
     }
 }

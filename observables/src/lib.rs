@@ -31,7 +31,7 @@ impl<'b, T: ?Sized> Deref for ObservableBorrow<'b, T> {
     }
 }
 pub trait Observable<T: ?Sized>: ObservableBase {
-    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, T>;
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T>;
 }
 
 pub trait ObservableExt<T: ?Sized>: Observable<T> {

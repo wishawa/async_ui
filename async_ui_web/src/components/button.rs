@@ -4,43 +4,46 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures::Stream;
 use pin_project_lite::pin_project;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlButtonElement, MouseEvent};
 
 use crate::{window::DOCUMENT, Fragment};
 
-use super::{event_handler::EventHandler, ElementFuture};
+use super::{
+    dummy::{dummy_handler, is_dummy},
+    event_handler::EventHandler,
+    ElementFuture,
+};
 
+pub struct PressEvent {
+    pub native_event: MouseEvent,
+}
 pub struct Button<'c> {
     pub children: Fragment<'c>,
-    pub on_press: &'c (dyn Fn(MouseEvent) + 'c),
-    pub on_press_in: &'c (dyn Fn(MouseEvent) + 'c),
-    pub on_press_out: &'c (dyn Fn(MouseEvent) + 'c),
+    pub on_press: &'c (dyn Fn(PressEvent) + 'c),
+    pub on_press_in: &'c (dyn Fn(PressEvent) + 'c),
+    pub on_press_out: &'c (dyn Fn(PressEvent) + 'c),
 }
 
-fn dummy_handler_fn(_me: MouseEvent) {}
 impl<'c> Default for Button<'c> {
     fn default() -> Self {
         Self {
             children: Default::default(),
-            on_press: &dummy_handler_fn,
-            on_press_in: &dummy_handler_fn,
-            on_press_out: &dummy_handler_fn,
+            on_press: &dummy_handler,
+            on_press_in: &dummy_handler,
+            on_press_out: &dummy_handler,
         }
     }
 }
 
 pin_project! {
     pub struct ButtonFuture<'c> {
-        #[pin]
-        children: Fragment<'c>,
-        #[pin]
-        on_press: Option<EventHandler<'c, MouseEvent>>,
-        #[pin]
-        on_press_in: Option<EventHandler<'c, MouseEvent>>,
-        #[pin]
-        on_press_out: Option<EventHandler<'c, MouseEvent>>,
+        #[pin] children: Fragment<'c>,
+        on_press: Option<(EventHandler<'c, MouseEvent>, &'c (dyn Fn(PressEvent) + 'c))>,
+        on_press_in: Option<(EventHandler<'c, MouseEvent>, &'c (dyn Fn(PressEvent) + 'c))>,
+        on_press_out: Option<(EventHandler<'c, MouseEvent>, &'c (dyn Fn(PressEvent) + 'c))>,
     }
 }
 impl<'c> Future for ButtonFuture<'c> {
@@ -48,9 +51,24 @@ impl<'c> Future for ButtonFuture<'c> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        let _ = this.on_press.as_pin_mut().map(|p| p.poll(cx));
-        let _ = this.on_press_in.as_pin_mut().map(|p| p.poll(cx));
-        let _ = this.on_press_out.as_pin_mut().map(|p| p.poll(cx));
+        let _ = this.on_press.as_mut().map(|(listener, handler)| {
+            match Pin::new(listener).poll_next(cx) {
+                Poll::Ready(Some(ev)) => handler(PressEvent { native_event: ev }),
+                _ => (),
+            }
+        });
+        let _ = this.on_press_in.as_mut().map(|(listener, handler)| {
+            match Pin::new(listener).poll_next(cx) {
+                Poll::Ready(Some(ev)) => handler(PressEvent { native_event: ev }),
+                _ => (),
+            }
+        });
+        let _ = this.on_press_out.as_mut().map(|(listener, handler)| {
+            match Pin::new(listener).poll_next(cx) {
+                Poll::Ready(Some(ev)) => handler(PressEvent { native_event: ev }),
+                _ => (),
+            }
+        });
         this.children.poll(cx)
     }
 }
@@ -64,28 +82,21 @@ impl<'c> IntoFuture for Button<'c> {
             let elem: HtmlButtonElement = elem.unchecked_into();
             elem
         });
-        let on_press = (!std::ptr::eq(self.on_press as *const _, &dummy_handler_fn as *const _))
-            .then(|| {
-                let on_press = EventHandler::new(self.on_press);
-                button.set_onclick(Some(on_press.get_function()));
-                on_press
-            });
-        let on_press_in =
-            (!std::ptr::eq(self.on_press_in as *const _, &dummy_handler_fn as *const _)).then(
-                || {
-                    let on_press = EventHandler::new(self.on_press);
-                    button.set_onpointerdown(Some(on_press.get_function()));
-                    on_press
-                },
-            );
-        let on_press_out =
-            (!std::ptr::eq(self.on_press_out as *const _, &dummy_handler_fn as *const _)).then(
-                || {
-                    let on_press = EventHandler::new(self.on_press);
-                    button.set_onpointerup(Some(on_press.get_function()));
-                    on_press
-                },
-            );
+        let on_press = (!is_dummy(self.on_press)).then(|| {
+            let listener = EventHandler::new();
+            button.set_onclick(Some(listener.get_function()));
+            (listener, self.on_press)
+        });
+        let on_press_in = (!is_dummy(self.on_press_in)).then(|| {
+            let listener = EventHandler::new();
+            button.set_onpointerdown(Some(listener.get_function()));
+            (listener, self.on_press_in)
+        });
+        let on_press_out = (!is_dummy(self.on_press_out)).then(|| {
+            let listener = EventHandler::new();
+            button.set_onpointerup(Some(listener.get_function()));
+            (listener, self.on_press_out)
+        });
 
         let future = ButtonFuture {
             children: self.children,

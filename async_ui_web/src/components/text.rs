@@ -43,7 +43,7 @@ impl<'c> Future for TextFuture<'c> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.obs.observable_borrow();
+            let txt = this.obs.borrow_observable();
             this.node.set_data((&*txt).borrow());
         }
         Poll::Pending

@@ -11,7 +11,7 @@ impl<T> ObservableBase for NoChange<T> {
     }
 }
 impl<T> Observable<T> for NoChange<T> {
-    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::Borrow(&self.0)
     }
 }

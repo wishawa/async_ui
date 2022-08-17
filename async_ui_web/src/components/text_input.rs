@@ -4,25 +4,29 @@ use std::{
     task::{Context, Poll},
 };
 
+use futures::Stream;
 use observables::{NextChangeFuture, Observable, ObservableExt};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, InputEvent};
 
 use crate::window::DOCUMENT;
 
-use super::{event_handler::EventHandler, ElementFuture};
+use super::{
+    dummy::{dummy_handler, is_dummy},
+    event_handler::EventHandler,
+    ElementFuture,
+};
 
 pub struct TextInput<'c> {
     pub text: &'c (dyn Observable<str> + 'c),
-    pub on_input: &'c (dyn Fn(InputEvent) + 'c),
+    pub on_input: &'c (dyn Fn(String) + 'c),
 }
 
-fn dummy_handler_fn(_e: InputEvent) {}
 impl<'c> Default for TextInput<'c> {
     fn default() -> Self {
         Self {
             text: &"",
-            on_input: &dummy_handler_fn,
+            on_input: &dummy_handler,
         }
     }
 }
@@ -32,7 +36,7 @@ pub struct TextInputFuture<'c> {
     change_fut: NextChangeFuture<dyn Observable<str> + 'c, &'c (dyn Observable<str> + 'c)>,
     node: HtmlInputElement,
     set: bool,
-    on_input: Option<EventHandler<'c, InputEvent>>,
+    on_input: Option<(EventHandler<'c, InputEvent>, &'c (dyn Fn(String) + 'c))>,
 }
 impl<'c> Future for TextInputFuture<'c> {
     type Output = ();
@@ -49,11 +53,14 @@ impl<'c> Future for TextInputFuture<'c> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.obs.observable_borrow();
+            let txt = this.obs.borrow_observable();
             this.node.set_value(&*txt);
         }
-        if let Some(on_input) = &mut this.on_input {
-            let _ = Pin::new(on_input).poll(cx);
+        if let Some((on_input_listener, on_input_handler)) = &mut this.on_input {
+            match Pin::new(on_input_listener).poll_next(cx) {
+                Poll::Ready(Some(_ev)) => on_input_handler(this.node.value()),
+                _ => (),
+            }
         }
         Poll::Pending
     }
@@ -69,12 +76,11 @@ impl<'c> IntoFuture for TextInput<'c> {
             let elem: HtmlInputElement = elem.unchecked_into();
             elem
         });
-        let on_input = (!std::ptr::eq(self.on_input as *const _, &dummy_handler_fn as *const _))
-            .then(|| {
-                let handler = EventHandler::new(self.on_input);
-                input.set_oninput(Some(handler.get_function()));
-                handler
-            });
+        let on_input = (!is_dummy(self.on_input)).then(|| {
+            let listener = EventHandler::new();
+            input.set_oninput(Some(listener.get_function()));
+            (listener, self.on_input)
+        });
 
         ElementFuture::new(
             TextInputFuture {

@@ -52,7 +52,7 @@ impl<'a, T, Z: ?Sized> Observable<Z> for ObservableCellObservable<'a, T>
 where
     T: Borrow<Z>,
 {
-    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         ObservableBorrow::RefCell(Ref::map(self.inner.inner.borrow(), |r| r.data.borrow()))
     }
 }

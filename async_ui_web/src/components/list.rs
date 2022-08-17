@@ -75,7 +75,7 @@ impl<'c, T: Clone, F: IntoFuture<Output = ()>> IntoFuture for List<'c, T, F> {
                 (reference_node, task)
             };
             let mut last_version = {
-                let model = &*self.data.observable_borrow();
+                let model = &*self.data.borrow_observable();
 
                 let start = model.underlying_vector();
                 let mut last_node = None;
@@ -93,7 +93,7 @@ impl<'c, T: Clone, F: IntoFuture<Output = ()>> IntoFuture for List<'c, T, F> {
                 model.get_version()
             };
             let _guard = scopeguard::guard((), |_| {
-                let b = self.data.observable_borrow();
+                let b = self.data.borrow_observable();
                 let model = ListModelPrivateAPIs(&*b);
                 model
                     .total_listeners()
@@ -102,7 +102,7 @@ impl<'c, T: Clone, F: IntoFuture<Output = ()>> IntoFuture for List<'c, T, F> {
             loop {
                 self.data.until_change().await;
                 {
-                    let model = &*self.data.observable_borrow();
+                    let model = &*self.data.borrow_observable();
                     let model_priv = ListModelPrivateAPIs(model);
                     let changes = model_priv.changes_since_version(last_version);
                     for change in changes {

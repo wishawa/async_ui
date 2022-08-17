@@ -14,8 +14,11 @@ use async_ui_core::{
 };
 use pin_project_lite::pin_project;
 use web_sys::Node;
-mod button;
+
+mod dummy;
 mod event_handler;
+
+mod button;
 mod list;
 mod text;
 mod text_input;

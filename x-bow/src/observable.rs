@@ -21,7 +21,7 @@ where
     <N::Edge as TrackedEdge>::Data: Borrow<Z>,
     Z: ?Sized,
 {
-    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         ObservableBorrow::RefCell(Ref::map(self.tracked.borrow(), Borrow::borrow))
     }
 }
@@ -51,7 +51,7 @@ where
     <N::Edge as TrackedEdge>::Data: Borrow<Z>,
     Z: ?Sized,
 {
-    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         if let Some(b) = self.tracked.borrow_opt() {
             ObservableBorrow::RefCell(Ref::map(b, Borrow::borrow))
         } else {
@@ -76,7 +76,7 @@ where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
 {
-    pub fn to_observable<'a>(&'a self) -> XBowObservable<'a, N> {
+    pub fn as_observable<'a>(&'a self) -> XBowObservable<'a, N> {
         XBowObservable { tracked: self }
     }
 }
@@ -86,10 +86,27 @@ where
     N::Edge: TrackedEdge<Optional = OptionalYes>,
     <N::Edge as TrackedEdge>::Data: Default,
 {
-    pub fn to_observable_or_default<'a>(&'a self) -> XBowObservableOrFallback<'a, N> {
+    pub fn as_observable_or_default<'a>(&'a self) -> XBowObservableOrFallback<'a, N> {
         XBowObservableOrFallback {
             tracked: self,
             fallback: Default::default(),
+        }
+    }
+}
+
+impl<N> Tracked<N>
+where
+    N: TrackedNode,
+    N::Edge: TrackedEdge<Optional = OptionalYes>,
+    <N::Edge as TrackedEdge>::Data: Default,
+{
+    pub fn as_observable_or<'a>(
+        &'a self,
+        fallback: <N::Edge as TrackedEdge>::Data,
+    ) -> XBowObservableOrFallback<'a, N> {
+        XBowObservableOrFallback {
+            tracked: self,
+            fallback,
         }
     }
 }

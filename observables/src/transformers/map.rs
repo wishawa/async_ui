@@ -43,8 +43,8 @@ where
     I: ?Sized,
     Z: ?Sized,
 {
-    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
-        let input = self.wrapped.observable_borrow();
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+        let input = self.wrapped.borrow_observable();
         let mapped = (self.mapper)(&*input);
         {
             *self.last_value.borrow_mut() = Some(mapped);
