@@ -19,14 +19,14 @@ use super::{
 
 pub struct TextInput<'c> {
     pub text: &'c (dyn Observable<str> + 'c),
-    pub on_input: &'c (dyn Fn(String) + 'c),
+    pub on_change_text: &'c (dyn Fn(String) + 'c),
 }
 
 impl<'c> Default for TextInput<'c> {
     fn default() -> Self {
         Self {
             text: &"",
-            on_input: &dummy_handler,
+            on_change_text: &dummy_handler,
         }
     }
 }
@@ -76,10 +76,10 @@ impl<'c> IntoFuture for TextInput<'c> {
             let elem: HtmlInputElement = elem.unchecked_into();
             elem
         });
-        let on_input = (!is_dummy(self.on_input)).then(|| {
+        let on_input = (!is_dummy(self.on_change_text)).then(|| {
             let listener = EventHandler::new();
             input.set_oninput(Some(listener.get_function()));
-            (listener, self.on_input)
+            (listener, self.on_change_text)
         });
 
         ElementFuture::new(

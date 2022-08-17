@@ -43,40 +43,45 @@ async fn root() {
 }
 async fn list_item(store: &Store<State>, id: TodoId) {
     let handle = store.todos_map.handle_at(id);
-    let text = &handle.value.as_observable_or_default();
-    let on_press_delete = &|_ev| {
-        store.todos_map.remove(&id);
-        let mut list_model = store.todos_list.borrow_mut();
-        if let Some(to_remove) = {
-            list_model
-                .underlying_vector()
-                .iter()
-                .position(|item_id| *item_id == id)
-        } {
-            list_model.remove(to_remove);
-        }
-    };
-    let done = handle.done.as_observable_or_default();
-    let done_text = done.map(|v| match *v {
-        true => "done",
-        false => "not done",
-    });
-    let on_press_toggle = &|_ev| {
-        if let Some(mut done) = handle.done.borrow_mut_opt() {
-            *done = !*done;
-        }
-    };
     (View {
         children: fragment![
-            Text { text },
+            TextInput {
+                text: &handle.value.as_observable_or_default(),
+                on_change_text: &|txt| {
+                    if let Some(mut value) = handle.value.borrow_mut_opt() {
+                        *value = txt;
+                    }
+                },
+                ..Default::default()
+            },
             Button {
-                children: fragment![Text { text: &done_text }],
-                on_press: on_press_toggle,
+                children: fragment![Text {
+                    text: &handle.done.as_observable_or_default().map(|v| match *v {
+                        true => "done",
+                        false => "not done",
+                    })
+                }],
+                on_press: &|_| {
+                    if let Some(mut done) = handle.done.borrow_mut_opt() {
+                        *done = !*done;
+                    }
+                },
                 ..Default::default()
             },
             Button {
                 children: fragment![Text { text: &"delete" }],
-                on_press: on_press_delete,
+                on_press: &|_| {
+                    store.todos_map.remove(&id);
+                    let mut list_model = store.todos_list.borrow_mut();
+                    if let Some(to_remove) = {
+                        list_model
+                            .underlying_vector()
+                            .iter()
+                            .position(|item_id| *item_id == id)
+                    } {
+                        list_model.remove(to_remove);
+                    }
+                },
                 ..Default::default()
             }
         ],
@@ -96,7 +101,7 @@ async fn input_box(store: &Store<State>) {
     fragment![
         TextInput {
             text: &value.as_observable(),
-            on_input: &|txt| {
+            on_change_text: &|txt| {
                 *value.borrow_mut() = txt;
             }
         },
@@ -108,10 +113,15 @@ async fn input_box(store: &Store<State>) {
                     bm.0 += 1;
                     *bm
                 };
-                let value = str::to_string(&*value.as_observable().borrow_observable());
-                store
-                    .todos_map
-                    .insert(current_id, Todo { value, done: false });
+                let text = str::to_string(&*value.as_observable().borrow_observable());
+                value.borrow_mut().clear();
+                store.todos_map.insert(
+                    current_id,
+                    Todo {
+                        value: text,
+                        done: false,
+                    },
+                );
                 store.todos_list.borrow_mut().insert(0, current_id);
             },
             ..Default::default()
