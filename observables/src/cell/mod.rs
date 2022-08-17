@@ -33,20 +33,26 @@ impl<T> ObservableCell<T> {
             reference: self.inner.borrow_mut(),
         }
     }
+    pub fn as_observable<'b>(&'b self) -> ObservableCellObservable<'b, T> {
+        ObservableCellObservable { inner: self }
+    }
 }
-impl<T> ObservableBase for ObservableCell<T> {
+pub struct ObservableCellObservable<'c, T> {
+    inner: &'c ObservableCell<T>,
+}
+impl<'a, T> ObservableBase for ObservableCellObservable<'a, T> {
     fn add_waker(&self, waker: Waker) {
-        self.inner.borrow_mut().listeners.push(waker);
+        self.inner.inner.borrow_mut().listeners.push(waker);
     }
     fn get_version(&self) -> Version {
-        self.inner.borrow().version
+        self.inner.inner.borrow().version
     }
 }
-impl<T, Z: ?Sized> Observable<Z> for ObservableCell<T>
+impl<'a, T, Z: ?Sized> Observable<Z> for ObservableCellObservable<'a, T>
 where
     T: Borrow<Z>,
 {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
-        ObservableBorrow::RefCell(Ref::map(self.inner.borrow(), |r| r.data.borrow()))
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+        ObservableBorrow::RefCell(Ref::map(self.inner.inner.borrow(), |r| r.data.borrow()))
     }
 }

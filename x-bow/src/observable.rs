@@ -1,15 +1,10 @@
-use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
-    task::Waker,
-};
+use std::{borrow::Borrow, cell::Ref, task::Waker};
 
 use observables::{Observable, ObservableBase, ObservableBorrow, Version};
 
 use crate::{
-    __private_macro_only::OptionalYes,
     edge::TrackedEdge,
-    optional::OptionalNo,
+    optional::{OptionalNo, OptionalYes},
     tracked::{Tracked, TrackedNode},
 };
 pub struct XBowObservable<'a, N>
@@ -26,7 +21,7 @@ where
     <N::Edge as TrackedEdge>::Data: Borrow<Z>,
     Z: ?Sized,
 {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         ObservableBorrow::RefCell(Ref::map(self.tracked.borrow(), Borrow::borrow))
     }
 }
@@ -47,7 +42,7 @@ where
     N: TrackedNode,
 {
     tracked: &'a Tracked<N>,
-    fallback: RefCell<<N::Edge as TrackedEdge>::Data>,
+    fallback: <N::Edge as TrackedEdge>::Data,
 }
 
 impl<'a, N, Z> Observable<Z> for XBowObservableOrFallback<'a, N>
@@ -56,11 +51,11 @@ where
     <N::Edge as TrackedEdge>::Data: Borrow<Z>,
     Z: ?Sized,
 {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
         if let Some(b) = self.tracked.borrow_opt() {
             ObservableBorrow::RefCell(Ref::map(b, Borrow::borrow))
         } else {
-            ObservableBorrow::RefCell(Ref::map(self.fallback.borrow(), Borrow::borrow))
+            ObservableBorrow::Borrow(self.fallback.borrow())
         }
     }
 }
@@ -94,7 +89,7 @@ where
     pub fn to_observable_or_default<'a>(&'a self) -> XBowObservableOrFallback<'a, N> {
         XBowObservableOrFallback {
             tracked: self,
-            fallback: RefCell::new(Default::default()),
+            fallback: Default::default(),
         }
     }
 }

@@ -31,11 +31,11 @@ impl<'b, T: ?Sized> Deref for ObservableBorrow<'b, T> {
     }
 }
 pub trait Observable<T: ?Sized>: ObservableBase {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T>;
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, T>;
 }
 
 pub trait ObservableExt<T: ?Sized>: Observable<T> {
-    fn map<'w, O, M>(&'w self, mapper: M) -> Map<'w, Self, T, O, M>
+    fn map<O, M>(self, mapper: M) -> Map<Self, T, O, M>
     where
         M: Fn(&T) -> O,
         Self: Sized,

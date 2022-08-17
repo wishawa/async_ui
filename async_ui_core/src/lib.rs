@@ -2,12 +2,12 @@ pub mod backend;
 pub use mount::mount;
 pub mod context;
 pub mod executor;
+pub mod fragment;
 pub mod list;
 pub mod mount;
 pub mod position;
-pub mod render;
 pub mod vnode;
-pub use render::__private_macro_only;
+pub use fragment::__private_macro_only;
 
 #[cfg(test)]
 mod tests {

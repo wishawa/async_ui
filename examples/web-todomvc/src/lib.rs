@@ -6,7 +6,6 @@ use async_ui_web::{
 };
 use observables::{cell::ObservableCell, Observable, ObservableExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
-use web_sys::InputEvent;
 use x_bow::{create_store, Store, Track};
 
 #[derive(Track)]
@@ -57,8 +56,8 @@ async fn list_item(store: &Store<State>, id: TodoId) {
             list_model.remove(to_remove);
         }
     };
-    let done_obs = handle.done.to_observable_or_default();
-    let done_text = done_obs.map(|v| match *v {
+    let done = handle.done.to_observable_or_default();
+    let done_text = done.map(|v| match *v {
         true => "done",
         false => "not done",
     });
@@ -94,34 +93,29 @@ async fn list_content(store: &Store<State>) {
 }
 async fn input_box(store: &Store<State>) {
     let value = ObservableCell::new("".into());
-    let on_input = |ev: InputEvent| {
-        if let Some(v) = ev.data() {
-            *value.borrow_mut() = v;
-        }
-    };
-    let on_submit = |_ev| {
-        let current_id = {
-            let mut bm = store.current_id.borrow_mut();
-            bm.0 += 1;
-            *bm
-        };
-        let value = {
-            let s: &str = &*value.get_borrow();
-            s.to_string()
-        };
-        store
-            .todos_map
-            .insert(current_id, Todo { value, done: false });
-        store.todos_list.borrow_mut().insert(0, current_id);
-    };
     fragment![
         TextInput {
-            text: &value,
-            on_input: &on_input
+            text: &value.as_observable(),
+            on_input: &|ev| {
+                if let Some(v) = ev.data() {
+                    *value.borrow_mut() = v;
+                }
+            }
         },
         Button {
             children: fragment![Text { text: &"submit" }],
-            on_press: &on_submit,
+            on_press: &|_ev| {
+                let current_id = {
+                    let mut bm = store.current_id.borrow_mut();
+                    bm.0 += 1;
+                    *bm
+                };
+                let value = str::to_string(&*value.as_observable().observable_borrow());
+                store
+                    .todos_map
+                    .insert(current_id, Todo { value, done: false });
+                store.todos_list.borrow_mut().insert(0, current_id);
+            },
             ..Default::default()
         }
     ]

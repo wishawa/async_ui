@@ -3,36 +3,34 @@ use std::task::{Context, Poll};
 use std::{pin::Pin, rc::Rc};
 
 use js_sys::Function;
-use observables::{cell::ObservableCell, NextChangeFuture};
-use pin_project_lite::pin_project;
+use observables::cell::ObservableCell;
+use observables::{ObservableBase, Version};
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
 use crate::executor::schedule;
 
-pin_project! {
-    pub(super) struct EventHandler<'h, E> {
-        handler: &'h (dyn Fn(E) + 'h),
-        closure: Closure<dyn Fn(E) + 'h>,
-        cell: Rc<ObservableCell<Option<E>>>,
-        listener: NextChangeFuture<ObservableCell<Option<E>>, Rc<ObservableCell<Option<E>>>>
-    }
+pub(super) struct EventHandler<'h, E> {
+    handler: &'h (dyn Fn(E) + 'h),
+    closure: Closure<dyn Fn(E) + 'h>,
+    cell: Rc<ObservableCell<Option<E>>>,
+    last_version: Version,
 }
 
 impl<'h, E: wasm_bindgen::convert::FromWasmAbi + 'static> EventHandler<'h, E> {
     pub fn new(handler: &'h dyn Fn(E)) -> Self {
         let cell = Rc::new(ObservableCell::new(None));
-        let listener = NextChangeFuture::new(cell.clone());
         let cell_cloned = cell.clone();
         let closure = Closure::new(move |event| {
             *cell_cloned.borrow_mut() = Some(event);
             schedule();
         });
+        let last_version = Version::new_null();
         Self {
             handler,
             cell,
             closure,
-            listener,
+            last_version,
         }
     }
     pub fn get_function(&self) -> &Function {
@@ -43,17 +41,20 @@ impl<'h, Event> Future for EventHandler<'h, Event> {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
-        match Pin::new(&mut this.listener).poll(cx) {
-            Poll::Ready(_) => {
-                {
-                    if let Some(event) = this.cell.borrow_mut().take() {
-                        (this.handler)(event);
-                    }
+        let obs = this.cell.as_observable();
+        let current_version = obs.get_version();
+        if this.last_version.is_null() {
+            this.last_version = current_version;
+            obs.add_waker(cx.waker().to_owned());
+        }
+        if current_version > this.last_version {
+            {
+                if let Some(event) = this.cell.borrow_mut().take() {
+                    (this.handler)(event);
                 }
-                this.listener = NextChangeFuture::new(this.cell.clone());
-                let _ = Pin::new(&mut this.listener).poll(cx);
             }
-            Poll::Pending => {}
+            this.last_version = obs.get_version();
+            obs.add_waker(cx.waker().to_owned());
         }
         Poll::Pending
     }

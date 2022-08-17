@@ -7,25 +7,25 @@ use std::{
 
 use crate::{Observable, ObservableBase, ObservableBorrow, Version};
 
-pub struct Map<'w, W, I, O, M>
+pub struct Map<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
     I: ?Sized,
 {
-    wrapped: &'w W,
+    wrapped: W,
     mapper: M,
     last_value: RefCell<Option<O>>,
     _phantom: PhantomData<I>,
 }
 
-impl<'w, W, I, O, M> Map<'w, W, I, O, M>
+impl<W, I, O, M> Map<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
     I: ?Sized,
 {
-    pub(crate) fn new(wrapped: &'w W, mapper: M) -> Self {
+    pub(crate) fn new(wrapped: W, mapper: M) -> Self {
         Self {
             wrapped,
             mapper,
@@ -35,7 +35,7 @@ where
     }
 }
 
-impl<'w, W, I, O, M, Z> Observable<Z> for Map<'w, W, I, O, M>
+impl<W, I, O, M, Z> Observable<Z> for Map<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
@@ -43,8 +43,8 @@ where
     I: ?Sized,
     Z: ?Sized,
 {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
-        let input = self.wrapped.get_borrow();
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+        let input = self.wrapped.observable_borrow();
         let mapped = (self.mapper)(&*input);
         {
             *self.last_value.borrow_mut() = Some(mapped);
@@ -55,7 +55,7 @@ where
     }
 }
 
-impl<'w, W, I, O, M> ObservableBase for Map<'w, W, I, O, M>
+impl<W, I, O, M> ObservableBase for Map<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,

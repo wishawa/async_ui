@@ -1,4 +1,4 @@
-use async_ui_core::render::Fragment as FragmentBase;
+use async_ui_core::fragment::Fragment as FragmentBase;
 use backend::Backend;
 
 pub mod backend;
@@ -16,12 +16,9 @@ pub mod __private_macro_only {
     #[macro_export]
     macro_rules! fragment {
         [$($ch:expr),*] => {
-            ({
-                let children: $crate::__private_macro_only::Fragment = $crate::__private_macro_only::fragment_base![
-                    $($ch),*
-                ];
-                children
-            })
+            ::std::convert::identity::<$crate::__private_macro_only::Fragment>($crate::__private_macro_only::fragment_base![
+                $($ch),*
+            ])
         };
     }
 }

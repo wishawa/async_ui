@@ -49,7 +49,7 @@ impl<'c> Future for TextInputFuture<'c> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.obs.get_borrow();
+            let txt = this.obs.observable_borrow();
             this.node.set_value(&*txt);
         }
         if let Some(on_input) = &mut this.on_input {

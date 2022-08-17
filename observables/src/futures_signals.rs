@@ -12,25 +12,25 @@ use waker_fn::waker_fn;
 
 use crate::{Observable, ObservableBase, Version};
 
-pub struct ToSignal<'i, W, I, O, M>
+pub struct ToSignal<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
     Self: Unpin,
 {
-    wrapped: &'i W,
+    wrapped: W,
     mapper: M,
     last_version: Version,
     _phantom: PhantomData<I>,
 }
 
-impl<'w, W, I, O, M> ToSignal<'w, W, I, O, M>
+impl<W, I, O, M> ToSignal<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
     Self: Unpin,
 {
-    pub fn new(wrapped: &'w W, mapper: M) -> Self {
+    pub fn new(wrapped: W, mapper: M) -> Self {
         Self {
             wrapped,
             mapper,
@@ -40,7 +40,7 @@ where
     }
 }
 
-impl<'w, W, I, O, M> Signal for ToSignal<'w, W, I, O, M>
+impl<W, I, O, M> Signal for ToSignal<W, I, O, M>
 where
     W: Observable<I>,
     M: Fn(&I) -> O,
@@ -53,7 +53,7 @@ where
         let current_version = this.wrapped.get_version();
         if current_version > this.last_version {
             this.last_version = current_version;
-            let val = this.wrapped.get_borrow();
+            let val = this.wrapped.observable_borrow();
             let out = (this.mapper)(&*val);
             this.wrapped.add_waker(cx.waker().to_owned());
             Poll::Ready(Some(out))
@@ -104,7 +104,7 @@ where
     S::Item: Default,
     S::Item: Borrow<Z>,
 {
-    fn get_borrow<'b>(&'b self) -> crate::ObservableBorrow<'b, Z> {
+    fn observable_borrow<'b>(&'b self) -> crate::ObservableBorrow<'b, Z> {
         crate::ObservableBorrow::RefCell(Ref::map(self.value.borrow(), Borrow::borrow))
     }
 }

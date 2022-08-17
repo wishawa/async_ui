@@ -26,7 +26,7 @@ macro_rules! impl_primitive {
     ($primitive:ty, $derefto:ty) => {
         impl_base_primitive!($primitive);
         impl Observable<$derefto> for $primitive {
-            fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, $derefto> {
+            fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, $derefto> {
                 ObservableBorrow::Borrow(self)
             }
         }
@@ -54,8 +54,8 @@ impl<'a, T: Clone + ?Sized> ObservableBase for Cow<'a, T> {
     impl_base_inner!();
 }
 impl<'a, T: Clone + ?Sized> Observable<T> for Cow<'a, T> {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
-        ObservableBorrow::Borrow(self.borrow())
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, T> {
+        ObservableBorrow::Borrow(Borrow::borrow(self))
     }
 }
 
@@ -63,7 +63,7 @@ impl<'s> ObservableBase for &'s str {
     impl_base_inner!();
 }
 impl<'s> Observable<str> for &'s str {
-    fn get_borrow<'b>(&'b self) -> ObservableBorrow<'b, str> {
+    fn observable_borrow<'b>(&'b self) -> ObservableBorrow<'b, str> {
         ObservableBorrow::Borrow(self)
     }
 }
