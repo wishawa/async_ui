@@ -12,21 +12,21 @@ use web_sys::{HtmlInputElement, InputEvent};
 use crate::window::DOCUMENT;
 
 use super::{
-    dummy::{dummy_handler, is_dummy},
+    dummy::{create_dummy, is_dummy},
     event_handler::EventHandler,
     ElementFuture,
 };
 
 pub struct TextInput<'c> {
     pub text: &'c (dyn Observable<str> + 'c),
-    pub on_change_text: &'c (dyn Fn(String) + 'c),
+    pub on_change_text: &'c mut (dyn FnMut(String) + 'c),
 }
 
 impl<'c> Default for TextInput<'c> {
     fn default() -> Self {
         Self {
             text: &"",
-            on_change_text: &dummy_handler,
+            on_change_text: create_dummy(),
         }
     }
 }
@@ -36,7 +36,10 @@ pub struct TextInputFuture<'c> {
     change_fut: NextChangeFuture<dyn Observable<str> + 'c, &'c (dyn Observable<str> + 'c)>,
     node: HtmlInputElement,
     set: bool,
-    on_input: Option<(EventHandler<'c, InputEvent>, &'c (dyn Fn(String) + 'c))>,
+    on_input: Option<(
+        EventHandler<'c, InputEvent>,
+        &'c mut (dyn FnMut(String) + 'c),
+    )>,
 }
 impl<'c> Future for TextInputFuture<'c> {
     type Output = ();

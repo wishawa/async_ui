@@ -47,7 +47,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
         children: fragment![
             TextInput {
                 text: &handle.value.as_observable_or_default(),
-                on_change_text: &|txt| {
+                on_change_text: &mut |txt| {
                     if let Some(mut value) = handle.value.borrow_mut_opt() {
                         *value = txt;
                     }
@@ -61,7 +61,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                         false => "not done",
                     })
                 }],
-                on_press: &|_| {
+                on_press: &mut |_| {
                     if let Some(mut done) = handle.done.borrow_mut_opt() {
                         *done = !*done;
                     }
@@ -70,7 +70,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
             },
             Button {
                 children: fragment![Text { text: &"delete" }],
-                on_press: &|_| {
+                on_press: &mut |_| {
                     store.todos_map.remove(&id);
                     let mut list_model = store.todos_list.borrow_mut();
                     if let Some(to_remove) = {
@@ -86,7 +86,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
             }
         ],
     })
-    .await
+    .await;
 }
 async fn list_content(store: &Store<State>) {
     let render = &|id| list_item(store, id);
@@ -101,13 +101,13 @@ async fn input_box(store: &Store<State>) {
     fragment![
         TextInput {
             text: &value.as_observable(),
-            on_change_text: &|txt| {
+            on_change_text: &mut |txt| {
                 *value.borrow_mut() = txt;
             }
         },
         Button {
             children: fragment![Text { text: &"submit" }],
-            on_press: &|_ev| {
+            on_press: &mut |_ev| {
                 let current_id = {
                     let mut bm = store.current_id.borrow_mut();
                     bm.0 += 1;
@@ -127,5 +127,5 @@ async fn input_box(store: &Store<State>) {
             ..Default::default()
         }
     ]
-    .await
+    .await;
 }

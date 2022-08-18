@@ -12,7 +12,7 @@ use web_sys::{HtmlButtonElement, MouseEvent};
 use crate::{window::DOCUMENT, Fragment};
 
 use super::{
-    dummy::{dummy_handler, is_dummy},
+    dummy::{create_dummy, is_dummy},
     event_handler::EventHandler,
     ElementFuture,
 };
@@ -22,18 +22,18 @@ pub struct PressEvent {
 }
 pub struct Button<'c> {
     pub children: Fragment<'c>,
-    pub on_press: &'c (dyn Fn(PressEvent) + 'c),
-    pub on_press_in: &'c (dyn Fn(PressEvent) + 'c),
-    pub on_press_out: &'c (dyn Fn(PressEvent) + 'c),
+    pub on_press: &'c mut (dyn FnMut(PressEvent) + 'c),
+    pub on_press_in: &'c mut (dyn FnMut(PressEvent) + 'c),
+    pub on_press_out: &'c mut (dyn FnMut(PressEvent) + 'c),
 }
 
 impl<'c> Default for Button<'c> {
     fn default() -> Self {
         Self {
             children: Default::default(),
-            on_press: &dummy_handler,
-            on_press_in: &dummy_handler,
-            on_press_out: &dummy_handler,
+            on_press: create_dummy(),
+            on_press_in: create_dummy(),
+            on_press_out: create_dummy(),
         }
     }
 }
@@ -41,9 +41,9 @@ impl<'c> Default for Button<'c> {
 pin_project! {
     pub struct ButtonFuture<'c> {
         #[pin] children: Fragment<'c>,
-        on_press: Option<(EventHandler<'c, MouseEvent>, &'c (dyn Fn(PressEvent) + 'c))>,
-        on_press_in: Option<(EventHandler<'c, MouseEvent>, &'c (dyn Fn(PressEvent) + 'c))>,
-        on_press_out: Option<(EventHandler<'c, MouseEvent>, &'c (dyn Fn(PressEvent) + 'c))>,
+        on_press: Option<(EventHandler<'c, MouseEvent>, &'c mut (dyn FnMut(PressEvent) + 'c))>,
+        on_press_in: Option<(EventHandler<'c, MouseEvent>, &'c mut (dyn FnMut(PressEvent) + 'c))>,
+        on_press_out: Option<(EventHandler<'c, MouseEvent>, &'c mut (dyn FnMut(PressEvent) + 'c))>,
     }
 }
 impl<'c> Future for ButtonFuture<'c> {
