@@ -22,12 +22,8 @@ mod tests {
     #[test]
     fn test_compare() {
         let d1 = create_dummy::<i32>();
-        let d2 = create_dummy::<i32>();
-        let d3 = create_dummy::<i32>();
         let r1 = &mut |_v: i32| {};
         assert!(is_dummy(d1));
-        assert!(is_dummy(d2));
-        assert!(is_dummy(d3));
         assert!(!is_dummy(r1));
     }
 }
