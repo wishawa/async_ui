@@ -1,4 +1,10 @@
-use std::{cell::Ref, ops::Deref, task::Waker};
+use std::{
+    cell::Ref,
+    ops::Deref,
+    rc::Rc,
+    sync::{Arc, MutexGuard, RwLockReadGuard},
+    task::Waker,
+};
 
 use transformers::map::Map;
 pub use version::Version;
@@ -19,14 +25,24 @@ pub trait ObservableBase {
 pub enum ObservableBorrow<'b, T: ?Sized> {
     Borrow(&'b T),
     RefCell(Ref<'b, T>),
+    Mutex(MutexGuard<'b, T>),
+    RwLock(RwLockReadGuard<'b, T>),
+    OtherBoxed(Box<dyn Deref<Target = T> + 'b>),
+    OtherRc(Rc<dyn Deref<Target = T> + 'b>),
+    OtherArc(Arc<dyn Deref<Target = T> + 'b>),
 }
 
 impl<'b, T: ?Sized> Deref for ObservableBorrow<'b, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         match self {
-            ObservableBorrow::Borrow(r) => *r,
-            ObservableBorrow::RefCell(c) => c.deref(),
+            ObservableBorrow::Borrow(x) => x.deref(),
+            ObservableBorrow::RefCell(x) => x.deref(),
+            ObservableBorrow::Mutex(x) => x.deref(),
+            ObservableBorrow::RwLock(x) => x.deref(),
+            ObservableBorrow::OtherBoxed(x) => x.deref(),
+            ObservableBorrow::OtherRc(x) => x.deref(),
+            ObservableBorrow::OtherArc(x) => x.deref(),
         }
     }
 }
