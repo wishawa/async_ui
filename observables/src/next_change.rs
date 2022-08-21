@@ -8,13 +8,13 @@ use std::{
 
 use pin_project_lite::pin_project;
 
-use crate::{ObservableBase, Version};
+use crate::{Listenable, Version};
 
 pin_project! {
     pub struct NextChangeFuture<I, A>
     where
         A: Borrow<I>,
-        I: ObservableBase,
+        I: Listenable,
         I: ?Sized,
     {
         inner: A,
@@ -25,7 +25,7 @@ pin_project! {
 impl<I, A> NextChangeFuture<I, A>
 where
     A: Borrow<I>,
-    I: ObservableBase,
+    I: Listenable,
     I: ?Sized,
 {
     pub fn new(observable: A) -> Self {
@@ -43,7 +43,7 @@ where
 impl<I, A> Future for NextChangeFuture<I, A>
 where
     A: Borrow<I>,
-    I: ObservableBase,
+    I: Listenable,
     I: ?Sized,
 {
     type Output = ();

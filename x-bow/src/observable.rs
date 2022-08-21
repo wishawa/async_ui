@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, cell::Ref, task::Waker};
 
-use observables::{Observable, ObservableBase, ObservableBorrow, Version};
+use observables::{Listenable, Observable, ObservableBorrow, Version};
 
 use crate::{
     edge::TrackedEdge,
@@ -14,19 +14,18 @@ where
     tracked: &'a Tracked<N>,
 }
 
-impl<'a, N, Z> Observable<Z> for XBowObservable<'a, N>
+impl<'a, N> Observable for XBowObservable<'a, N>
 where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
-    <N::Edge as TrackedEdge>::Data: Borrow<Z>,
-    Z: ?Sized,
 {
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    type Data = <N::Edge as TrackedEdge>::Data;
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
         ObservableBorrow::RefCell(Ref::map(self.tracked.borrow(), Borrow::borrow))
     }
 }
 
-impl<'a, N> ObservableBase for XBowObservable<'a, N>
+impl<'a, N> Listenable for XBowObservable<'a, N>
 where
     N: TrackedNode,
 {
@@ -45,13 +44,12 @@ where
     fallback: <N::Edge as TrackedEdge>::Data,
 }
 
-impl<'a, N, Z> Observable<Z> for XBowObservableOrFallback<'a, N>
+impl<'a, N> Observable for XBowObservableOrFallback<'a, N>
 where
     N: TrackedNode,
-    <N::Edge as TrackedEdge>::Data: Borrow<Z>,
-    Z: ?Sized,
 {
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+    type Data = <N::Edge as TrackedEdge>::Data;
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
         if let Some(b) = self.tracked.borrow_opt() {
             ObservableBorrow::RefCell(Ref::map(b, Borrow::borrow))
         } else {
@@ -60,7 +58,7 @@ where
     }
 }
 
-impl<'a, N> ObservableBase for XBowObservableOrFallback<'a, N>
+impl<'a, N> Listenable for XBowObservableOrFallback<'a, N>
 where
     N: TrackedNode,
 {

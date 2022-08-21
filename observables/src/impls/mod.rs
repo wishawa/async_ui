@@ -1,8 +1,8 @@
-use crate::{Observable, ObservableBase, ObservableBorrow, Version};
+use crate::{Listenable, Observable, ObservableBorrow, Version};
 mod stdlib;
 
 pub struct NoChange<T>(pub T);
-impl<T> ObservableBase for NoChange<T> {
+impl<T> Listenable for NoChange<T> {
     fn add_waker(&self, _waker: std::task::Waker) {
         // NO-OP
     }
@@ -10,7 +10,8 @@ impl<T> ObservableBase for NoChange<T> {
         Version::new()
     }
 }
-impl<T> Observable<T> for NoChange<T> {
+impl<T> Observable for NoChange<T> {
+    type Data = T;
     fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::Borrow(&self.0)
     }

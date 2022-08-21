@@ -5,11 +5,11 @@ use std::{
     task::Waker,
 };
 
-use crate::{Observable, ObservableBase, ObservableBorrow, Version};
+use crate::{Listenable, Observable, ObservableAs, ObservableBorrow, Version};
 
 pub struct Map<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
     I: ?Sized,
 {
@@ -21,7 +21,7 @@ where
 
 impl<W, I, O, M> Map<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
     I: ?Sized,
 {
@@ -35,16 +35,15 @@ where
     }
 }
 
-impl<W, I, O, M, Z> Observable<Z> for Map<W, I, O, M>
+impl<W, I, O, M> Observable for Map<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
-    O: Borrow<Z>,
     I: ?Sized,
-    Z: ?Sized,
 {
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
-        let input = self.wrapped.borrow_observable();
+    type Data = O;
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, O> {
+        let input = self.wrapped.borrow_observable_as();
         let mapped = (self.mapper)(&*input);
         {
             *self.last_value.borrow_mut() = Some(mapped);
@@ -55,9 +54,9 @@ where
     }
 }
 
-impl<W, I, O, M> ObservableBase for Map<W, I, O, M>
+impl<W, I, O, M> Listenable for Map<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
     I: ?Sized,
 {

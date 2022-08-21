@@ -5,7 +5,7 @@ use std::{
 };
 
 use futures::Stream;
-use observables::{NextChangeFuture, Observable, ObservableExt};
+use observables::{NextChangeFuture, ObservableAs, ObservableAsExt};
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlInputElement, InputEvent};
 
@@ -18,7 +18,7 @@ use super::{
 };
 
 pub struct TextInput<'c> {
-    pub text: &'c (dyn Observable<str> + 'c),
+    pub text: &'c (dyn ObservableAs<str> + 'c),
     pub on_change_text: &'c mut (dyn FnMut(String) + 'c),
 }
 
@@ -32,8 +32,8 @@ impl<'c> Default for TextInput<'c> {
 }
 
 pub struct TextInputFuture<'c> {
-    obs: &'c (dyn Observable<str> + 'c),
-    change_fut: NextChangeFuture<dyn Observable<str> + 'c, &'c (dyn Observable<str> + 'c)>,
+    obs: &'c (dyn ObservableAs<str> + 'c),
+    change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
     node: HtmlInputElement,
     set: bool,
     on_input: Option<(
@@ -56,7 +56,7 @@ impl<'c> Future for TextInputFuture<'c> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.obs.borrow_observable();
+            let txt = this.obs.borrow_observable_as();
             this.node.set_value(&*txt);
         }
         if let Some((on_input_listener, on_input_handler)) = &mut this.on_input {

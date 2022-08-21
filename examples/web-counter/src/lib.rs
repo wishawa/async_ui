@@ -2,7 +2,7 @@ use async_ui_web::{
     components::{Button, Text},
     fragment, mount,
 };
-use observables::{cell::ObservableCell, ObservableExt};
+use observables::{cell::ObservableCell, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(start)]

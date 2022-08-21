@@ -4,7 +4,7 @@ use async_ui_web::{
     components::{Button, List, ListModel, Text, TextInput, View},
     fragment, mount,
 };
-use observables::{cell::ObservableCell, Observable, ObservableExt};
+use observables::{cell::ObservableCell, Observable, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use x_bow::{create_store, Store, Track};
 

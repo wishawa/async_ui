@@ -1,6 +1,5 @@
 use std::{
-    borrow::Borrow,
-    cell::{Cell, Ref, RefCell},
+    cell::{Cell, RefCell},
     marker::PhantomData,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -10,11 +9,11 @@ use std::{
 use futures_signals::signal::Signal;
 use waker_fn::waker_fn;
 
-use crate::{Observable, ObservableBase, Version};
+use crate::{Listenable, Observable, ObservableAs, Version};
 
 pub struct ToSignal<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
     Self: Unpin,
 {
@@ -26,7 +25,7 @@ where
 
 impl<W, I, O, M> ToSignal<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
     Self: Unpin,
 {
@@ -42,7 +41,7 @@ where
 
 impl<W, I, O, M> Signal for ToSignal<W, I, O, M>
 where
-    W: Observable<I>,
+    W: ObservableAs<I>,
     M: Fn(&I) -> O,
     Self: Unpin,
 {
@@ -53,7 +52,7 @@ where
         let current_version = this.wrapped.get_version();
         if current_version > this.last_version {
             this.last_version = current_version;
-            let val = this.wrapped.borrow_observable();
+            let val = this.wrapped.borrow_observable_as();
             let out = (this.mapper)(&*val);
             this.wrapped.add_waker(cx.waker().to_owned());
             Poll::Ready(Some(out))
@@ -98,18 +97,18 @@ where
         }
     }
 }
-impl<S, Z> Observable<Z> for FromSignal<S>
+impl<S> Observable for FromSignal<S>
 where
     S: Signal + Unpin,
     S::Item: Default,
-    S::Item: Borrow<Z>,
 {
-    fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, Z> {
-        crate::ObservableBorrow::RefCell(Ref::map(self.value.borrow(), Borrow::borrow))
+    type Data = S::Item;
+    fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, S::Item> {
+        crate::ObservableBorrow::RefCell(self.value.borrow())
     }
 }
 
-impl<S> ObservableBase for FromSignal<S>
+impl<S> Listenable for FromSignal<S>
 where
     S: Signal + Unpin,
     S::Item: Default,

@@ -4,7 +4,7 @@ use std::{pin::Pin, rc::Rc};
 use futures::Stream;
 use js_sys::Function;
 use observables::cell::ObservableCell;
-use observables::{ObservableBase, Version};
+use observables::{Listenable, Version};
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 

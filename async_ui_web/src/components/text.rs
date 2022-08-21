@@ -5,14 +5,14 @@ use std::{
     task::{Context, Poll},
 };
 
-use observables::{NextChangeFuture, Observable, ObservableExt};
+use observables::{NextChangeFuture, ObservableAs, ObservableAsExt};
 
 use crate::window::DOCUMENT;
 
 use super::ElementFuture;
 
 pub struct Text<'c> {
-    pub text: &'c (dyn Observable<str> + 'c),
+    pub text: &'c (dyn ObservableAs<str> + 'c),
 }
 
 impl<'c> Default for Text<'c> {
@@ -22,8 +22,8 @@ impl<'c> Default for Text<'c> {
 }
 
 pub struct TextFuture<'c> {
-    obs: &'c (dyn Observable<str> + 'c),
-    change_fut: NextChangeFuture<dyn Observable<str> + 'c, &'c (dyn Observable<str> + 'c)>,
+    obs: &'c (dyn ObservableAs<str> + 'c),
+    change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
     node: web_sys::Text,
     set: bool,
 }
@@ -43,7 +43,7 @@ impl<'c> Future for TextFuture<'c> {
         };
         if reset || !this.set {
             this.set = true;
-            let txt = this.obs.borrow_observable();
+            let txt = this.obs.borrow_observable_as();
             this.node.set_data((&*txt).borrow());
         }
         Poll::Pending

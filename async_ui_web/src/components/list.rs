@@ -16,7 +16,7 @@ use async_ui_core::{
 };
 use futures::pin_mut;
 use im_rc::Vector;
-use observables::{Observable, ObservableExt};
+use observables::{ObservableAs, ObservableAsExt};
 use scoped_async_spawn::{boxed::ScopeSafeBox, SpawnGuard};
 use slab::Slab;
 use web_sys::Node;
@@ -26,7 +26,7 @@ use crate::{backend::Backend, window::DOCUMENT};
 use super::ElementFuture;
 
 pub struct List<'c, T: Clone, F: IntoFuture<Output = ()>> {
-    pub data: &'c (dyn Observable<ListModel<T>> + 'c),
+    pub data: &'c (dyn ObservableAs<ListModel<T>> + 'c),
     pub render: &'c (dyn Fn(T) -> F + 'c),
 }
 
@@ -75,7 +75,7 @@ impl<'c, T: Clone, F: IntoFuture<Output = ()>> IntoFuture for List<'c, T, F> {
                 (reference_node, task)
             };
             let mut last_version = {
-                let model = &*self.data.borrow_observable();
+                let model = &*self.data.borrow_observable_as();
 
                 let start = model.underlying_vector();
                 let mut last_node = None;
@@ -93,7 +93,7 @@ impl<'c, T: Clone, F: IntoFuture<Output = ()>> IntoFuture for List<'c, T, F> {
                 model.get_version()
             };
             let _guard = scopeguard::guard((), |_| {
-                let b = self.data.borrow_observable();
+                let b = self.data.borrow_observable_as();
                 let model = ListModelPrivateAPIs(&*b);
                 model
                     .total_listeners()
@@ -102,7 +102,7 @@ impl<'c, T: Clone, F: IntoFuture<Output = ()>> IntoFuture for List<'c, T, F> {
             loop {
                 self.data.until_change().await;
                 {
-                    let model = &*self.data.borrow_observable();
+                    let model = &*self.data.borrow_observable_as();
                     let model_priv = ListModelPrivateAPIs(model);
                     let changes = model_priv.changes_since_version(last_version);
                     for change in changes {

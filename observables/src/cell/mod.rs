@@ -5,7 +5,7 @@ use std::{
     task::Waker,
 };
 
-use crate::{Observable, ObservableBase, ObservableBorrow, Version};
+use crate::{Listenable, Observable, ObservableBorrow, Version};
 
 use self::borrow_mut::ObservableCellBorrowMut;
 
@@ -40,7 +40,7 @@ impl<T> ObservableCell<T> {
 pub struct ObservableCellObservable<'c, T> {
     inner: &'c ObservableCell<T>,
 }
-impl<'a, T> ObservableBase for ObservableCellObservable<'a, T> {
+impl<'a, T> Listenable for ObservableCellObservable<'a, T> {
     fn add_waker(&self, waker: Waker) {
         self.inner.inner.borrow_mut().listeners.push(waker);
     }
@@ -48,11 +48,9 @@ impl<'a, T> ObservableBase for ObservableCellObservable<'a, T> {
         self.inner.inner.borrow().version
     }
 }
-impl<'a, T, Z: ?Sized> Observable<Z> for ObservableCellObservable<'a, T>
-where
-    T: Borrow<Z>,
-{
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Z> {
+impl<'a, T> Observable for ObservableCellObservable<'a, T> {
+    type Data = T;
+    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::RefCell(Ref::map(self.inner.inner.borrow(), |r| r.data.borrow()))
     }
 }
