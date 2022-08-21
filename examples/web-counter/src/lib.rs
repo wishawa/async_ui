@@ -19,7 +19,7 @@ async fn root() {
         }),
         counter()
     ]
-    .await;
+    .await
 }
 async fn counter() {
     let value = ObservableCell::new(0);
@@ -28,14 +28,13 @@ async fn counter() {
         Button {
             children: fragment![Text { text: &"decrement" }],
             on_press: &mut |_ev| {
-                {
-                    *value.borrow_mut() -= 1;
-                }
+                *value.borrow_mut() -= 1;
             },
             ..Default::default()
         },
         Text {
-            text: &value.as_observable().map(|v| format!("{}", v))
+            text: &value.as_observable().map(|v| format!("{}", v)),
+            ..Default::default()
         },
         Button {
             children: fragment![Text { text: &"increment" }],
