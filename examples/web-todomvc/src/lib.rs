@@ -97,32 +97,39 @@ async fn list_content(store: &Store<State>) {
     .await;
 }
 async fn input_box(store: &Store<State>) {
-    let value = ObservableCell::new("".into());
+    let value = ObservableCell::new(String::new());
+    let submit = || {
+        let current_id = {
+            let mut bm = store.current_id.borrow_mut();
+            bm.0 += 1;
+            *bm
+        };
+        let text = str::to_string(&*value.as_observable().borrow_observable());
+        value.borrow_mut().clear();
+        store.todos_map.insert(
+            current_id,
+            Todo {
+                value: text,
+                done: false,
+            },
+        );
+        store.todos_list.borrow_mut().insert(0, current_id);
+    };
     fragment![
         TextInput {
             text: &value.as_observable(),
             on_change_text: &mut |txt| {
                 *value.borrow_mut() = txt;
-            }
+            },
+            on_submit: &mut |_txt| {
+                submit();
+            },
+            ..Default::default()
         },
         Button {
             children: fragment![Text { text: &"submit" }],
             on_press: &mut |_ev| {
-                let current_id = {
-                    let mut bm = store.current_id.borrow_mut();
-                    bm.0 += 1;
-                    *bm
-                };
-                let text = str::to_string(&*value.as_observable().borrow_observable());
-                value.borrow_mut().clear();
-                store.todos_map.insert(
-                    current_id,
-                    Todo {
-                        value: text,
-                        done: false,
-                    },
-                );
-                store.todos_list.borrow_mut().insert(0, current_id);
+                submit();
             },
             ..Default::default()
         }
