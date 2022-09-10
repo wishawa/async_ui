@@ -16,7 +16,7 @@ use super::{VNode, VNodeTrait};
 
 struct Shared<B: BackendTrait> {
     target: Option<Rc<VNode<B>>>,
-    nodes: BTreeMap<PositionIndex, B::Node>,
+    nodes: BTreeMap<PositionIndex, Option<B::Node>>,
 }
 
 pub struct PortalVNode<B: BackendTrait> {
@@ -27,18 +27,19 @@ pub struct PortalVNode<B: BackendTrait> {
 impl<B: BackendTrait> VNodeTrait<B> for PortalVNode<B> {
     fn add_child_node(&self, node: B::Node, position: PositionIndex) {
         let mut bm = self.shared.borrow_mut();
-        if let Some(target) = bm.target.as_ref() {
-            target.add_child_node(node.clone(), position.clone())
-        }
-        bm.nodes.insert(position, node);
+        let ins = if let Some(target) = bm.target.as_ref() {
+            target.add_child_node(node, position.clone());
+            None
+        } else {
+            Some(node)
+        };
+        bm.nodes.insert(position, ins);
     }
 
-    fn del_child_node(&self, position: PositionIndex) {
+    fn del_child_node(&self, position: PositionIndex) -> B::Node {
         let mut bm = self.shared.borrow_mut();
         let _removed = bm.nodes.remove(&position);
-        if let Some(target) = bm.target.as_ref() {
-            target.del_child_node(position);
-        }
+        bm.target.as_ref().unwrap().del_child_node(position)
     }
 
     fn get_context_map<'s>(&'s self) -> &'s ContextMap {
@@ -107,8 +108,8 @@ impl<B: BackendTrait> Future for PortalExit<B> {
         let vnode = B::get_vnode_key().with(Clone::clone);
         let mut bm = self.shared.borrow_mut();
         if bm.target.is_none() {
-            bm.nodes.iter().for_each(|(k, v)| {
-                vnode.add_child_node(v.clone(), k.clone());
+            bm.nodes.iter_mut().for_each(|(k, v)| {
+                vnode.add_child_node(v.take().expect("portal already active"), k.clone());
             });
             bm.target = Some(vnode);
         }
@@ -120,7 +121,9 @@ impl<B: BackendTrait> Drop for PortalExit<B> {
     fn drop(&mut self) {
         let mut bm = self.shared.borrow_mut();
         if let Some(vn) = bm.target.take() {
-            bm.nodes.keys().for_each(|k| vn.del_child_node(k.clone()));
+            bm.nodes
+                .iter_mut()
+                .for_each(|(k, v)| *v = Some(vn.del_child_node(k.clone())));
         }
     }
 }

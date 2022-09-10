@@ -28,7 +28,7 @@ impl<B: BackendTrait> VNodeTrait<B> for ContextVNode<B> {
         self.parent.add_child_node(node, position)
     }
 
-    fn del_child_node(&self, position: PositionIndex) {
+    fn del_child_node(&self, position: PositionIndex) -> B::Node {
         self.parent.del_child_node(position)
     }
 

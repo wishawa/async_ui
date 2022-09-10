@@ -27,7 +27,7 @@ impl<B: BackendTrait> VNodeTrait<B> for PassVNode<B> {
         self.parent.add_child_node(node, position)
     }
 
-    fn del_child_node(&self, mut position: PositionIndex) {
+    fn del_child_node(&self, mut position: PositionIndex) -> B::Node {
         position.wrap(self.index);
         self.parent.del_child_node(position)
     }

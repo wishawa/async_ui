@@ -51,15 +51,14 @@ impl<B: BackendTrait> VNodeTrait<B> for ConcreteNodeVNode<B> {
         children_map.insert(position, node);
     }
 
-    fn del_child_node(&self, position: PositionIndex) {
+    fn del_child_node(&self, position: PositionIndex) -> B::Node {
         let mut children_map = self.children.borrow_mut();
-        let removed = children_map.remove(&position);
-        if let Some(removed) = removed {
-            match &self.node {
-                RefNode::Parent { parent } => B::del_child_node(parent, &removed),
-                RefNode::Sibling { parent, .. } => B::del_child_node(parent, &removed),
-            }
+        let removed = children_map.remove(&position).unwrap();
+        match &self.node {
+            RefNode::Parent { parent } => B::del_child_node(parent, &removed),
+            RefNode::Sibling { parent, .. } => B::del_child_node(parent, &removed),
         }
+        removed
     }
 
     fn get_context_map<'s>(&'s self) -> &'s ContextMap {

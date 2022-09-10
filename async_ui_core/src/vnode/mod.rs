@@ -19,7 +19,7 @@ use self::{
 #[enum_dispatch]
 pub trait VNodeTrait<B: BackendTrait> {
     fn add_child_node(&self, node: B::Node, position: PositionIndex);
-    fn del_child_node(&self, position: PositionIndex);
+    fn del_child_node(&self, position: PositionIndex) -> B::Node;
     fn get_context_map<'s>(&'s self) -> &'s ContextMap;
 }
 

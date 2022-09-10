@@ -50,7 +50,7 @@ struct MyAndParentVNodes {
 impl Drop for ElementFutureInner {
     fn drop(&mut self) {
         if let Some(MyAndParentVNodes { parent, .. }) = &self.vnodes {
-            parent.del_child_node(Default::default())
+            parent.del_child_node(Default::default());
         }
     }
 }

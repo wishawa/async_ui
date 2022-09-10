@@ -5,7 +5,7 @@ use scoped_tls::ScopedKey;
 use crate::vnode::VNode;
 
 pub trait BackendTrait: 'static + Sized {
-    type Node: Clone + 'static;
+    type Node: 'static;
     fn add_child_node(
         parent: &Self::Node,
         child: &Self::Node,
