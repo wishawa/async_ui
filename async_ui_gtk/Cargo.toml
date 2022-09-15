@@ -1,0 +1,26 @@
+[package]
+name = "async_ui_gtk"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+observables = { path = "../observables/" }
+async_ui_core = { path = "../async_ui_core/" }
+async-task = "4.3.0"
+scoped_async_spawn = { path = "../scoped_async_spawn/" }
+
+scoped-tls = "1.0.0"
+waker-fn = "1.1.0"
+futures = "0.3.21"
+pin-project-lite = "0.2.9"
+scopeguard = "1.1.0"
+enum_dispatch = "0.3.8"
+
+im-rc = "15.1.0"
+slab = "0.4.7"
+
+gtk = { package = "gtk4", version = "0.4" }
+glib = "0.15"
+

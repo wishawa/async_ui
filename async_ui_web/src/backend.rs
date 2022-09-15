@@ -11,8 +11,8 @@ impl BackendTrait for Backend {
     type Node = Node;
 
     fn add_child_node(
-        parent: &Self::Node,
-        child: &Self::Node,
+        parent: &mut Self::Node,
+        child: &mut Self::Node,
         insert_before_sibling: Option<&Self::Node>,
     ) {
         parent
@@ -20,7 +20,7 @@ impl BackendTrait for Backend {
             .expect_throw("insert failed");
     }
 
-    fn del_child_node(parent: &Self::Node, child: &Self::Node) {
+    fn del_child_node(parent: &mut Self::Node, child: &mut Self::Node) {
         parent.remove_child(child).expect_throw("remove failed");
     }
     fn drive_executor<F: Future<Output = ()> + 'static>(fut: F) {

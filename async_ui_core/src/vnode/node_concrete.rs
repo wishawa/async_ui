@@ -14,16 +14,21 @@ use crate::{backend::BackendTrait, context::ContextMap, position::PositionIndex}
 use super::{VNode, VNodeTrait};
 
 pub struct ConcreteNodeVNode<B: BackendTrait> {
-    node: RefNode<B>,
-    children: RefCell<BTreeMap<PositionIndex, B::Node>>,
+    inside: RefCell<Inside<B>>,
     context: ContextMap,
+}
+struct Inside<B: BackendTrait> {
+    node: RefNode<B>,
+    children: BTreeMap<PositionIndex, B::Node>,
 }
 
 impl<B: BackendTrait> ConcreteNodeVNode<B> {
     pub fn new(node: RefNode<B>, context: ContextMap) -> Self {
         Self {
-            node,
-            children: Default::default(),
+            inside: RefCell::new(Inside {
+                node,
+                children: BTreeMap::new(),
+            }),
             context,
         }
     }
@@ -34,29 +39,33 @@ pub enum RefNode<B: BackendTrait> {
 }
 
 impl<B: BackendTrait> VNodeTrait<B> for ConcreteNodeVNode<B> {
-    fn add_child_node(&self, node: <B as BackendTrait>::Node, position: PositionIndex) {
-        let mut children_map = self.children.borrow_mut();
+    fn add_child_node(&self, mut node: <B as BackendTrait>::Node, position: PositionIndex) {
+        let mut inside = self.inside.borrow_mut();
+        let Inside {
+            node: this_node,
+            children: children_map,
+        } = &mut *inside;
         let next_node = children_map
             .range(position.clone()..)
             .next()
             .map(|(_k, v)| v);
-        match &self.node {
+        match this_node {
             RefNode::Parent { parent } => {
-                B::add_child_node(parent, &node, next_node);
+                B::add_child_node(parent, &mut node, next_node);
             }
             RefNode::Sibling { parent, sibling } => {
-                B::add_child_node(parent, &node, Some(next_node.unwrap_or(sibling)));
+                B::add_child_node(parent, &mut node, Some(next_node.unwrap_or(sibling)));
             }
         }
         children_map.insert(position, node);
     }
 
     fn del_child_node(&self, position: PositionIndex) -> B::Node {
-        let mut children_map = self.children.borrow_mut();
-        let removed = children_map.remove(&position).unwrap();
-        match &self.node {
-            RefNode::Parent { parent } => B::del_child_node(parent, &removed),
-            RefNode::Sibling { parent, .. } => B::del_child_node(parent, &removed),
+        let mut inside = self.inside.borrow_mut();
+        let mut removed = inside.children.remove(&position).unwrap();
+        match &mut inside.node {
+            RefNode::Parent { parent } => B::del_child_node(parent, &mut removed),
+            RefNode::Sibling { parent, .. } => B::del_child_node(parent, &mut removed),
         }
         removed
     }
