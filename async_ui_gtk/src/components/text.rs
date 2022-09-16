@@ -4,9 +4,10 @@ use std::{
     task::{Context, Poll},
 };
 
+use glib::Cast;
 use observables::{NextChangeFuture, ObservableAs, ObservableAsExt};
 
-use crate::window::DOCUMENT;
+use crate::widget::WrappedWidget;
 
 use super::ElementFuture;
 
@@ -21,12 +22,11 @@ impl<'c> Default for Text<'c> {
 }
 
 pub struct TextFuture<'c> {
+    node: gtk::Label,
     obs: &'c (dyn ObservableAs<str> + 'c),
     change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
-    node: web_sys::Text,
     set: bool,
 }
-
 impl<'c> Future for TextFuture<'c> {
     type Output = ();
 
@@ -43,24 +43,30 @@ impl<'c> Future for TextFuture<'c> {
         if reset || !this.set {
             this.set = true;
             let txt = this.obs.borrow_observable_as();
-            this.node.set_data(&*txt);
+            this.node.set_label(&*txt)
         }
         Poll::Pending
     }
 }
+
 impl<'c> IntoFuture for Text<'c> {
-    type Output = ();
-
     type IntoFuture = ElementFuture<TextFuture<'c>>;
-
+    type Output = ();
     fn into_future(self) -> Self::IntoFuture {
-        let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
-        let fut = TextFuture {
+        let node = gtk::Label::new(None);
+        let tf = TextFuture {
             change_fut: NextChangeFuture::new(self.text),
             obs: self.text,
             node: node.clone(),
             set: false,
         };
-        ElementFuture::new(fut, node.into())
+        ElementFuture::new(
+            tf,
+            WrappedWidget {
+                widget: node.upcast(),
+                inner_widget: None,
+                op: crate::widget::WidgetOp::NoChild,
+            },
+        )
     }
 }

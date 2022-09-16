@@ -15,7 +15,7 @@ pub mod __private_macro_only {
     pub use async_ui_core::fragment as fragment_base;
     #[macro_export]
     macro_rules! fragment {
-        [$($ch:expr),*] => {
+        [$($ch:expr),* $(,)?] => {
             ::std::convert::identity::<$crate::__private_macro_only::Fragment>($crate::__private_macro_only::fragment_base![
                 $($ch),*
             ])

@@ -16,6 +16,43 @@ struct State {
     current_id: TodoId,
 }
 
+mod reducers {
+    use x_bow::Store;
+
+    use crate::{State, Todo, TodoId};
+
+    pub(super) fn get_id_incremented(store: &Store<State>) -> TodoId {
+        let mut bm = store.current_id.borrow_mut();
+        bm.0 += 1;
+        *bm
+    }
+
+    pub(super) fn add_todo(store: &Store<State>, text: String) {
+        let id = get_id_incremented(store);
+        store.todos_map.insert(
+            id,
+            Todo {
+                value: text,
+                done: false,
+            },
+        );
+        store.todos_list.borrow_mut().insert(0, id);
+    }
+
+    pub(super) fn remove_todo(store: &Store<State>, id: TodoId) {
+        store.todos_map.remove(&id);
+        let mut list_model = store.todos_list.borrow_mut();
+        if let Some(to_remove) = {
+            list_model
+                .underlying_vector()
+                .iter()
+                .position(|item_id| *item_id == id)
+        } {
+            list_model.remove(to_remove);
+        }
+    }
+}
+
 #[derive(Track, Clone, Copy, PartialEq, Eq, Hash)]
 struct TodoId(usize);
 
@@ -70,18 +107,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
             },
             Button {
                 children: fragment![Text { text: &"delete" }],
-                on_press: &mut |_| {
-                    store.todos_map.remove(&id);
-                    let mut list_model = store.todos_list.borrow_mut();
-                    if let Some(to_remove) = {
-                        list_model
-                            .underlying_vector()
-                            .iter()
-                            .position(|item_id| *item_id == id)
-                    } {
-                        list_model.remove(to_remove);
-                    }
-                },
+                on_press: &mut |_| { reducers::remove_todo(store, id) },
                 ..Default::default()
             }
         ],
@@ -99,21 +125,9 @@ async fn list_content(store: &Store<State>) {
 async fn input_box(store: &Store<State>) {
     let value = ObservableCell::new(String::new());
     let submit = || {
-        let current_id = {
-            let mut bm = store.current_id.borrow_mut();
-            bm.0 += 1;
-            *bm
-        };
-        let text = str::to_string(&*value.as_observable().borrow_observable());
+        let text = value.as_observable().borrow_observable().clone();
         value.borrow_mut().clear();
-        store.todos_map.insert(
-            current_id,
-            Todo {
-                value: text,
-                done: false,
-            },
-        );
-        store.todos_list.borrow_mut().insert(0, current_id);
+        reducers::add_todo(store, text);
     };
     fragment![
         TextInput {

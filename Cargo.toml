@@ -11,5 +11,6 @@ members = [
 	"x-bow-macros/",
 	"examples/playground/",
 	"examples/web-counter/",
+	"examples/gtk-counter/",
 	"examples/web-todomvc/",
 ]

@@ -5,16 +5,18 @@ use gtk::{
 };
 
 use self::gtk_box::GtkBoxOp;
-mod gtk_box;
-mod gtk_center_box;
-mod gtk_flow_box;
-mod single;
+pub mod gtk_box;
+pub mod gtk_center_box;
+pub mod gtk_flow_box;
+pub mod single;
 
 pub trait WrappedWidgetTrait {}
+
+#[derive(Clone)]
 pub struct WrappedWidget {
-    widget: Widget,
-    inner_widget: Option<Widget>,
-    op: WidgetOp,
+    pub(crate) widget: Widget,
+    pub(crate) inner_widget: Option<Widget>,
+    pub(crate) op: WidgetOp,
 }
 
 impl WrappedWidget {
