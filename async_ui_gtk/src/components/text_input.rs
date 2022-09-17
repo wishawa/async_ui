@@ -5,55 +5,66 @@ use std::{
 };
 
 use futures::Stream;
-use observables::{NextChangeFuture, ObservableAs, ObservableAsExt};
-use wasm_bindgen::JsCast;
-use web_sys::{
-    FocusEvent, HtmlElement, HtmlInputElement, HtmlTextAreaElement, InputEvent, KeyboardEvent,
+use glib::Cast;
+use gtk::{
+    prelude::{EntryBufferExt, EntryBufferExtManual, TextBufferExt},
+    traits::{EntryExt, TextViewExt, WidgetExt},
 };
+use observables::{NextChangeFuture, ObservableAs, ObservableAsExt};
 
-use crate::window::DOCUMENT;
+use crate::widget::WrappedWidget;
 
 use super::{
     dummy::{create_dummy, is_dummy},
-    event_handler::EventHandler,
+    event_channel::EventHandler,
     ElementFuture,
 };
+
 #[derive(Clone)]
-enum InputNode {
-    OneLine(HtmlInputElement),
-    MultiLine(HtmlTextAreaElement),
+enum InputBuffer {
+    OneLine(gtk::EntryBuffer),
+    MultiLine(gtk::TextBuffer),
 }
 
-impl InputNode {
-    fn as_elem(&self) -> &HtmlElement {
+impl InputBuffer {
+    fn set_value(&self, text: &str) {
         match self {
-            InputNode::OneLine(e) => e.unchecked_ref(),
-            InputNode::MultiLine(e) => e.unchecked_ref(),
+            InputBuffer::OneLine(e) => e.set_text(text),
+            InputBuffer::MultiLine(e) => e.set_text(text),
         }
     }
     fn get_value(&self) -> String {
         match self {
-            InputNode::OneLine(e) => e.value(),
-            InputNode::MultiLine(e) => e.inner_text(),
+            InputBuffer::OneLine(e) => e.text(),
+            InputBuffer::MultiLine(e) => e.text(&e.start_iter(), &e.end_iter(), false).to_string(),
         }
     }
-    fn set_value(&self, value: &str) {
+    fn connect_changed<F: Fn() + 'static>(&self, func: F) {
         match self {
-            InputNode::OneLine(e) => e.set_value(value),
-            InputNode::MultiLine(e) => e.set_inner_text(value),
+            InputBuffer::OneLine(e) => {
+                e.connect_text_notify(move |_eb| {
+                    func();
+                });
+            }
+            InputBuffer::MultiLine(e) => {
+                e.connect_changed(move |_tb| {
+                    func();
+                });
+            }
         }
     }
 }
 
 pub struct TextInputEvent {
-    node: InputNode,
+    buffer: InputBuffer,
 }
 
 impl TextInputEvent {
     pub fn get_text(&self) -> String {
-        self.node.get_value()
+        self.buffer.get_value()
     }
 }
+
 pub struct TextInput<'c> {
     pub text: &'c (dyn ObservableAs<str> + 'c),
     pub on_change_text: &'c mut (dyn FnMut(TextInputEvent) + 'c),
@@ -77,18 +88,18 @@ impl<'c> Default for TextInput<'c> {
 pub struct TextInputFuture<'c> {
     obs: &'c (dyn ObservableAs<str> + 'c),
     change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
-    node: InputNode,
+    buffer: InputBuffer,
     set: bool,
     on_input: Option<(
-        EventHandler<'c, InputEvent>,
+        EventHandler<'c, ()>,
         &'c mut (dyn FnMut(TextInputEvent) + 'c),
     )>,
     on_submit: Option<(
-        EventHandler<'c, KeyboardEvent>,
+        EventHandler<'c, ()>,
         &'c mut (dyn FnMut(TextInputEvent) + 'c),
     )>,
     on_blur: Option<(
-        EventHandler<'c, FocusEvent>,
+        EventHandler<'c, ()>,
         &'c mut (dyn FnMut(TextInputEvent) + 'c),
     )>,
 }
@@ -108,33 +119,28 @@ impl<'c> Future for TextInputFuture<'c> {
         if reset || !this.set {
             this.set = true;
             let txt = this.obs.borrow_observable_as();
-            this.node.set_value(&*txt);
+            this.buffer.set_value(&*txt);
         }
         if let Some((on_input_listener, on_input_handler)) = &mut this.on_input {
             match Pin::new(on_input_listener).poll_next(cx) {
                 Poll::Ready(Some(_ev)) => on_input_handler(TextInputEvent {
-                    node: this.node.clone(),
+                    buffer: this.buffer.clone(),
                 }),
                 _ => (),
             }
         }
         if let Some((on_submit_listener, on_submit_handler)) = &mut this.on_submit {
             match Pin::new(on_submit_listener).poll_next(cx) {
-                Poll::Ready(Some(ev)) => {
-                    if ev.key() == "Enter" {
-                        ev.prevent_default();
-                        on_submit_handler(TextInputEvent {
-                            node: this.node.clone(),
-                        })
-                    }
-                }
+                Poll::Ready(Some(_ev)) => on_submit_handler(TextInputEvent {
+                    buffer: this.buffer.clone(),
+                }),
                 _ => (),
             }
         }
         if let Some((on_blur_listener, on_blur_handler)) = &mut this.on_blur {
             match Pin::new(on_blur_listener).poll_next(cx) {
                 Poll::Ready(Some(_ev)) => on_blur_handler(TextInputEvent {
-                    node: this.node.clone(),
+                    buffer: this.buffer.clone(),
                 }),
                 _ => (),
             }
@@ -148,47 +154,67 @@ impl<'c> IntoFuture for TextInput<'c> {
     type IntoFuture = ElementFuture<TextInputFuture<'c>>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let input = DOCUMENT.with(|doc| {
-            let elem = doc
-                .create_element(match self.multiline {
-                    true => "textarea",
-                    false => "input",
-                })
-                .expect("create element failed");
-            match self.multiline {
-                true => InputNode::MultiLine(elem.unchecked_into()),
-                false => InputNode::OneLine(elem.unchecked_into()),
+        let input: gtk::Widget;
+        let buffer;
+        let on_submit;
+        match self.multiline {
+            true => {
+                let text_buffer = gtk::TextBuffer::new(None);
+                let text_view = gtk::TextView::new();
+                text_view.set_buffer(Some(&text_buffer));
+                on_submit = None;
+                input = text_view.upcast();
+                buffer = InputBuffer::MultiLine(text_buffer);
             }
-        });
+            false => {
+                let entry_buffer = gtk::EntryBuffer::new(None);
+                let entry = gtk::Entry::new();
+                on_submit = (!is_dummy(self.on_submit)).then(|| {
+                    let listener = EventHandler::new();
+                    let receiver = listener.get_receiver();
+                    entry.connect_activate(move |_e| {
+                        receiver.send(());
+                    });
+                    (listener, self.on_submit)
+                });
+                entry.set_buffer(&entry_buffer);
+                input = entry.upcast();
+                buffer = InputBuffer::OneLine(entry_buffer);
+            }
+        };
         let on_input = (!is_dummy(self.on_change_text)).then(|| {
             let listener = EventHandler::new();
-            input.as_elem().set_oninput(Some(listener.get_function()));
+            let receiver = listener.get_receiver();
+            buffer.connect_changed(move || receiver.send(()));
             (listener, self.on_change_text)
-        });
-        let on_submit = (!is_dummy(self.on_submit) && !self.multiline).then(|| {
-            let listener = EventHandler::new();
-            input
-                .as_elem()
-                .set_onkeypress(Some(listener.get_function()));
-            (listener, self.on_submit)
         });
         let on_blur = (!is_dummy(self.on_blur)).then(|| {
             let listener = EventHandler::new();
-            input.as_elem().set_onblur(Some(listener.get_function()));
+            let receiver = listener.get_receiver();
+            let focus_controler = gtk::EventControllerFocus::new();
+            input.add_controller(&focus_controler);
+            focus_controler.connect_contains_focus_notify(move |s| {
+                if !s.contains_focus() {
+                    receiver.send(());
+                }
+            });
             (listener, self.on_blur)
         });
-
         ElementFuture::new(
             TextInputFuture {
                 obs: self.text,
                 change_fut: self.text.until_change(),
-                node: input.clone().into(),
+                buffer,
                 set: false,
                 on_input,
                 on_submit,
                 on_blur,
             },
-            input.as_elem().clone().into(),
+            WrappedWidget {
+                widget: input.upcast(),
+                inner_widget: None,
+                op: crate::widget::WidgetOp::NoChild,
+            },
         )
     }
 }

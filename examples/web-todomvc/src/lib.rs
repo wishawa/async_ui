@@ -84,9 +84,9 @@ async fn list_item(store: &Store<State>, id: TodoId) {
         children: fragment![
             TextInput {
                 text: &handle.value.as_observable_or_default(),
-                on_change_text: &mut |txt| {
+                on_blur: &mut |ev| {
                     if let Some(mut value) = handle.value.borrow_mut_opt() {
-                        *value = txt;
+                        *value = ev.get_text();
                     }
                 },
                 ..Default::default()
@@ -132,10 +132,8 @@ async fn input_box(store: &Store<State>) {
     fragment![
         TextInput {
             text: &value.as_observable(),
-            on_change_text: &mut |txt| {
-                *value.borrow_mut() = txt;
-            },
-            on_submit: &mut |_txt| {
+            on_submit: &mut |ev| {
+                *value.borrow_mut() = ev.get_text();
                 submit();
             },
             ..Default::default()

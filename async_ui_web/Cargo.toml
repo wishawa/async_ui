@@ -41,5 +41,6 @@ features = [
 	'MouseEvent',
 	'InputEvent',
 	'KeyboardEvent',
+	'FocusEvent',
 	'Comment',
 ]
