@@ -1,11 +1,13 @@
+mod dummy;
+mod events;
+
 mod button;
 mod text;
 mod text_input;
 pub use button::Button;
 pub use text::Text;
 pub use text_input::TextInput;
-mod dummy;
-mod event_channel;
+
 use async_ui_core::{
     backend::BackendTrait,
     vnode::{

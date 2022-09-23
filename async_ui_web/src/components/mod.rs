@@ -16,7 +16,7 @@ use pin_project_lite::pin_project;
 use web_sys::Node;
 
 mod dummy;
-mod event_handler;
+mod events;
 
 mod button;
 mod list;
