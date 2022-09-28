@@ -44,15 +44,15 @@ impl Listeners {
             .drain(..)
             .for_each(Waker::wake);
     }
-    pub(crate) fn add_inside_waker(&self, waker: Waker) {
-        self.inner.borrow_mut().inside_wakers.push(waker)
-    }
+    // pub(crate) fn add_inside_waker(&self, waker: Waker) {
+    //     self.inner.borrow_mut().inside_wakers.push(waker)
+    // }
     pub(crate) fn add_outside_waker(&self, waker: Waker) {
         self.inner.borrow_mut().outside_wakers.push(waker)
     }
-    pub(crate) fn inside_version(&self) -> Version {
-        self.inside_version.get()
-    }
+    // pub(crate) fn inside_version(&self) -> Version {
+    //     self.inside_version.get()
+    // }
     pub(crate) fn outside_version(&self) -> Version {
         self.outside_version.get()
     }
