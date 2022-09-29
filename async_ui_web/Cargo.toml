@@ -16,7 +16,7 @@ scoped_async_spawn = { path = "../scoped_async_spawn/" }
 
 scoped-tls = "1.0.0"
 waker-fn = "1.1.0"
-futures = "0.3.21"
+futures-lite = "1.12.0"
 pin-project-lite = "0.2.9"
 scopeguard = "1.1.0"
 

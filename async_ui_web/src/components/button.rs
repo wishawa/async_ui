@@ -64,34 +64,33 @@ impl<'c> Future for ButtonFuture<'c> {
     }
 }
 pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
-    let mut children = None;
-    let mut on_press = None;
-    let mut class = None;
-    for prop in props {
-        match prop {
-            ButtonProp::Children(v) => children = Some(v),
-            ButtonProp::OnPress(v) => on_press = Some(v),
-            ButtonProp::Class(v) => class = Some(v),
-            ButtonProp::Null => {}
-        }
-    }
-
     let button = DOCUMENT.with(|doc| {
         let elem = doc.create_element("button").expect("create element failed");
         let elem: HtmlButtonElement = elem.unchecked_into();
         elem
     });
-    if let Some(class) = class.take() {
-        class.set_dom(button.class_list());
-    }
-    let mut handlers = SmallVec::new();
 
+    let mut handlers = SmallVec::new();
     let manager = EventsManager::new();
-    if on_press.is_some() {
-        let h = create_handler(&manager, |e| QueuedEvent::Click(e));
-        button.set_onclick(Some(h.get_function()));
-        handlers.push(h);
+
+    let mut children = None;
+    let mut on_press = None;
+    for prop in props {
+        match prop {
+            ButtonProp::Children(v) => children = Some(v),
+            ButtonProp::OnPress(v) => {
+                let h = create_handler(&manager, |e| QueuedEvent::Click(e));
+                button.set_onclick(Some(h.get_function()));
+                handlers.push(h);
+                on_press = Some(v);
+            }
+            ButtonProp::Class(v) => {
+                v.set_dom(button.class_list());
+            }
+            ButtonProp::Null => {}
+        }
     }
+
     let future = ButtonFuture {
         children: children.unwrap_or_default(),
         on_press,

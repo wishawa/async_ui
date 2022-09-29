@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{future::Future, rc::Rc};
 
 use async_ui_core::{backend::BackendTrait, vnode::VNode};
 use scoped_tls::scoped_thread_local;
@@ -21,7 +21,7 @@ impl BackendTrait for Backend {
         parent.del_child_node(child)
     }
 
-    fn drive_executor<F: futures::Future<Output = ()> + 'static>(fut: F) {
+    fn drive_executor<F: Future<Output = ()> + 'static>(fut: F) {
         set_executor_future(fut)
     }
 

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, cell::RefCell, collections::HashSet};
 
+use smallvec::SmallVec;
 use web_sys::DomTokenList;
 
 pub struct ClassList<'a> {
@@ -11,7 +12,7 @@ struct Inner<'a> {
 }
 enum DomEnum {
     None,
-    Inserted(DomTokenList),
+    Inserted(SmallVec<[DomTokenList; 1]>),
 }
 
 impl<'a> ClassList<'a> {
@@ -27,7 +28,8 @@ impl<'a> ClassList<'a> {
         let mut bm = self.inner.borrow_mut();
         let v = class_name.into();
         if let DomEnum::Inserted(dom) = &bm.dom {
-            dom.add_1(&*v).expect("ClassList add failed");
+            dom.iter()
+                .for_each(|dom| dom.add_1(&*v).expect("ClassList add failed"));
         }
         bm.rust.insert(v);
     }
@@ -35,7 +37,8 @@ impl<'a> ClassList<'a> {
         let mut bm = self.inner.borrow_mut();
         let v = class_name.into();
         if let DomEnum::Inserted(dom) = &bm.dom {
-            dom.remove_1(&*v).expect("ClassList remove failed");
+            dom.iter()
+                .for_each(|dom| dom.remove_1(&*v).expect("ClassList remove failed"));
         }
         bm.rust.remove(&*v);
     }
@@ -47,11 +50,13 @@ impl<'a> ClassList<'a> {
         let v = class_name.into();
         if bm.rust.remove(&*v) {
             if let DomEnum::Inserted(dom) = &bm.dom {
-                dom.remove_1(&*v).expect("ClassList remove failed");
+                dom.iter()
+                    .for_each(|dom| dom.remove_1(&*v).expect("ClassList remove failed"));
             }
         } else {
             if let DomEnum::Inserted(dom) = &bm.dom {
-                dom.add_1(&*v).expect("ClassList add failed");
+                dom.iter()
+                    .for_each(|dom| dom.add_1(&*v).expect("ClassList add failed"));
             }
             bm.rust.insert(v);
         }
@@ -64,11 +69,13 @@ impl<'a> ClassList<'a> {
     }
     pub(crate) fn set_dom(&self, dom: DomTokenList) {
         let mut bm = self.inner.borrow_mut();
-        if let DomEnum::None = &bm.dom {
-            for item in bm.rust.iter() {
-                dom.add_1(&*item).expect("ClassList add failed");
-            }
-            bm.dom = DomEnum::Inserted(dom);
+        for item in bm.rust.iter() {
+            dom.add_1(&*item).expect("ClassList add failed");
+        }
+        if let DomEnum::Inserted(lst) = &mut bm.dom {
+            lst.push(dom);
+        } else {
+            bm.dom = DomEnum::Inserted(SmallVec::from([dom]));
         }
     }
 }

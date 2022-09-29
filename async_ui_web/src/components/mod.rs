@@ -23,7 +23,7 @@ mod text;
 mod text_input;
 mod view;
 pub use button::{button, ButtonProp};
-pub use list::{List, ListModel};
+pub use list::{list, ListModel, ListProp};
 pub use text::text;
 pub use text_input::{text_input, TextInputProp};
 pub use view::{view, ViewProp};

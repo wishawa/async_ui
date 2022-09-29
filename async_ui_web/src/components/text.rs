@@ -38,7 +38,7 @@ impl<'c> Future for TextFuture<'c> {
         Poll::Pending
     }
 }
-pub async fn text<'c>(text: &'c (dyn ObservableAs<str> + 'c)) {
+pub async fn text<'c>(text: &'c dyn ObservableAs<str>) {
     let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
     let fut = TextFuture {
         change_fut: NextChangeFuture::new(text),

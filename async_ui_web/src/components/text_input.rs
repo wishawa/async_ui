@@ -10,7 +10,7 @@ use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, HtmlInputElement, HtmlTextAreaElement};
 
-use crate::window::DOCUMENT;
+use crate::{utils::class_list::ClassList, window::DOCUMENT};
 
 use super::{
     events::{create_handler, EventHandler, EventsManager, QueuedEvent},
@@ -60,6 +60,7 @@ pub enum TextInputProp<'c> {
     OnBlur(&'c mut dyn FnMut(TextInputEvent)),
     OnFocus(&'c mut dyn FnMut(TextInputEvent)),
     MultiLine(bool),
+    Class(&'c ClassList<'c>),
     #[default]
     Null,
 }
@@ -132,6 +133,7 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
     let mut on_blur = None;
     let mut on_focus = None;
     let mut multiline = false;
+    let mut class = None;
     for prop in props {
         match prop {
             TextInputProp::Text(v) => text = Some(v),
@@ -140,6 +142,7 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
             TextInputProp::OnBlur(v) => on_blur = Some(v),
             TextInputProp::OnFocus(v) => on_focus = Some(v),
             TextInputProp::MultiLine(v) => multiline = v,
+            TextInputProp::Class(v) => class = Some(v),
             TextInputProp::Null => {}
         }
     }
@@ -156,6 +159,7 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
             false => InputNode::OneLine(elem.unchecked_into()),
         }
     });
+
     let mut handlers = SmallVec::new();
     let manager = EventsManager::new();
     let input_elem = input.as_elem();
@@ -179,6 +183,9 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
         let h = create_handler(&manager, |e| QueuedEvent::Focus(e));
         input_elem.set_onfocus(Some(h.get_function()));
         handlers.push(h);
+    }
+    if let Some(class) = class.take() {
+        class.set_dom(input.as_elem().class_list());
     }
 
     let text = text.unwrap_or(&"");

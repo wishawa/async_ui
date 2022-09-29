@@ -5,7 +5,6 @@ use std::{
     task::{Context, Waker},
 };
 
-use futures::FutureExt;
 use wasm_bindgen::{closure::Closure, JsCast, UnwrapThrowExt};
 
 use crate::window::WINDOW;
@@ -41,7 +40,7 @@ pub fn run_now() {
             let mut cx = Context::from_waker(&exe.waker);
             match exe.future.borrow_mut().as_mut() {
                 Some(fu) => {
-                    let _ = fu.as_mut().poll_unpin(&mut cx);
+                    let _ = fu.as_mut().poll(&mut cx);
                 }
                 None => {}
             }
