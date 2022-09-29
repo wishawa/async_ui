@@ -1,5 +1,5 @@
 use std::{
-    future::{Future, IntoFuture},
+    future::{Future,},
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
@@ -10,7 +10,7 @@ use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlButtonElement, MouseEvent};
 
-use crate::{window::DOCUMENT, Fragment};
+use crate::{window::DOCUMENT, Fragment, utils::class_list::ClassList};
 
 use super::{
     events::{create_handler, EventHandler, EventsManager, QueuedEvent},
@@ -21,6 +21,7 @@ use super::{
 pub enum ButtonProp<'c> {
     Children(Fragment<'c>),
     OnPress(&'c mut dyn FnMut(PressEvent)),
+    Class(&'c ClassList<'c>),
     #[default]
     Null,
 }
@@ -65,10 +66,12 @@ impl<'c> Future for ButtonFuture<'c> {
 pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
     let mut children = None;
     let mut on_press = None;
+    let mut class = None;
     for prop in props {
         match prop {
             ButtonProp::Children(v) => children = Some(v),
             ButtonProp::OnPress(v) => on_press = Some(v),
+            ButtonProp::Class(v) => class = Some(v),
             ButtonProp::Null => {}
         }
     }
@@ -78,6 +81,9 @@ pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
         let elem: HtmlButtonElement = elem.unchecked_into();
         elem
     });
+    if let Some(class) = class.take() {
+        class.set_dom(button.class_list());
+    }
     let mut handlers = SmallVec::new();
 
     let manager = EventsManager::new();

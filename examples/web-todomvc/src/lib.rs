@@ -5,6 +5,7 @@ use async_ui_web::{
         button, text, text_input, view, ButtonProp, List, ListModel, TextInputProp, ViewProp,
     },
     fragment, mount,
+    utils::class_list::ClassList,
 };
 use observables::{cell::ReactiveCell, Observable, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -82,7 +83,7 @@ async fn root() {
 }
 async fn list_item(store: &Store<State>, id: TodoId) {
     let handle = store.todos_map.handle_at(id);
-    // let item_text = ReactiveCell::new(handle.value.borrow_opt().map(|v| v.to_string()).unwrap_or_default());
+    let done_classes = ClassList::new(["done-button"]);
     view([ViewProp::Children(fragment((
         text_input([
             TextInputProp::Text(&handle.value.as_observable_or_default()),
@@ -104,11 +105,19 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                     *done = !*done;
                 }
             }),
+            ButtonProp::Class(&done_classes),
         ]),
         button([
             ButtonProp::Children(fragment((text(&"delete"),))),
             ButtonProp::OnPress(&mut |_ev| reducers::remove_todo(store, id)),
         ]),
+        async {
+            let done_obs = handle.done.as_observable_or_default();
+            loop {
+                done_classes.set("done-button-done", *done_obs.borrow_observable());
+                done_obs.until_change().await;
+            }
+        },
     )))])
     .await;
 }

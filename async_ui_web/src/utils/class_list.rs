@@ -1,8 +1,4 @@
-use std::{
-    borrow::{Borrow, Cow},
-    cell::RefCell,
-    collections::HashSet,
-};
+use std::{borrow::Cow, cell::RefCell, collections::HashSet};
 
 use web_sys::DomTokenList;
 
@@ -16,15 +12,17 @@ struct Inner<'a> {
 enum DomEnum {
     None,
     Inserted(DomTokenList),
-    Dummy,
 }
-thread_local! {
-    static DUMMY_CLASS_LIST: ClassList<'static> = ClassList { inner: RefCell::new(Inner {
-        rust: HashSet::new(),
-        dom: DomEnum::Dummy
-    }) }
-}
+
 impl<'a> ClassList<'a> {
+    pub fn new<S: Into<Cow<'a, str>>, I: IntoIterator<Item = S>>(classes: I) -> Self {
+        Self {
+            inner: RefCell::new(Inner {
+                rust: classes.into_iter().map(Into::into).collect(),
+                dom: DomEnum::None,
+            }),
+        }
+    }
     pub fn add<S: Into<Cow<'a, str>>>(&self, class_name: S) {
         let mut bm = self.inner.borrow_mut();
         let v = class_name.into();
@@ -58,11 +56,19 @@ impl<'a> ClassList<'a> {
             bm.rust.insert(v);
         }
     }
+    pub fn set<S: Into<Cow<'a, str>>>(&self, class_name: S, value: bool) {
+        match value {
+            true => self.add(class_name),
+            false => self.remove(class_name),
+        }
+    }
     pub(crate) fn set_dom(&self, dom: DomTokenList) {
         let mut bm = self.inner.borrow_mut();
         if let DomEnum::None = &bm.dom {
+            for item in bm.rust.iter() {
+                dom.add_1(&*item).expect("ClassList add failed");
+            }
             bm.dom = DomEnum::Inserted(dom);
         }
     }
 }
-impl ClassList<'static> {}

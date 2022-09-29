@@ -11,12 +11,12 @@ use web_sys::{Event, FocusEvent, InputEvent, KeyboardEvent, MouseEvent};
 
 pub(super) enum QueuedEvent {
     Click(MouseEvent),
-    MouseDown(MouseEvent),
-    MouseUp(MouseEvent),
+    // MouseDown(MouseEvent),
+    // MouseUp(MouseEvent),
     Input(InputEvent),
     KeyPress(KeyboardEvent),
-    KeyUp(KeyboardEvent),
-    KeyDown(KeyboardEvent),
+    // KeyUp(KeyboardEvent),
+    // KeyDown(KeyboardEvent),
     Focus(FocusEvent),
     Blur(FocusEvent),
 }
