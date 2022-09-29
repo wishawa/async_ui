@@ -2,6 +2,10 @@
 	display: none;
 }
 
+body {
+	background-color: #f8f8f8;
+}
+
 button {
 	cursor: pointer;
 	transition: transform 100ms linear;
@@ -17,6 +21,25 @@ button:active {
 	transform: scale(0.95);
 }
 
+input {
+	border-width: 0;
+}
+
+.add-box {
+	display: flex;
+	flex-direction: row;
+}
+.add-input {
+	flex: 1;
+	font-size: x-large;
+	padding: 0.5em;
+	border-top-left-radius: 0.5em;
+	border-top-right-radius: 0.5em;
+}
+.item-input {
+	font-size: large;
+}
+
 .wrapper {
 	display: flex;
 	flex-direction: column;
@@ -27,9 +50,13 @@ button:active {
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
+	border-radius: 0.5em;
+	background-color: #fff;
+	box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
 }
 
 .list-item {
+	margin-top: 0.5em;
 	flex-direction: row;
 	justify-content: space-evenly;
 }

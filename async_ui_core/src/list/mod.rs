@@ -129,6 +129,9 @@ impl<T: Clone> ListModel<T> {
             index: self.head.len() - 1,
         });
     }
+    pub fn len(&self) -> usize {
+        self.head.len()
+    }
     pub fn underlying_vector(&self) -> &Vector<T> {
         &self.head
     }

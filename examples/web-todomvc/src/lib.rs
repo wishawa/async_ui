@@ -63,6 +63,33 @@ mod reducers {
             list_model.remove(to_remove);
         }
     }
+    pub(super) fn set_all(store: &Store<State>, completed: bool) {
+        for key in store.todos_list.borrow().underlying_vector().iter() {
+            if let Some(mut done) = store
+                .todos_map
+                .handle_at(key.to_owned())
+                .done
+                .borrow_mut_opt()
+            {
+                *done = completed;
+            }
+        }
+    }
+    pub(super) fn clear_completed(store: &Store<State>) {
+        let mut to_remove = Vec::new();
+        let mut bm = store.todos_list.borrow_mut();
+        for (idx, key) in bm.underlying_vector().iter().enumerate() {
+            if let Some(done) = store.todos_map.handle_at(key.to_owned()).done.borrow_opt() {
+                if *done {
+                    to_remove.push((idx, key.to_owned()));
+                }
+            }
+        }
+        for (idx, key) in to_remove.into_iter().rev() {
+            store.todos_map.remove(&key);
+            bm.remove(idx);
+        }
+    }
 }
 
 #[derive(Track, Clone, Copy, PartialEq, Eq, Hash)]
@@ -94,13 +121,29 @@ async fn root() {
             ViewProp::Children(fragment((
                 add_input_box(&store),
                 list_content(&store),
-                filter_bar(&store),
+                bottom_part(&store),
             ))),
             ViewProp::Class(&ClassList::new(["main-container"])),
         ]),))),
         ViewProp::Class(&ClassList::new(["wrapper"])),
     ])
-    .await
+    .await;
+}
+async fn bottom_part(store: &Store<State>) {
+    let classes = ClassList::new(["bottom-part"]);
+    use async_ui_web::futures_lite::FutureExt;
+    view([
+        ViewProp::Children(fragment((filter_bar(store),))),
+        ViewProp::Class(&classes),
+    ])
+    .or(async {
+        loop {
+            let hide = store.todos_list.borrow().len() == 0;
+            classes.set("hidden", hide);
+            store.todos_list.as_observable().until_change().await;
+        }
+    })
+    .await;
 }
 async fn filter_bar(store: &Store<State>) {
     async fn filter_button(store: &Store<State>, filter: DisplayFilter) {
@@ -204,21 +247,35 @@ async fn list_content(store: &Store<State>) {
     ])
     .await;
 }
+async fn top_part(store: &Store<State>) {}
+async fn toggle_all_button(store: &Store<State>) {
+    button([
+        ButtonProp::Class(&ClassList::new(["toggle-all-button"])),
+        ButtonProp::OnPress(&mut |_ev| {
+            // reducers::
+        }),
+    ])
+    .await;
+}
 async fn add_input_box(store: &Store<State>) {
     let value = ReactiveCell::new(String::new());
-    fragment((text_input([
-        TextInputProp::Text(&value.as_observable()),
-        TextInputProp::OnSubmit(&mut |ev| {
-            let text = ev.get_text();
-            if text.len() > 0 {
-                value.borrow_mut().clear();
-                reducers::add_todo(store, text);
-            }
-        }),
-        TextInputProp::OnBlur(&mut |ev| {
-            *value.borrow_mut() = ev.get_text();
-        }),
-        TextInputProp::Class(&ClassList::new(["add-input"])),
-    ]),))
+    view([
+        ViewProp::Children(fragment((text_input([
+            TextInputProp::Text(&value.as_observable()),
+            TextInputProp::OnSubmit(&mut |ev| {
+                let text = ev.get_text();
+                if text.len() > 0 {
+                    value.borrow_mut().clear();
+                    reducers::add_todo(store, text);
+                }
+            }),
+            TextInputProp::OnBlur(&mut |ev| {
+                *value.borrow_mut() = ev.get_text();
+            }),
+            TextInputProp::Class(&ClassList::new(["add-input"])),
+            TextInputProp::Placeholder(&"What needs to be done?"),
+        ]),))),
+        ViewProp::Class(&ClassList::new(["add-box"])),
+    ])
     .await;
 }
