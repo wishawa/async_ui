@@ -17,8 +17,6 @@ use super::{
     ElementFuture,
 };
 
-pub struct Button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(pub I);
-
 #[derive(Default)]
 pub enum ButtonProp<'c> {
     Children(Fragment<'c>),
@@ -64,41 +62,36 @@ impl<'c> Future for ButtonFuture<'c> {
         this.children.poll(cx)
     }
 }
-impl<'c, I: IntoIterator<Item = ButtonProp<'c>>> IntoFuture for Button<'c, I> {
-    type Output = ();
-    type IntoFuture = ElementFuture<ButtonFuture<'c>>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        let mut children = None;
-        let mut on_press = None;
-        for prop in self.0 {
-            match prop {
-                ButtonProp::Children(v) => children = Some(v),
-                ButtonProp::OnPress(v) => on_press = Some(v),
-                ButtonProp::Null => {}
-            }
+pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
+    let mut children = None;
+    let mut on_press = None;
+    for prop in props {
+        match prop {
+            ButtonProp::Children(v) => children = Some(v),
+            ButtonProp::OnPress(v) => on_press = Some(v),
+            ButtonProp::Null => {}
         }
-
-        let button = DOCUMENT.with(|doc| {
-            let elem = doc.create_element("button").expect("create element failed");
-            let elem: HtmlButtonElement = elem.unchecked_into();
-            elem
-        });
-        let mut handlers = SmallVec::new();
-
-        let manager = EventsManager::new();
-        if on_press.is_some() {
-            let h = create_handler(&manager, |e| QueuedEvent::Click(e));
-            button.set_onclick(Some(h.get_function()));
-            handlers.push(h);
-        }
-        let future = ButtonFuture {
-            children: children.unwrap_or_default(),
-            on_press,
-            manager,
-            handlers,
-            first: true,
-        };
-        ElementFuture::new(future, button.into())
     }
+
+    let button = DOCUMENT.with(|doc| {
+        let elem = doc.create_element("button").expect("create element failed");
+        let elem: HtmlButtonElement = elem.unchecked_into();
+        elem
+    });
+    let mut handlers = SmallVec::new();
+
+    let manager = EventsManager::new();
+    if on_press.is_some() {
+        let h = create_handler(&manager, |e| QueuedEvent::Click(e));
+        button.set_onclick(Some(h.get_function()));
+        handlers.push(h);
+    }
+    let future = ButtonFuture {
+        children: children.unwrap_or_default(),
+        on_press,
+        manager,
+        handlers,
+        first: true,
+    };
+    ElementFuture::new(future, button.into()).await
 }

@@ -24,6 +24,10 @@ pub mod __private_macro_only {
     }
 }
 
+pub fn fragment<'c, T: Into<Fragment<'c>>>(children: T) -> Fragment<'c> {
+    children.into()
+}
+
 #[cfg(test)]
 mod tests {
     use super::fragment;

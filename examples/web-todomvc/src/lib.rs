@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use async_ui_web::{
     components::{
-        Button, ButtonProp, List, ListModel, Text, TextInput, TextInputProp, View, ViewProp,
+        button, text, text_input, view, ButtonProp, List, ListModel, TextInputProp, ViewProp,
     },
-    fragment, mount, Fragment,
+    fragment, mount,
 };
 use observables::{cell::ReactiveCell, Observable, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -83,8 +83,8 @@ async fn root() {
 async fn list_item(store: &Store<State>, id: TodoId) {
     let handle = store.todos_map.handle_at(id);
     // let item_text = ReactiveCell::new(handle.value.borrow_opt().map(|v| v.to_string()).unwrap_or_default());
-    View([ViewProp::Children(Fragment::from((
-        TextInput([
+    view([ViewProp::Children(fragment((
+        text_input([
             TextInputProp::Text(&handle.value.as_observable_or_default()),
             TextInputProp::OnBlur(&mut |ev| {
                 if let Some(mut value) = handle.value.borrow_mut_opt() {
@@ -92,8 +92,8 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                 }
             }),
         ]),
-        Button([
-            ButtonProp::Children(Fragment::from((Text(
+        button([
+            ButtonProp::Children(fragment((text(
                 &handle.done.as_observable_or_default().map(|v| match *v {
                     true => "done",
                     false => "not done",
@@ -105,8 +105,8 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                 }
             }),
         ]),
-        Button([
-            ButtonProp::Children(Fragment::from((Text(&"delete"),))),
+        button([
+            ButtonProp::Children(fragment((text(&"delete"),))),
             ButtonProp::OnPress(&mut |_ev| reducers::remove_todo(store, id)),
         ]),
     )))])
@@ -127,8 +127,8 @@ async fn input_box(store: &Store<State>) {
         value.borrow_mut().clear();
         reducers::add_todo(store, text);
     };
-    Fragment::from((
-        TextInput([
+    fragment((
+        text_input([
             TextInputProp::Text(&value.as_observable()),
             TextInputProp::OnSubmit(&mut |ev| {
                 *value.borrow_mut() = ev.get_text();
@@ -138,8 +138,8 @@ async fn input_box(store: &Store<State>) {
                 *value.borrow_mut() = ev.get_text();
             }),
         ]),
-        Button([
-            ButtonProp::Children(Fragment::from((Text(&"submit"),))),
+        button([
+            ButtonProp::Children(fragment((text(&"submit"),))),
             ButtonProp::OnPress(&mut |_ev| {
                 submit();
             }),

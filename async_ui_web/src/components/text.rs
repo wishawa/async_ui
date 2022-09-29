@@ -10,14 +10,6 @@ use crate::window::DOCUMENT;
 
 use super::ElementFuture;
 
-pub struct Text<'c>(pub &'c (dyn ObservableAs<str> + 'c));
-
-impl<'c> Default for Text<'c> {
-    fn default() -> Self {
-        Self(&"")
-    }
-}
-
 pub struct TextFuture<'c> {
     obs: &'c (dyn ObservableAs<str> + 'c),
     change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
@@ -46,19 +38,13 @@ impl<'c> Future for TextFuture<'c> {
         Poll::Pending
     }
 }
-impl<'c> IntoFuture for Text<'c> {
-    type Output = ();
-
-    type IntoFuture = ElementFuture<TextFuture<'c>>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
-        let fut = TextFuture {
-            change_fut: NextChangeFuture::new(self.0),
-            obs: self.0,
-            node: node.clone(),
-            set: false,
-        };
-        ElementFuture::new(fut, node.into())
-    }
+pub async fn text<'c>(text: &'c (dyn ObservableAs<str> + 'c)) {
+    let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
+    let fut = TextFuture {
+        change_fut: NextChangeFuture::new(text),
+        obs: text,
+        node: node.clone(),
+        set: false,
+    };
+    ElementFuture::new(fut, node.into()).await;
 }
