@@ -1,11 +1,5 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    rc::Rc,
-    task::{Context, Poll},
-};
-
-use observables::{NextChangeFuture, ObservableAs, ObservableAsExt};
+use futures_lite::FutureExt;
+use observables::{ObservableAs, ObservableAsExt};
 use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlElement, HtmlInputElement, HtmlTextAreaElement};
@@ -13,7 +7,7 @@ use web_sys::{HtmlElement, HtmlInputElement, HtmlTextAreaElement};
 use crate::{utils::class_list::ClassList, window::DOCUMENT};
 
 use super::{
-    events::{create_handler, EventHandler, EventsManager, QueuedEvent},
+    events::{create_handler, EventsManager, QueuedEvent},
     ElementFuture,
 };
 #[derive(Clone)]
@@ -61,69 +55,9 @@ pub enum TextInputProp<'c> {
     OnFocus(&'c mut dyn FnMut(TextInputEvent)),
     MultiLine(bool),
     Class(&'c ClassList<'c>),
+    Placeholder(&'c dyn ObservableAs<str>),
     #[default]
     Null,
-}
-
-pub struct TextInputFuture<'c> {
-    obs: &'c (dyn ObservableAs<str> + 'c),
-    change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
-    node: InputNode,
-    first: bool,
-    manager: Rc<EventsManager>,
-    _handlers: SmallVec<[EventHandler<'c>; 3]>,
-    on_change_text: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    on_submit: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    on_blur: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    on_focus: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-}
-impl<'c> Future for TextInputFuture<'c> {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let mut this = self.get_mut();
-        let reset = match Pin::new(&mut this.change_fut).poll(cx) {
-            Poll::Ready(_) => {
-                this.change_fut = this.obs.until_change();
-                let _ = Pin::new(&mut this.change_fut).poll(cx);
-                true
-            }
-            Poll::Pending => false,
-        };
-        if reset || this.first {
-            let txt = this.obs.borrow_observable_as();
-            this.node.set_value(&*txt);
-        }
-        if this.first {
-            this.first = false;
-            this.manager.set_waker(cx.waker());
-        }
-        if let Some(mut events) = this.manager.borrow_queue_mut() {
-            for event in events.drain(..) {
-                let node = this.node.clone();
-                let text_input_event = TextInputEvent { node };
-                match event {
-                    QueuedEvent::Input(_e) => {
-                        this.on_change_text.as_mut().map(|f| f(text_input_event));
-                    }
-                    QueuedEvent::KeyPress(e) => {
-                        if e.key() == "Enter" {
-                            e.prevent_default();
-                            this.on_submit.as_mut().map(|f| f(text_input_event));
-                        }
-                    }
-                    QueuedEvent::Blur(_e) => {
-                        this.on_blur.as_mut().map(|f| f(text_input_event));
-                    }
-                    QueuedEvent::Focus(_e) => {
-                        this.on_focus.as_mut().map(|f| f(text_input_event));
-                    }
-                    _ => {}
-                }
-            }
-        }
-        Poll::Pending
-    }
 }
 
 pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I) {
@@ -134,6 +68,7 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
     let mut on_focus = None;
     let mut multiline = false;
     let mut class = None;
+    let mut placeholder = None;
     for prop in props {
         match prop {
             TextInputProp::Text(v) => text = Some(v),
@@ -143,9 +78,12 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
             TextInputProp::OnFocus(v) => on_focus = Some(v),
             TextInputProp::MultiLine(v) => multiline = v,
             TextInputProp::Class(v) => class = Some(v),
+            TextInputProp::Placeholder(v) => placeholder = Some(v),
             TextInputProp::Null => {}
         }
     }
+    let text = text.unwrap_or(&"");
+    let placeholder = placeholder.unwrap_or(&"");
 
     let input = DOCUMENT.with(|doc| {
         let elem = doc
@@ -160,7 +98,7 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
         }
     });
 
-    let mut handlers = SmallVec::new();
+    let mut handlers = SmallVec::<[_; 5]>::new();
     let manager = EventsManager::new();
     let input_elem = input.as_elem();
 
@@ -188,21 +126,49 @@ pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I)
         class.set_dom(input.as_elem().class_list());
     }
 
-    let text = text.unwrap_or(&"");
-    ElementFuture::new(
-        TextInputFuture {
-            obs: text,
-            change_fut: text.until_change(),
-            node: input.clone().into(),
-            first: true,
-            _handlers: handlers,
-            manager,
-            on_change_text,
-            on_submit,
-            on_blur,
-            on_focus,
-        },
-        input.as_elem().clone().into(),
-    )
-    .await;
+    let future = (async {
+        manager.grab_waker().await;
+        loop {
+            let mut events = manager.get_queue().await;
+            for event in events.drain(..) {
+                let text_input_event = TextInputEvent {
+                    node: input.clone(),
+                };
+                match event {
+                    QueuedEvent::Input(_e) => {
+                        on_change_text.as_mut().map(|f| f(text_input_event));
+                    }
+                    QueuedEvent::KeyPress(e) => {
+                        if e.key() == "Enter" {
+                            e.prevent_default();
+                            on_submit.as_mut().map(|f| f(text_input_event));
+                        }
+                    }
+                    QueuedEvent::Blur(_e) => {
+                        on_blur.as_mut().map(|f| f(text_input_event));
+                    }
+                    QueuedEvent::Focus(_e) => {
+                        on_focus.as_mut().map(|f| f(text_input_event));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    })
+    .or(async {
+        loop {
+            input.set_value(&*text.borrow_observable_as());
+            text.until_change().await;
+        }
+    })
+    .or(async {
+        loop {
+            input_elem
+                .set_attribute("placeholder", &*placeholder.borrow_observable_as())
+                .expect("set placeholder failed");
+            placeholder.until_change().await;
+        }
+    });
+
+    ElementFuture::new(future, input.as_elem().clone().into()).await;
 }

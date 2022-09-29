@@ -1,11 +1,6 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    rc::Rc,
-    task::{Context, Poll},
-};
+use std::future::pending;
 
-use pin_project_lite::pin_project;
+use futures_lite::FutureExt;
 use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlButtonElement, MouseEvent};
@@ -13,7 +8,7 @@ use web_sys::{HtmlButtonElement, MouseEvent};
 use crate::{utils::class_list::ClassList, window::DOCUMENT, Fragment};
 
 use super::{
-    events::{create_handler, EventHandler, EventsManager, QueuedEvent},
+    events::{create_handler, EventsManager, QueuedEvent},
     ElementFuture,
 };
 
@@ -30,39 +25,6 @@ pub struct PressEvent {
     pub native_event: MouseEvent,
 }
 
-pin_project! {
-    pub struct ButtonFuture<'c> {
-        #[pin] children: Fragment<'c>,
-        on_press: Option<&'c mut (dyn FnMut(PressEvent) + 'c)>,
-        handlers: SmallVec<[EventHandler<'c>; 3]>,
-        manager: Rc<EventsManager>,
-        first: bool
-    }
-}
-impl<'c> Future for ButtonFuture<'c> {
-    type Output = ();
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        if *this.first {
-            this.manager.set_waker(cx.waker());
-            *this.first = false;
-        }
-        if let Some(mut events) = this.manager.borrow_queue_mut() {
-            for ev in events.drain(..) {
-                match ev {
-                    QueuedEvent::Click(native_event) => {
-                        this.on_press
-                            .as_mut()
-                            .map(|f| f(PressEvent { native_event }));
-                    }
-                    _ => {}
-                }
-            }
-        }
-        this.children.poll(cx)
-    }
-}
 pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
     let button = DOCUMENT.with(|doc| {
         let elem = doc.create_element("button").expect("create element failed");
@@ -70,7 +32,7 @@ pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
         elem
     });
 
-    let mut handlers = SmallVec::new();
+    let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
 
     let mut children = None;
@@ -91,12 +53,26 @@ pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
         }
     }
 
-    let future = ButtonFuture {
-        children: children.unwrap_or_default(),
-        on_press,
-        manager,
-        handlers,
-        first: true,
-    };
+    let future = (async {
+        if let Some(children) = children {
+            children.await;
+        } else {
+            pending::<()>().await;
+        }
+    })
+    .or(async {
+        manager.grab_waker().await;
+        loop {
+            let mut events = manager.get_queue().await;
+            for event in events.drain(..) {
+                match event {
+                    QueuedEvent::Click(native_event) => {
+                        on_press.as_mut().map(|f| f(PressEvent { native_event }));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    });
     ElementFuture::new(future, button.into()).await
 }

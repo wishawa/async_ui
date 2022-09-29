@@ -90,25 +90,19 @@ async fn root() {
         filter: DisplayFilter::All,
     });
     view([
-        ViewProp::Children(fragment((
-            add_input_box(&store),
-            list_content(&store),
-            filter_bar(&store),
-        ))),
-        ViewProp::Class(&ClassList::new(["main-container"])),
+        ViewProp::Children(fragment((view([
+            ViewProp::Children(fragment((
+                add_input_box(&store),
+                list_content(&store),
+                filter_bar(&store),
+            ))),
+            ViewProp::Class(&ClassList::new(["main-container"])),
+        ]),))),
+        ViewProp::Class(&ClassList::new(["wrapper"])),
     ])
     .await
 }
 async fn filter_bar(store: &Store<State>) {
-    // let labels = ["All", "Active", "Complete"];
-    // let classes = [(); 3].map(|_| ClassList::new(["filter-button"]));
-    // async fn filter_button<'a>(label: &'a str, classes: &'a ClassList<'a>) {
-    //     button([
-    //         ButtonProp::Children(fragment((text(&label),))),
-    //         ButtonProp::Class(classes),
-    //     ])
-    //     .await;
-    // }
     async fn filter_button(store: &Store<State>, filter: DisplayFilter) {
         use async_ui_web::futures_lite::FutureExt;
         let label = match filter {
@@ -125,18 +119,24 @@ async fn filter_bar(store: &Store<State>) {
             }),
         ])
         .or(async {
-            let set = *store.filter.borrow() == filter;
-            classes.set("filter-button-hidden", set);
-            store.filter.as_observable().until_change().await;
+            loop {
+                let set = *store.filter.borrow() == filter;
+                classes.set("filter-button-selected", set);
+                store.filter.as_observable().until_change().await;
+            }
         })
         .await;
     }
 
-    fragment((
+    let buttons = fragment((
         filter_button(store, DisplayFilter::All),
         filter_button(store, DisplayFilter::Active),
         filter_button(store, DisplayFilter::Complete),
-    ))
+    ));
+    view([
+        ViewProp::Children(buttons),
+        ViewProp::Class(&ClassList::new(["filter-bar"])),
+    ])
     .await;
 }
 async fn list_item(store: &Store<State>, id: TodoId) {
@@ -145,14 +145,6 @@ async fn list_item(store: &Store<State>, id: TodoId) {
     let view_classes = ClassList::new(["list-item"]);
     view([
         ViewProp::Children(fragment((
-            text_input([
-                TextInputProp::Text(&handle.value.as_observable_or_default()),
-                TextInputProp::OnBlur(&mut |ev| {
-                    if let Some(mut value) = handle.value.borrow_mut_opt() {
-                        *value = ev.get_text();
-                    }
-                }),
-            ]),
             button([
                 ButtonProp::Children(fragment((text(
                     &handle.done.as_observable_or_default().map(|v| match *v {
@@ -166,6 +158,15 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                     }
                 }),
                 ButtonProp::Class(&done_classes),
+            ]),
+            text_input([
+                TextInputProp::Text(&handle.value.as_observable_or_default()),
+                TextInputProp::OnBlur(&mut |ev| {
+                    if let Some(mut value) = handle.value.borrow_mut_opt() {
+                        *value = ev.get_text();
+                    }
+                }),
+                TextInputProp::Class(&ClassList::new(["item-input"])),
             ]),
             button([
                 ButtonProp::Children(fragment((text(&"delete"),))),
@@ -184,7 +185,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                         (DisplayFilter::Complete, true) => true,
                         _ => false,
                     };
-                    view_classes.set("list-item-hidden", !visible);
+                    view_classes.set("hidden", !visible);
                     use async_ui_web::futures_lite::FutureExt;
                     done_obs.until_change().or(filter_obs.until_change()).await;
                 }
@@ -205,30 +206,19 @@ async fn list_content(store: &Store<State>) {
 }
 async fn add_input_box(store: &Store<State>) {
     let value = ReactiveCell::new(String::new());
-    let submit = || {
-        let text = value.as_observable().borrow_observable().clone();
-        value.borrow_mut().clear();
-        reducers::add_todo(store, text);
-    };
-    fragment((
-        text_input([
-            TextInputProp::Text(&value.as_observable()),
-            TextInputProp::OnSubmit(&mut |ev| {
-                *value.borrow_mut() = ev.get_text();
-                submit();
-            }),
-            TextInputProp::OnBlur(&mut |ev| {
-                *value.borrow_mut() = ev.get_text();
-            }),
-            TextInputProp::Class(&ClassList::new(["add-input"])),
-        ]),
-        button([
-            ButtonProp::Children(fragment((text(&"submit"),))),
-            ButtonProp::OnPress(&mut |_ev| {
-                submit();
-            }),
-            ButtonProp::Class(&ClassList::new(["add-input-submit"])),
-        ]),
-    ))
+    fragment((text_input([
+        TextInputProp::Text(&value.as_observable()),
+        TextInputProp::OnSubmit(&mut |ev| {
+            let text = ev.get_text();
+            if text.len() > 0 {
+                value.borrow_mut().clear();
+                reducers::add_todo(store, text);
+            }
+        }),
+        TextInputProp::OnBlur(&mut |ev| {
+            *value.borrow_mut() = ev.get_text();
+        }),
+        TextInputProp::Class(&ClassList::new(["add-input"])),
+    ]),))
     .await;
 }

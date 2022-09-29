@@ -1,0 +1,58 @@
+.hidden {
+	display: none;
+}
+
+button {
+	cursor: pointer;
+	transition: transform 100ms linear;
+	background-color: #eee;
+	border-style: solid;
+	border-radius: 0.5em;
+	border-width: 1px;
+	border-color: #eee;
+	transform: scale(1.00);
+}
+
+button:active {
+	transform: scale(0.95);
+}
+
+.wrapper {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.main-container {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.list-item {
+	flex-direction: row;
+	justify-content: space-evenly;
+}
+.list-item:not(.hidden) {
+	display: flex;
+}
+
+.item-input {
+	flex: 1;
+}
+
+.filter-bar {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-evenly;
+}
+
+.filter-button {
+	padding: 0.5em;
+	width: 8em;
+	margin: 1em;
+}
+
+.filter-button-selected {
+	border-color: #7f1d1d;
+}

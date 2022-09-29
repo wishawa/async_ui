@@ -1,9 +1,10 @@
 use std::{
     cell::{RefCell, RefMut},
     collections::VecDeque,
+    future::poll_fn,
     ops::AddAssign,
     rc::Rc,
-    task::Waker,
+    task::{Poll, Waker},
 };
 
 use js_sys::Function;
@@ -50,7 +51,7 @@ impl EventsManager {
             waker.wake_by_ref();
         }
     }
-    pub fn borrow_queue_mut<'b>(&'b self) -> Option<RefMut<'b, VecDeque<QueuedEvent>>> {
+    fn borrow_queue_mut<'b>(&'b self) -> Option<RefMut<'b, VecDeque<QueuedEvent>>> {
         let mut bm = self.inner.borrow_mut();
         if bm.last_version < bm.version {
             bm.last_version = bm.version;
@@ -59,11 +60,22 @@ impl EventsManager {
             None
         }
     }
-    pub fn set_waker(&self, waker: &Waker) {
+    fn set_waker(&self, waker: Waker) {
         let mut bm = self.inner.borrow_mut();
         if bm.waker.is_none() {
             bm.waker = Some(waker.clone());
         }
+    }
+    pub async fn grab_waker(&self) {
+        let waker = poll_fn(|cx| Poll::Ready(cx.waker().clone())).await;
+        self.set_waker(waker);
+    }
+    pub async fn get_queue<'b>(&'b self) -> RefMut<'b, VecDeque<QueuedEvent>> {
+        poll_fn(|_cx| match self.borrow_queue_mut() {
+            Some(q) => Poll::Ready(q),
+            None => Poll::Pending,
+        })
+        .await
     }
 }
 
