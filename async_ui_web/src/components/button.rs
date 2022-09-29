@@ -1,5 +1,5 @@
 use std::{
-    future::{Future,},
+    future::Future,
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
@@ -10,7 +10,7 @@ use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{HtmlButtonElement, MouseEvent};
 
-use crate::{window::DOCUMENT, Fragment, utils::class_list::ClassList};
+use crate::{utils::class_list::ClassList, window::DOCUMENT, Fragment};
 
 use super::{
     events::{create_handler, EventHandler, EventsManager, QueuedEvent},

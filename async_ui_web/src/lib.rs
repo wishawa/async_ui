@@ -24,8 +24,8 @@ pub mod __private_macro_only {
     }
 }
 
-pub fn fragment<'c, T: Into<Fragment<'c>>>(children: T) -> Fragment<'c> {
-    children.into()
+pub fn fragment<'c, T: Into<Fragment<'c>>>(tuple: T) -> Fragment<'c> {
+    tuple.into()
 }
 
 #[cfg(test)]

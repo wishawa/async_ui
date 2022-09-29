@@ -14,15 +14,14 @@ use x_bow::{create_store, Store, Track};
 #[derive(Track)]
 struct State {
     todos_map: HashMap<TodoId, Todo>,
+    current_id: TodoId,
     #[x_bow(no_track)]
     todos_list: ListModel<TodoId>,
-    current_id: TodoId,
 }
 
 mod reducers {
-    use x_bow::Store;
-
     use crate::{State, Todo, TodoId};
+    use x_bow::Store;
 
     pub(super) fn get_id_incremented(store: &Store<State>) -> TodoId {
         let mut bm = store.current_id.borrow_mut();
@@ -79,7 +78,7 @@ async fn root() {
         todos_list: ListModel::new(),
         current_id: TodoId(0),
     });
-    fragment![input_box(&store), list_content(&store)].await
+    fragment((input_box(&store), list_content(&store))).await
 }
 async fn list_item(store: &Store<State>, id: TodoId) {
     let handle = store.todos_map.handle_at(id);

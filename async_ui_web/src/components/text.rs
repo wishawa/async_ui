@@ -1,5 +1,5 @@
 use std::{
-    future::{Future,},
+    future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
