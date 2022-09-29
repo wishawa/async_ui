@@ -20,7 +20,7 @@ pub mod __private_macro_only {
     #[macro_export]
     macro_rules! fragment {
         [$($ch:expr),*] => {
-            $crate::__private_macro_only::Fragment::new(::std::vec![
+            $crate::__private_macro_only::Fragment::new_from_vec(::std::vec![
                 $($crate::__private_macro_only::Child::new($ch)),*
             ])
         }
@@ -43,14 +43,14 @@ where
     B: BackendTrait,
 {
     fn default() -> Self {
-        Self::new(Vec::new())
+        Self::new_from_vec(Vec::new())
     }
 }
 impl<'c, B> Fragment<'c, B>
 where
     B: BackendTrait,
 {
-    pub fn new(children: Vec<Child<'c, B>>) -> Self {
+    pub fn new_from_vec(children: Vec<Child<'c, B>>) -> Self {
         Self {
             children,
             mounted: false,
@@ -58,6 +58,89 @@ where
         }
     }
 }
+
+use std::future::IntoFuture;
+macro_rules! impl_tuple_of_children {
+    ($($arg:ident=$num:tt),*) => {
+        impl<'c, B: BackendTrait, $($arg : IntoFuture<Output = ()> + 'c,)*> From<($($arg,)*)> for Fragment<'c, B> {
+            #[allow(unused_variables)]
+            fn from(source: ($($arg,)*)) -> Self {
+                crate::fragment![
+                    $(source.$num),*
+                ]
+            }
+        }
+    };
+}
+impl_tuple_of_children!();
+impl_tuple_of_children!(A0 = 0);
+impl_tuple_of_children!(A0 = 0, A1 = 1);
+impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2);
+impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3);
+impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4);
+impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5);
+impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6);
+impl_tuple_of_children!(
+    A0 = 0,
+    A1 = 1,
+    A2 = 2,
+    A3 = 3,
+    A4 = 4,
+    A5 = 5,
+    A6 = 6,
+    A7 = 7
+);
+impl_tuple_of_children!(
+    A0 = 0,
+    A1 = 1,
+    A2 = 2,
+    A3 = 3,
+    A4 = 4,
+    A5 = 5,
+    A6 = 6,
+    A7 = 7,
+    A8 = 8
+);
+impl_tuple_of_children!(
+    A0 = 0,
+    A1 = 1,
+    A2 = 2,
+    A3 = 3,
+    A4 = 4,
+    A5 = 5,
+    A6 = 6,
+    A7 = 7,
+    A8 = 8,
+    A9 = 9
+);
+impl_tuple_of_children!(
+    A0 = 0,
+    A1 = 1,
+    A2 = 2,
+    A3 = 3,
+    A4 = 4,
+    A5 = 5,
+    A6 = 6,
+    A7 = 7,
+    A8 = 8,
+    A9 = 9,
+    A10 = 10
+);
+impl_tuple_of_children!(
+    A0 = 0,
+    A1 = 1,
+    A2 = 2,
+    A3 = 3,
+    A4 = 4,
+    A5 = 5,
+    A6 = 6,
+    A7 = 7,
+    A8 = 8,
+    A9 = 9,
+    A10 = 10,
+    A11 = 11
+);
+
 impl<'c, B> Future for Fragment<'c, B>
 where
     B: BackendTrait,

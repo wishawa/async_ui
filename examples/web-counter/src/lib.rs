@@ -1,6 +1,6 @@
 use async_ui_web::{
-    components::{Button, Text},
-    fragment, mount,
+    components::{Button, ButtonProp, Text},
+    fragment, mount, Fragment,
 };
 use observables::{cell::ReactiveCell, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -13,42 +13,25 @@ pub fn run() -> Result<(), JsValue> {
     Ok(())
 }
 async fn root() {
-    fragment![
-        (Text {
-            text: &"hello world"
-        }),
-        counter()
-    ]
-    .await
+    counter().await;
 }
 async fn counter() {
     let value = ReactiveCell::new(0);
 
-    fragment![
-        Button {
-            children: fragment![Text { text: &"decrement" }],
-            on_press: &mut |_ev| {
+    Fragment::from((
+        Button([
+            ButtonProp::Children(Fragment::from((Text(&"decrement"),))),
+            ButtonProp::OnPress(&mut |_ev| {
                 *value.borrow_mut() -= 1;
-            },
-            ..Default::default()
-        },
-        Text {
-            text: &value.as_observable().map(|v| format!("{}", v)),
-            ..Default::default()
-        },
-        Button {
-            children: fragment![Text { text: &"increment" }],
-            on_press: &mut |_ev| {
+            }),
+        ]),
+        Text(&value.as_observable().map(|v| format!("count = {v}"))),
+        Button([
+            ButtonProp::Children(Fragment::from((Text(&"increment"),))),
+            ButtonProp::OnPress(&mut |_ev| {
                 *value.borrow_mut() += 1;
-            },
-            ..Default::default()
-        },
-        async {
-            loop {
-                value.as_observable().until_change().await;
-                web_sys::console::log_1(&"hello".into());
-            }
-        }
-    ]
+            }),
+        ]),
+    ))
     .await;
 }

@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use async_ui_web::{
-    components::{Button, List, ListModel, Text, TextInput, View},
-    fragment, mount,
+    components::{
+        Button, ButtonProp, List, ListModel, Text, TextInput, TextInputProp, View, ViewProp,
+    },
+    fragment, mount, Fragment,
 };
 use observables::{cell::ReactiveCell, Observable, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
@@ -80,38 +82,34 @@ async fn root() {
 }
 async fn list_item(store: &Store<State>, id: TodoId) {
     let handle = store.todos_map.handle_at(id);
-    (View {
-        children: fragment![
-            TextInput {
-                text: &handle.value.as_observable_or_default(),
-                on_blur: &mut |ev| {
-                    if let Some(mut value) = handle.value.borrow_mut_opt() {
-                        *value = ev.get_text();
-                    }
-                },
-                ..Default::default()
-            },
-            Button {
-                children: fragment![Text {
-                    text: &handle.done.as_observable_or_default().map(|v| match *v {
-                        true => "done",
-                        false => "not done",
-                    })
-                }],
-                on_press: &mut |_| {
-                    if let Some(mut done) = handle.done.borrow_mut_opt() {
-                        *done = !*done;
-                    }
-                },
-                ..Default::default()
-            },
-            Button {
-                children: fragment![Text { text: &"delete" }],
-                on_press: &mut |_| { reducers::remove_todo(store, id) },
-                ..Default::default()
-            }
-        ],
-    })
+    // let item_text = ReactiveCell::new(handle.value.borrow_opt().map(|v| v.to_string()).unwrap_or_default());
+    View([ViewProp::Children(Fragment::from((
+        TextInput([
+            TextInputProp::Text(&handle.value.as_observable_or_default()),
+            TextInputProp::OnBlur(&mut |ev| {
+                if let Some(mut value) = handle.value.borrow_mut_opt() {
+                    *value = ev.get_text();
+                }
+            }),
+        ]),
+        Button([
+            ButtonProp::Children(Fragment::from((Text(
+                &handle.done.as_observable_or_default().map(|v| match *v {
+                    true => "done",
+                    false => "not done",
+                }),
+            ),))),
+            ButtonProp::OnPress(&mut |_| {
+                if let Some(mut done) = handle.done.borrow_mut_opt() {
+                    *done = !*done;
+                }
+            }),
+        ]),
+        Button([
+            ButtonProp::Children(Fragment::from((Text(&"delete"),))),
+            ButtonProp::OnPress(&mut |_ev| reducers::remove_todo(store, id)),
+        ]),
+    )))])
     .await;
 }
 async fn list_content(store: &Store<State>) {
@@ -129,22 +127,23 @@ async fn input_box(store: &Store<State>) {
         value.borrow_mut().clear();
         reducers::add_todo(store, text);
     };
-    fragment![
-        TextInput {
-            text: &value.as_observable(),
-            on_submit: &mut |ev| {
+    Fragment::from((
+        TextInput([
+            TextInputProp::Text(&value.as_observable()),
+            TextInputProp::OnSubmit(&mut |ev| {
                 *value.borrow_mut() = ev.get_text();
                 submit();
-            },
-            ..Default::default()
-        },
-        Button {
-            children: fragment![Text { text: &"submit" }],
-            on_press: &mut |_ev| {
+            }),
+            TextInputProp::OnBlur(&mut |ev| {
+                *value.borrow_mut() = ev.get_text();
+            }),
+        ]),
+        Button([
+            ButtonProp::Children(Fragment::from((Text(&"submit"),))),
+            ButtonProp::OnPress(&mut |_ev| {
                 submit();
-            },
-            ..Default::default()
-        }
-    ]
+            }),
+        ]),
+    ))
     .await;
 }

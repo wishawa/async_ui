@@ -13,34 +13,31 @@ use web_sys::{HtmlButtonElement, MouseEvent};
 use crate::{window::DOCUMENT, Fragment};
 
 use super::{
-    dummy::create_dummy,
-    events::{maybe_create_handler, EventHandler, EventsManager, QueuedEvent},
+    events::{create_handler, EventHandler, EventsManager, QueuedEvent},
     ElementFuture,
 };
 
-pub struct PressEvent {
-    pub native_event: MouseEvent,
-}
-pub struct Button<'c> {
-    pub children: Fragment<'c>,
-    pub on_press: &'c mut (dyn FnMut(PressEvent) + 'c),
+pub struct Button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(pub I);
+
+#[derive(Default)]
+pub enum ButtonProp<'c> {
+    Children(Fragment<'c>),
+    OnPress(&'c mut dyn FnMut(PressEvent)),
+    #[default]
+    Null,
 }
 
-impl<'c> Default for Button<'c> {
-    fn default() -> Self {
-        Self {
-            children: Default::default(),
-            on_press: create_dummy(),
-        }
-    }
+pub struct PressEvent {
+    pub native_event: MouseEvent,
 }
 
 pin_project! {
     pub struct ButtonFuture<'c> {
         #[pin] children: Fragment<'c>,
-        on_press: &'c mut (dyn FnMut(PressEvent) + 'c),
+        on_press: Option<&'c mut (dyn FnMut(PressEvent) + 'c)>,
         handlers: SmallVec<[EventHandler<'c>; 3]>,
-        manager: Rc<EventsManager>
+        manager: Rc<EventsManager>,
+        first: bool
     }
 }
 impl<'c> Future for ButtonFuture<'c> {
@@ -48,11 +45,17 @@ impl<'c> Future for ButtonFuture<'c> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
+        if *this.first {
+            this.manager.set_waker(cx.waker());
+            *this.first = false;
+        }
         if let Some(mut events) = this.manager.borrow_queue_mut() {
             for ev in events.drain(..) {
                 match ev {
                     QueuedEvent::Click(native_event) => {
-                        (this.on_press)(PressEvent { native_event })
+                        this.on_press
+                            .as_mut()
+                            .map(|f| f(PressEvent { native_event }));
                     }
                     _ => {}
                 }
@@ -61,28 +64,40 @@ impl<'c> Future for ButtonFuture<'c> {
         this.children.poll(cx)
     }
 }
-impl<'c> IntoFuture for Button<'c> {
+impl<'c, I: IntoIterator<Item = ButtonProp<'c>>> IntoFuture for Button<'c, I> {
     type Output = ();
     type IntoFuture = ElementFuture<ButtonFuture<'c>>;
 
     fn into_future(self) -> Self::IntoFuture {
+        let mut children = None;
+        let mut on_press = None;
+        for prop in self.0 {
+            match prop {
+                ButtonProp::Children(v) => children = Some(v),
+                ButtonProp::OnPress(v) => on_press = Some(v),
+                ButtonProp::Null => {}
+            }
+        }
+
         let button = DOCUMENT.with(|doc| {
             let elem = doc.create_element("button").expect("create element failed");
             let elem: HtmlButtonElement = elem.unchecked_into();
             elem
         });
-        let Self { children, on_press } = self;
         let mut handlers = SmallVec::new();
+
         let manager = EventsManager::new();
-        if let Some(h) = maybe_create_handler(&manager, on_press, |e| QueuedEvent::Click(e)) {
+        if on_press.is_some() {
+            let h = create_handler(&manager, |e| QueuedEvent::Click(e));
             button.set_onclick(Some(h.get_function()));
             handlers.push(h);
         }
         let future = ButtonFuture {
-            children,
+            children: children.unwrap_or_default(),
             on_press,
             manager,
             handlers,
+            first: true,
         };
         ElementFuture::new(future, button.into())
     }

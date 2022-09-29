@@ -59,14 +59,18 @@ impl EventsManager {
             None
         }
     }
+    pub fn set_waker(&self, waker: &Waker) {
+        let mut bm = self.inner.borrow_mut();
+        if bm.waker.is_none() {
+            bm.waker = Some(waker.clone());
+        }
+    }
 }
 
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
 use crate::executor::schedule;
-
-use super::dummy::is_dummy;
 
 pub(super) struct EventHandler<'h> {
     closure: Closure<dyn Fn(Event) + 'h>,
@@ -88,23 +92,17 @@ impl<'h> EventHandler<'h> {
     }
 }
 
-pub(super) fn maybe_create_handler<
+pub(super) fn create_handler<
     'h,
     E: wasm_bindgen::convert::FromWasmAbi + JsCast + 'static,
     M: (Fn(E) -> QueuedEvent) + 'static,
-    Z,
 >(
     manager: &Rc<EventsManager>,
-    listener: &mut dyn FnMut(Z),
     map_ev: M,
-) -> Option<EventHandler<'h>> {
-    if !is_dummy(listener) {
-        let manager = manager.clone();
-        Some(EventHandler::new(move |event: E| {
-            let q = map_ev(event);
-            manager.add_event(q);
-        }))
-    } else {
-        None
-    }
+) -> EventHandler<'h> {
+    let manager = manager.clone();
+    EventHandler::new(move |event: E| {
+        let q = map_ev(event);
+        manager.add_event(q);
+    })
 }

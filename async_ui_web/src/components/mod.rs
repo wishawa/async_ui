@@ -15,7 +15,6 @@ use async_ui_core::{
 use pin_project_lite::pin_project;
 use web_sys::Node;
 
-mod dummy;
 mod events;
 
 mod button;
@@ -23,11 +22,11 @@ mod list;
 mod text;
 mod text_input;
 mod view;
-pub use button::Button;
+pub use button::{Button, ButtonProp};
 pub use list::{List, ListModel};
 pub use text::Text;
-pub use text_input::TextInput;
-pub use view::View;
+pub use text_input::{TextInput, TextInputProp};
+pub use view::{View, ViewProp};
 
 use crate::backend::Backend;
 

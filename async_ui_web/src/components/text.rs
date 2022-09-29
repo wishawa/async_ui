@@ -10,13 +10,11 @@ use crate::window::DOCUMENT;
 
 use super::ElementFuture;
 
-pub struct Text<'c> {
-    pub text: &'c (dyn ObservableAs<str> + 'c),
-}
+pub struct Text<'c>(pub &'c (dyn ObservableAs<str> + 'c));
 
 impl<'c> Default for Text<'c> {
     fn default() -> Self {
-        Self { text: &"" }
+        Self(&"")
     }
 }
 
@@ -56,8 +54,8 @@ impl<'c> IntoFuture for Text<'c> {
     fn into_future(self) -> Self::IntoFuture {
         let node: web_sys::Text = DOCUMENT.with(|doc| doc.create_text_node(""));
         let fut = TextFuture {
-            change_fut: NextChangeFuture::new(self.text),
-            obs: self.text,
+            change_fut: NextChangeFuture::new(self.0),
+            obs: self.0,
             node: node.clone(),
             set: false,
         };

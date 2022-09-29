@@ -13,8 +13,7 @@ use web_sys::{HtmlElement, HtmlInputElement, HtmlTextAreaElement};
 use crate::window::DOCUMENT;
 
 use super::{
-    dummy::create_dummy,
-    events::{maybe_create_handler, EventHandler, EventsManager, QueuedEvent},
+    events::{create_handler, EventHandler, EventsManager, QueuedEvent},
     ElementFuture,
 };
 #[derive(Clone)]
@@ -53,39 +52,30 @@ impl TextInputEvent {
         self.node.get_value()
     }
 }
-pub struct TextInput<'c> {
-    pub text: &'c (dyn ObservableAs<str> + 'c),
-    pub on_change_text: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    pub on_submit: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    pub on_blur: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    pub on_focus: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    pub multiline: bool,
-}
-
-impl<'c> Default for TextInput<'c> {
-    fn default() -> Self {
-        Self {
-            text: &"",
-            on_change_text: create_dummy(),
-            on_submit: create_dummy(),
-            on_blur: create_dummy(),
-            on_focus: create_dummy(),
-            multiline: false,
-        }
-    }
+pub struct TextInput<'c, I: IntoIterator<Item = TextInputProp<'c>>>(pub I);
+#[derive(Default)]
+pub enum TextInputProp<'c> {
+    Text(&'c dyn ObservableAs<str>),
+    OnChangeText(&'c mut dyn FnMut(TextInputEvent)),
+    OnSubmit(&'c mut dyn FnMut(TextInputEvent)),
+    OnBlur(&'c mut dyn FnMut(TextInputEvent)),
+    OnFocus(&'c mut dyn FnMut(TextInputEvent)),
+    MultiLine(bool),
+    #[default]
+    Null,
 }
 
 pub struct TextInputFuture<'c> {
     obs: &'c (dyn ObservableAs<str> + 'c),
     change_fut: NextChangeFuture<dyn ObservableAs<str> + 'c, &'c (dyn ObservableAs<str> + 'c)>,
     node: InputNode,
-    set: bool,
+    first: bool,
     manager: Rc<EventsManager>,
     _handlers: SmallVec<[EventHandler<'c>; 3]>,
-    on_change_text: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    on_submit: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    on_blur: &'c mut (dyn FnMut(TextInputEvent) + 'c),
-    on_focus: &'c mut (dyn FnMut(TextInputEvent) + 'c),
+    on_change_text: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
+    on_submit: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
+    on_blur: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
+    on_focus: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
 }
 impl<'c> Future for TextInputFuture<'c> {
     type Output = ();
@@ -100,25 +90,34 @@ impl<'c> Future for TextInputFuture<'c> {
             }
             Poll::Pending => false,
         };
-        if reset || !this.set {
-            this.set = true;
+        if reset || this.first {
             let txt = this.obs.borrow_observable_as();
             this.node.set_value(&*txt);
+        }
+        if this.first {
+            this.first = false;
+            this.manager.set_waker(cx.waker());
         }
         if let Some(mut events) = this.manager.borrow_queue_mut() {
             for event in events.drain(..) {
                 let node = this.node.clone();
                 let text_input_event = TextInputEvent { node };
                 match event {
-                    QueuedEvent::Input(_e) => (this.on_change_text)(text_input_event),
+                    QueuedEvent::Input(_e) => {
+                        this.on_change_text.as_mut().map(|f| f(text_input_event));
+                    }
                     QueuedEvent::KeyPress(e) => {
                         if e.key() == "Enter" {
                             e.prevent_default();
-                            (this.on_submit)(text_input_event)
+                            this.on_submit.as_mut().map(|f| f(text_input_event));
                         }
                     }
-                    QueuedEvent::Blur(_e) => (this.on_blur)(text_input_event),
-                    QueuedEvent::Focus(_e) => (this.on_focus)(text_input_event),
+                    QueuedEvent::Blur(_e) => {
+                        this.on_blur.as_mut().map(|f| f(text_input_event));
+                    }
+                    QueuedEvent::Focus(_e) => {
+                        this.on_focus.as_mut().map(|f| f(text_input_event));
+                    }
                     _ => {}
                 }
             }
@@ -127,19 +126,29 @@ impl<'c> Future for TextInputFuture<'c> {
     }
 }
 
-impl<'c> IntoFuture for TextInput<'c> {
+impl<'c, I: IntoIterator<Item = TextInputProp<'c>>> IntoFuture for TextInput<'c, I> {
     type Output = ();
     type IntoFuture = ElementFuture<TextInputFuture<'c>>;
 
     fn into_future(self) -> Self::IntoFuture {
-        let Self {
-            text,
-            on_change_text,
-            on_submit,
-            on_blur,
-            on_focus,
-            multiline,
-        } = self;
+        let mut text = None;
+        let mut on_change_text = None;
+        let mut on_submit = None;
+        let mut on_blur = None;
+        let mut on_focus = None;
+        let mut multiline = false;
+        for prop in self.0 {
+            match prop {
+                TextInputProp::Text(v) => text = Some(v),
+                TextInputProp::OnChangeText(v) => on_change_text = Some(v),
+                TextInputProp::OnSubmit(v) => on_submit = Some(v),
+                TextInputProp::OnBlur(v) => on_blur = Some(v),
+                TextInputProp::OnFocus(v) => on_focus = Some(v),
+                TextInputProp::MultiLine(v) => multiline = v,
+                TextInputProp::Null => {}
+            }
+        }
+
         let input = DOCUMENT.with(|doc| {
             let elem = doc
                 .create_element(match multiline {
@@ -156,29 +165,34 @@ impl<'c> IntoFuture for TextInput<'c> {
         let manager = EventsManager::new();
         let input_elem = input.as_elem();
 
-        if let Some(h) = maybe_create_handler(&manager, on_change_text, |e| QueuedEvent::Input(e)) {
+        if on_change_text.is_some() {
+            let h = create_handler(&manager, |e| QueuedEvent::Input(e));
             input_elem.set_oninput(Some(h.get_function()));
             handlers.push(h);
         }
-        if let Some(h) = maybe_create_handler(&manager, on_submit, |e| QueuedEvent::KeyPress(e)) {
+        if on_submit.is_some() {
+            let h = create_handler(&manager, |e| QueuedEvent::KeyPress(e));
             input_elem.set_onkeypress(Some(h.get_function()));
             handlers.push(h);
         }
-        if let Some(h) = maybe_create_handler(&manager, on_blur, |e| QueuedEvent::Blur(e)) {
+        if on_blur.is_some() {
+            let h = create_handler(&manager, |e| QueuedEvent::Blur(e));
             input_elem.set_onblur(Some(h.get_function()));
             handlers.push(h);
         }
-        if let Some(h) = maybe_create_handler(&manager, on_focus, |e| QueuedEvent::Focus(e)) {
+        if on_focus.is_some() {
+            let h = create_handler(&manager, |e| QueuedEvent::Focus(e));
             input_elem.set_onfocus(Some(h.get_function()));
             handlers.push(h);
         }
 
+        let text = text.unwrap_or(&"");
         ElementFuture::new(
             TextInputFuture {
                 obs: text,
                 change_fut: text.until_change(),
                 node: input.clone().into(),
-                set: false,
+                first: true,
                 _handlers: handlers,
                 manager,
                 on_change_text,
