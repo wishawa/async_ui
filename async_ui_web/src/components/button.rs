@@ -26,6 +26,9 @@ pub struct PressEvent {
 }
 
 pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
+    button_inner(&mut props.into_iter()).await;
+}
+async fn button_inner<'c>(props: &mut dyn Iterator<Item = ButtonProp<'c>>) {
     let button = DOCUMENT.with(|doc| {
         let elem = doc.create_element("button").expect("create element failed");
         let elem: HtmlButtonElement = elem.unchecked_into();

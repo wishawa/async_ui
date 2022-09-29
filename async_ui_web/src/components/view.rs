@@ -7,6 +7,9 @@ pub enum ViewProp<'c> {
     Class(&'c ClassList<'c>),
 }
 pub async fn view<'c, I: IntoIterator<Item = ViewProp<'c>>>(props: I) {
+    view_inner(&mut props.into_iter()).await;
+}
+async fn view_inner<'c>(props: &mut dyn Iterator<Item = ViewProp<'c>>) {
     let mut children = None;
     let elem = DOCUMENT.with(|doc| doc.create_element("div").expect("create element failed"));
     for prop in props {

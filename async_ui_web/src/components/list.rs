@@ -40,7 +40,6 @@ pub enum ListProp<'c, T: Clone, F: IntoFuture<Output = ()>> {
     #[default]
     Null,
 }
-
 pub async fn list<
     'c,
     T: Clone + 'c,
@@ -48,6 +47,12 @@ pub async fn list<
     I: IntoIterator<Item = ListProp<'c, T, F>>,
 >(
     props: I,
+) {
+    list_inner(&mut props.into_iter()).await;
+}
+
+async fn list_inner<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
+    props: &mut dyn Iterator<Item = ListProp<'c, T, F>>,
 ) {
     let container_node =
         DOCUMENT.with(|doc| doc.create_element("div").expect("create element failed"));

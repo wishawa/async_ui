@@ -61,6 +61,10 @@ pub enum TextInputProp<'c> {
 }
 
 pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I) {
+    text_input_inner(&mut props.into_iter()).await;
+}
+
+async fn text_input_inner<'c>(props: &mut dyn Iterator<Item = TextInputProp<'c>>) {
     let mut text = None;
     let mut on_change_text = None;
     let mut on_submit = None;
