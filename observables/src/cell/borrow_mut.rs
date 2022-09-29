@@ -4,26 +4,26 @@ use std::{
     task::Waker,
 };
 
-use super::ObserbableCellInner;
+use super::Inner;
 
-pub struct ObservableCellBorrowMut<'b, T> {
-    pub(super) reference: RefMut<'b, ObserbableCellInner<T>>,
+pub struct ReactiveCellBorrowMut<'b, T> {
+    pub(super) reference: RefMut<'b, Inner<T>>,
 }
 
-impl<'b, T> DerefMut for ObservableCellBorrowMut<'b, T> {
+impl<'b, T> DerefMut for ReactiveCellBorrowMut<'b, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.reference.data
     }
 }
 
-impl<'b, T> Deref for ObservableCellBorrowMut<'b, T> {
+impl<'b, T> Deref for ReactiveCellBorrowMut<'b, T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &self.reference.data
     }
 }
 
-impl<'b, T> Drop for ObservableCellBorrowMut<'b, T> {
+impl<'b, T> Drop for ReactiveCellBorrowMut<'b, T> {
     fn drop(&mut self) {
         self.reference.version = self.reference.version.incremented();
         self.reference.listeners.drain(..).for_each(Waker::wake);

@@ -4,7 +4,7 @@ use async_ui_web::{
     components::{Button, List, ListModel, Text, TextInput, View},
     fragment, mount,
 };
-use observables::{cell::ObservableCell, Observable, ObservableAsExt};
+use observables::{cell::ReactiveCell, Observable, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use x_bow::{create_store, Store, Track};
 
@@ -123,7 +123,7 @@ async fn list_content(store: &Store<State>) {
     .await;
 }
 async fn input_box(store: &Store<State>) {
-    let value = ObservableCell::new(String::new());
+    let value = ReactiveCell::new(String::new());
     let submit = || {
         let text = value.as_observable().borrow_observable().clone();
         value.borrow_mut().clear();

@@ -5,6 +5,7 @@ pub mod backend;
 pub mod components;
 pub mod executor;
 mod mount;
+pub mod utils;
 mod window;
 pub use mount::{mount, mount_at};
 

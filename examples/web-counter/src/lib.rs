@@ -2,7 +2,7 @@ use async_ui_web::{
     components::{Button, Text},
     fragment, mount,
 };
-use observables::{cell::ObservableCell, ObservableAsExt};
+use observables::{cell::ReactiveCell, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 
 #[wasm_bindgen(start)]
@@ -22,7 +22,7 @@ async fn root() {
     .await
 }
 async fn counter() {
-    let value = ObservableCell::new(0);
+    let value = ReactiveCell::new(0);
 
     fragment![
         Button {

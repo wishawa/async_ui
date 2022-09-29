@@ -4,14 +4,14 @@ use async_ui_gtk::{
     components::{Button, Text, TextInput},
     fragment, mount, Fragment,
 };
-use observables::{cell::ObservableCell, ObservableAsExt};
+use observables::{cell::ReactiveCell, ObservableAsExt};
 use rand::Rng;
 
 fn main() {
     mount(counter())
 }
 async fn counter() {
-    let count = ObservableCell::new(0);
+    let count = ReactiveCell::new(0);
     fragment![
         Button {
             on_press: &mut |_| {
@@ -36,7 +36,7 @@ async fn counter() {
     .await;
 }
 async fn input_test() {
-    let text = ObservableCell::new(String::new());
+    let text = ReactiveCell::new(String::new());
     fragment![
         TextInput {
             on_blur: &mut |ev| {

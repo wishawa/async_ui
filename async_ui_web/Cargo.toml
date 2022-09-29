@@ -44,4 +44,5 @@ features = [
 	'KeyboardEvent',
 	'FocusEvent',
 	'Comment',
+	'DomTokenList',
 ]
