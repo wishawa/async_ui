@@ -4,6 +4,7 @@
 
 body {
 	background-color: #f8f8f8;
+	font-family: system-ui, sans-serif;
 }
 
 button {
@@ -148,6 +149,8 @@ input {
 	display: flex;
 	flex-direction: row;
 	justify-content: space-between;
+	align-items: center;
+	height: 1.5rem;
 }
 .clear-button {
 	background: none;
