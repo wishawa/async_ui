@@ -2,23 +2,15 @@ use crate::{utils::class_list::ClassList, window::DOCUMENT, Fragment};
 
 use super::ElementFuture;
 
-pub enum ViewProp<'c> {
-    Children(Fragment<'c>),
-    Class(&'c ClassList<'c>),
+#[derive(Default)]
+pub struct ViewProp<'c> {
+    pub children: Option<Fragment<'c>>,
+    pub class: Option<&'c ClassList<'c>>,
 }
-pub async fn view<'c, I: IntoIterator<Item = ViewProp<'c>>>(props: I) {
-    view_inner(&mut props.into_iter()).await;
-}
-async fn view_inner<'c>(props: &mut dyn Iterator<Item = ViewProp<'c>>) {
-    let mut children = None;
+pub async fn view<'c>(ViewProp { children, class }: ViewProp<'c>) {
     let elem = DOCUMENT.with(|doc| doc.create_element("div").expect("create element failed"));
-    for prop in props {
-        match prop {
-            ViewProp::Children(v) => children = Some(v),
-            ViewProp::Class(v) => {
-                v.set_dom(elem.class_list());
-            }
-        }
+    if let Some(class) = class {
+        class.set_dom(elem.class_list());
     }
     ElementFuture::new(children.unwrap_or_default(), elem.into()).await;
 }

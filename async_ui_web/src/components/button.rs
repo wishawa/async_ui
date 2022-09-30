@@ -13,22 +13,23 @@ use super::{
 };
 
 #[derive(Default)]
-pub enum ButtonProp<'c> {
-    Children(Fragment<'c>),
-    OnPress(&'c mut dyn FnMut(PressEvent)),
-    Class(&'c ClassList<'c>),
-    #[default]
-    Null,
+pub struct ButtonProp<'c> {
+    pub children: Option<Fragment<'c>>,
+    pub on_press: Option<&'c mut dyn FnMut(PressEvent)>,
+    pub class: Option<&'c ClassList<'c>>,
 }
 
 pub struct PressEvent {
     pub native_event: MouseEvent,
 }
 
-pub async fn button<'c, I: IntoIterator<Item = ButtonProp<'c>>>(props: I) {
-    button_inner(&mut props.into_iter()).await;
-}
-async fn button_inner<'c>(props: &mut dyn Iterator<Item = ButtonProp<'c>>) {
+pub async fn button<'c>(
+    ButtonProp {
+        children,
+        mut on_press,
+        class,
+    }: ButtonProp<'c>,
+) {
     let button = DOCUMENT.with(|doc| {
         let elem = doc.create_element("button").expect("create element failed");
         let elem: HtmlButtonElement = elem.unchecked_into();
@@ -38,22 +39,13 @@ async fn button_inner<'c>(props: &mut dyn Iterator<Item = ButtonProp<'c>>) {
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
 
-    let mut children = None;
-    let mut on_press = None;
-    for prop in props {
-        match prop {
-            ButtonProp::Children(v) => children = Some(v),
-            ButtonProp::OnPress(v) => {
-                let h = create_handler(&manager, |e| QueuedEvent::Click(e));
-                button.set_onclick(Some(h.get_function()));
-                handlers.push(h);
-                on_press = Some(v);
-            }
-            ButtonProp::Class(v) => {
-                v.set_dom(button.class_list());
-            }
-            ButtonProp::Null => {}
-        }
+    if on_press.is_some() {
+        let h = create_handler(&manager, |e| QueuedEvent::Click(e));
+        button.set_onclick(Some(h.get_function()));
+        handlers.push(h);
+    }
+    if let Some(class) = class {
+        class.set_dom(button.class_list());
     }
 
     let future = (async {

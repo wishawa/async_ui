@@ -32,40 +32,33 @@ fn insert_after(parent: &Node, child: &Node, after: Option<&Node>) {
         .expect("insert failed");
 }
 
-#[derive(Default)]
-pub enum ListProp<'c, T: Clone, F: IntoFuture<Output = ()>> {
-    Data(&'c dyn ObservableAs<ListModel<T>>),
-    Render(&'c dyn Fn(T) -> F),
-    Class(&'c ClassList<'c>),
-    #[default]
-    Null,
+pub struct ListProp<'c, T: Clone, F: IntoFuture<Output = ()>> {
+    pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
+    pub render: Option<&'c dyn Fn(T) -> F>,
+    pub class: Option<&'c ClassList<'c>>,
 }
-pub async fn list<
-    'c,
-    T: Clone + 'c,
-    F: IntoFuture<Output = ()> + 'c,
-    I: IntoIterator<Item = ListProp<'c, T, F>>,
->(
-    props: I,
-) {
-    list_inner(&mut props.into_iter()).await;
+impl<'c, T: Clone + 'c, F: IntoFuture<Output = ()>> Default for ListProp<'c, T, F> {
+    fn default() -> Self {
+        Self {
+            data: Default::default(),
+            render: Default::default(),
+            class: Default::default(),
+        }
+    }
 }
 
-async fn list_inner<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
-    props: &mut dyn Iterator<Item = ListProp<'c, T, F>>,
+pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
+    ListProp {
+        data,
+        render,
+        class,
+    }: ListProp<'c, T, F>,
 ) {
     let container_node =
         DOCUMENT.with(|doc| doc.create_element("div").expect("create element failed"));
 
-    let mut data = None;
-    let mut render = None;
-    for prop in props {
-        match prop {
-            ListProp::Data(v) => data = Some(v),
-            ListProp::Render(v) => render = Some(v),
-            ListProp::Class(v) => v.set_dom(container_node.class_list()),
-            ListProp::Null => {}
-        }
+    if let Some(class) = class {
+        class.set_dom(container_node.class_list());
     }
     let (data, render) = match (data, render) {
         (Some(d), Some(r)) => (d, r),

@@ -13,15 +13,17 @@ pub fn run() -> Result<(), JsValue> {
 async fn counter() {
     let value = ReactiveCell::new(0);
     fragment((
-        button([
-            ButtonProp::Children(fragment((text(&"decrement"),))),
-            ButtonProp::OnPress(&mut |_ev| *value.borrow_mut() -= 1),
-        ]),
+        button(ButtonProp {
+            children: Some(fragment((text(&"decrement"),))),
+            on_press: Some(&mut |_ev| *value.borrow_mut() -= 1),
+            ..Default::default()
+        }),
         text(&value.as_observable().map(|v| format!("the count is {v}"))),
-        button([
-            ButtonProp::Children(fragment((text(&"increment"),))),
-            ButtonProp::OnPress(&mut |_ev| *value.borrow_mut() += 1),
-        ]),
+        button(ButtonProp {
+            children: Some(fragment((text(&"increment"),))),
+            on_press: Some(&mut |_ev| *value.borrow_mut() += 1),
+            ..Default::default()
+        }),
     ))
     .await;
 }

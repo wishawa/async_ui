@@ -47,47 +47,32 @@ impl TextInputEvent {
     }
 }
 #[derive(Default)]
-pub enum TextInputProp<'c> {
-    Text(&'c dyn ObservableAs<str>),
-    OnChangeText(&'c mut dyn FnMut(TextInputEvent)),
-    OnSubmit(&'c mut dyn FnMut(TextInputEvent)),
-    OnBlur(&'c mut dyn FnMut(TextInputEvent)),
-    OnFocus(&'c mut dyn FnMut(TextInputEvent)),
-    MultiLine(bool),
-    Class(&'c ClassList<'c>),
-    Placeholder(&'c dyn ObservableAs<str>),
-    #[default]
-    Null,
+pub struct TextInputProp<'c> {
+    pub text: Option<&'c dyn ObservableAs<str>>,
+    pub on_change_text: Option<&'c mut dyn FnMut(TextInputEvent)>,
+    pub on_submit: Option<&'c mut dyn FnMut(TextInputEvent)>,
+    pub on_blur: Option<&'c mut dyn FnMut(TextInputEvent)>,
+    pub on_focus: Option<&'c mut dyn FnMut(TextInputEvent)>,
+    pub multiline: Option<bool>,
+    pub class: Option<&'c ClassList<'c>>,
+    pub placeholder: Option<&'c dyn ObservableAs<str>>,
 }
 
-pub async fn text_input<'c, I: IntoIterator<Item = TextInputProp<'c>>>(props: I) {
-    text_input_inner(&mut props.into_iter()).await;
-}
-
-async fn text_input_inner<'c>(props: &mut dyn Iterator<Item = TextInputProp<'c>>) {
-    let mut text = None;
-    let mut on_change_text = None;
-    let mut on_submit = None;
-    let mut on_blur = None;
-    let mut on_focus = None;
-    let mut multiline = false;
-    let mut class = None;
-    let mut placeholder = None;
-    for prop in props {
-        match prop {
-            TextInputProp::Text(v) => text = Some(v),
-            TextInputProp::OnChangeText(v) => on_change_text = Some(v),
-            TextInputProp::OnSubmit(v) => on_submit = Some(v),
-            TextInputProp::OnBlur(v) => on_blur = Some(v),
-            TextInputProp::OnFocus(v) => on_focus = Some(v),
-            TextInputProp::MultiLine(v) => multiline = v,
-            TextInputProp::Class(v) => class = Some(v),
-            TextInputProp::Placeholder(v) => placeholder = Some(v),
-            TextInputProp::Null => {}
-        }
-    }
+pub async fn text_input<'c>(
+    TextInputProp {
+        text,
+        mut on_change_text,
+        mut on_submit,
+        mut on_blur,
+        mut on_focus,
+        multiline,
+        class,
+        placeholder,
+    }: TextInputProp<'c>,
+) {
     let text = text.unwrap_or(&"");
     let placeholder = placeholder.unwrap_or(&"");
+    let multiline = multiline.unwrap_or_default();
 
     let input = DOCUMENT.with(|doc| {
         let elem = doc
@@ -126,7 +111,7 @@ async fn text_input_inner<'c>(props: &mut dyn Iterator<Item = TextInputProp<'c>>
         input_elem.set_onfocus(Some(h.get_function()));
         handlers.push(h);
     }
-    if let Some(class) = class.take() {
+    if let Some(class) = class {
         class.set_dom(input.as_elem().class_list());
     }
 
