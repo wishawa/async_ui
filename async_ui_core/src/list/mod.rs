@@ -90,8 +90,6 @@ impl<T: Clone> ListModel<T> {
             if self.pending_listeners.get() == 0 {
                 self.log_start_version += self.log.len() as u64;
                 self.log.clear();
-            } else {
-                apply_change(&mut self.head, change.clone());
             }
             self.log.push_back(change);
             self.pending_listeners.set(total_listeners);
