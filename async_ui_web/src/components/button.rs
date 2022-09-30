@@ -13,7 +13,7 @@ use super::{
 };
 
 #[derive(Default)]
-pub struct ButtonProp<'c> {
+pub struct ButtonProps<'c> {
     pub children: Option<Fragment<'c>>,
     pub on_press: Option<&'c mut dyn FnMut(PressEvent)>,
     pub class: Option<&'c ClassList<'c>>,
@@ -24,11 +24,11 @@ pub struct PressEvent {
 }
 
 pub async fn button<'c>(
-    ButtonProp {
+    ButtonProps {
         children,
         mut on_press,
         class,
-    }: ButtonProp<'c>,
+    }: ButtonProps<'c>,
 ) {
     let button = DOCUMENT.with(|doc| {
         let elem = doc.create_element("button").expect("create element failed");

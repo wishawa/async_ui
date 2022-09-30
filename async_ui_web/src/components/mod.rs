@@ -22,11 +22,11 @@ mod list;
 mod text;
 mod text_input;
 mod view;
-pub use button::{button, ButtonProp};
-pub use list::{list, ListModel, ListProp};
+pub use button::{button, ButtonProps};
+pub use list::{list, ListModel, ListProps};
 pub use text::text;
-pub use text_input::{text_input, TextInputProp};
-pub use view::{view, ViewProp};
+pub use text_input::{text_input, TextInputProps};
+pub use view::{view, ViewProps};
 
 use crate::backend::Backend;
 

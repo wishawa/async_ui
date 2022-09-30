@@ -47,7 +47,7 @@ impl TextInputEvent {
     }
 }
 #[derive(Default)]
-pub struct TextInputProp<'c> {
+pub struct TextInputProps<'c> {
     pub text: Option<&'c dyn ObservableAs<str>>,
     pub on_change_text: Option<&'c mut dyn FnMut(TextInputEvent)>,
     pub on_submit: Option<&'c mut dyn FnMut(TextInputEvent)>,
@@ -59,7 +59,7 @@ pub struct TextInputProp<'c> {
 }
 
 pub async fn text_input<'c>(
-    TextInputProp {
+    TextInputProps {
         text,
         mut on_change_text,
         mut on_submit,
@@ -68,7 +68,7 @@ pub async fn text_input<'c>(
         multiline,
         class,
         placeholder,
-    }: TextInputProp<'c>,
+    }: TextInputProps<'c>,
 ) {
     let text = text.unwrap_or(&"");
     let placeholder = placeholder.unwrap_or(&"");

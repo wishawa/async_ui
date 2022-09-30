@@ -3,8 +3,8 @@ use std::{collections::HashMap, rc::Rc};
 use async_ui_web::futures_lite::FutureExt;
 use async_ui_web::{
     components::{
-        button, list, text, text_input, view, ButtonProp, ListModel, ListProp, TextInputProp,
-        ViewProp,
+        button, list, text, text_input, view, ButtonProps, ListModel, ListProps, TextInputProps,
+        ViewProps,
     },
     fragment, mount,
     utils::class_list::ClassList,
@@ -186,10 +186,10 @@ async fn root() {
             total: 0,
         },
     });
-    view(ViewProp {
+    view(ViewProps {
         children: Some(fragment((
             header(),
-            view(ViewProp {
+            view(ViewProps {
                 children: Some(fragment((
                     top_part(&store),
                     list_content(&store),
@@ -204,7 +204,7 @@ async fn root() {
     .await;
 }
 async fn header() {
-    view(ViewProp {
+    view(ViewProps {
         children: Some(fragment((text(&"todos"),))),
         class: Some(&"header-box".into()),
     })
@@ -214,7 +214,7 @@ async fn header() {
 async fn top_part(store: &Store<State>) {
     async fn toggle_all_button(store: &Store<State>) {
         let classes = ClassList::new(["toggle-all-button"]);
-        button(ButtonProp {
+        button(ButtonProps {
             class: Some(&classes),
             on_press: Some(&mut |_ev| {
                 reducers::set_all_done(store, !reducers::get_all_done(store));
@@ -241,7 +241,7 @@ async fn top_part(store: &Store<State>) {
     }
     async fn add_input_box(store: &Store<State>) {
         let value = ReactiveCell::new(String::new());
-        fragment((text_input(TextInputProp {
+        fragment((text_input(TextInputProps {
             text: Some(&value.as_observable()),
             on_submit: Some(&mut |ev| {
                 let text = ev.get_text();
@@ -259,7 +259,7 @@ async fn top_part(store: &Store<State>) {
         }),))
         .await;
     }
-    view(ViewProp {
+    view(ViewProps {
         children: Some(fragment((toggle_all_button(store), add_input_box(store)))),
         class: Some(&"top-part".into()),
     })
@@ -278,9 +278,9 @@ async fn list_content(store: &Store<State>) {
         let done_classes = ClassList::new(["done-button"]);
         let view_classes = ClassList::new(["list-item"]);
         let input_classes = ClassList::new(["item-input"]);
-        view(ViewProp {
+        view(ViewProps {
             children: Some(fragment((
-                button(ButtonProp {
+                button(ButtonProps {
                     on_press: Some(&mut |_| {
                         let done = { !*handle.done.borrow() };
                         reducers::edit_todo_done(store, id, done);
@@ -288,7 +288,7 @@ async fn list_content(store: &Store<State>) {
                     class: Some(&done_classes),
                     ..Default::default()
                 }),
-                text_input(TextInputProp {
+                text_input(TextInputProps {
                     text: Some(&handle.value.as_observable()),
                     on_blur: Some(&mut |ev| {
                         reducers::edit_todo_value(store, id, ev.get_text());
@@ -296,7 +296,7 @@ async fn list_content(store: &Store<State>) {
                     class: Some(&input_classes),
                     ..Default::default()
                 }),
-                button(ButtonProp {
+                button(ButtonProps {
                     on_press: Some(&mut |_ev| reducers::remove_todo(store, id)),
                     class: Some(&"delete-button".into()),
                     ..Default::default()
@@ -326,7 +326,7 @@ async fn list_content(store: &Store<State>) {
     }
 
     let render = &|id| list_item(store, id);
-    list(ListProp {
+    list(ListProps {
         data: Some(&store.todos_list.as_observable()),
         render: Some(render),
         class: Some(&"list-content".into()),
@@ -338,7 +338,7 @@ async fn list_content(store: &Store<State>) {
 async fn bottom_part(store: &Store<State>) {
     async fn active_label(store: &Store<State>) {
         let value = ReactiveCell::new("".into());
-        view(ViewProp {
+        view(ViewProps {
             children: Some(fragment((text(&value.as_observable()),))),
             class: Some(&"active-label-box".into()),
         })
@@ -360,7 +360,7 @@ async fn bottom_part(store: &Store<State>) {
     }
     async fn clear_button(store: &Store<State>) {
         let classes = ClassList::new(["clear-button"]);
-        button(ButtonProp {
+        button(ButtonProps {
             children: Some(fragment((text(&"Clear Completed"),))),
             on_press: Some(&mut |_ev| {
                 reducers::clear_completed(store);
@@ -384,7 +384,7 @@ async fn bottom_part(store: &Store<State>) {
                 DisplayFilter::Complete => "Complete",
             };
             let classes = ClassList::new(["filter-button"]);
-            button(ButtonProp {
+            button(ButtonProps {
                 children: Some(fragment((text(&label),))),
                 class: Some(&classes),
                 on_press: Some(&mut |_ev| {
@@ -407,16 +407,16 @@ async fn bottom_part(store: &Store<State>) {
             filter_button(store, DisplayFilter::Active),
             filter_button(store, DisplayFilter::Complete),
         ));
-        view(ViewProp {
+        view(ViewProps {
             children: Some(buttons),
             class: Some(&"filter-bar".into()),
         })
         .await;
     }
     let classes = ClassList::new(["bottom-part"]);
-    view(ViewProp {
+    view(ViewProps {
         children: Some(fragment((
-            view(ViewProp {
+            view(ViewProps {
                 children: Some(fragment((active_label(store), clear_button(store)))),
                 class: Some(&"bottom-labels".into()),
             }),
@@ -435,7 +435,7 @@ async fn bottom_part(store: &Store<State>) {
 }
 
 async fn footer() {
-    view(ViewProp {
+    view(ViewProps {
         children: Some(fragment((text(&"Made with Async-UI"),))),
         class: Some(&"footer".into()),
     })

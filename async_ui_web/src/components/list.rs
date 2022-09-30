@@ -32,12 +32,12 @@ fn insert_after(parent: &Node, child: &Node, after: Option<&Node>) {
         .expect("insert failed");
 }
 
-pub struct ListProp<'c, T: Clone, F: IntoFuture<Output = ()>> {
+pub struct ListProps<'c, T: Clone, F: IntoFuture<Output = ()>> {
     pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
     pub render: Option<&'c dyn Fn(T) -> F>,
     pub class: Option<&'c ClassList<'c>>,
 }
-impl<'c, T: Clone + 'c, F: IntoFuture<Output = ()>> Default for ListProp<'c, T, F> {
+impl<'c, T: Clone + 'c, F: IntoFuture<Output = ()>> Default for ListProps<'c, T, F> {
     fn default() -> Self {
         Self {
             data: Default::default(),
@@ -48,11 +48,11 @@ impl<'c, T: Clone + 'c, F: IntoFuture<Output = ()>> Default for ListProp<'c, T, 
 }
 
 pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
-    ListProp {
+    ListProps {
         data,
         render,
         class,
-    }: ListProp<'c, T, F>,
+    }: ListProps<'c, T, F>,
 ) {
     let container_node =
         DOCUMENT.with(|doc| doc.create_element("div").expect("create element failed"));

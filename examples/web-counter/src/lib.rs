@@ -1,5 +1,5 @@
 use async_ui_web::{
-    components::{button, text, ButtonProp},
+    components::{button, text, ButtonProps},
     fragment, mount,
 };
 use observables::{cell::ReactiveCell, ObservableAsExt};
@@ -13,13 +13,13 @@ pub fn run() -> Result<(), JsValue> {
 async fn counter() {
     let value = ReactiveCell::new(0);
     fragment((
-        button(ButtonProp {
+        button(ButtonProps {
             children: Some(fragment((text(&"decrement"),))),
             on_press: Some(&mut |_ev| *value.borrow_mut() -= 1),
             ..Default::default()
         }),
         text(&value.as_observable().map(|v| format!("the count is {v}"))),
-        button(ButtonProp {
+        button(ButtonProps {
             children: Some(fragment((text(&"increment"),))),
             on_press: Some(&mut |_ev| *value.borrow_mut() += 1),
             ..Default::default()
