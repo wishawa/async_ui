@@ -210,7 +210,209 @@ async fn header() {
     })
     .await;
 }
+
+async fn top_part(store: &Store<State>) {
+    async fn toggle_all_button(store: &Store<State>) {
+        let classes = ClassList::new(["toggle-all-button"]);
+        button(ButtonProp {
+            class: Some(&classes),
+            on_press: Some(&mut |_ev| {
+                reducers::set_all_done(store, !reducers::get_all_done(store));
+            }),
+            ..Default::default()
+        })
+        .or(async {
+            loop {
+                {
+                    let new_len = store.todos_list.borrow().len();
+                    classes.set("toggle-all-button-disabled", new_len == 0);
+                }
+                store.todos_list.as_observable().until_change().await;
+            }
+        })
+        .or(async {
+            loop {
+                let all_done = reducers::get_all_done(store);
+                classes.set("toggle-all-button-all-done", all_done);
+                store.counts.as_observable().until_change().await;
+            }
+        })
+        .await;
+    }
+    async fn add_input_box(store: &Store<State>) {
+        let value = ReactiveCell::new(String::new());
+        fragment((text_input(TextInputProp {
+            text: Some(&value.as_observable()),
+            on_submit: Some(&mut |ev| {
+                let text = ev.get_text();
+                if text.len() > 0 {
+                    value.borrow_mut().clear();
+                    reducers::add_todo(store, text);
+                }
+            }),
+            on_blur: Some(&mut |ev| {
+                *value.borrow_mut() = ev.get_text();
+            }),
+            class: Some(&"add-input".into()),
+            placeholder: Some(&"What needs to be done?"),
+            ..Default::default()
+        }),))
+        .await;
+    }
+    view(ViewProp {
+        children: Some(fragment((toggle_all_button(store), add_input_box(store)))),
+        class: Some(&"top-part".into()),
+    })
+    .await;
+}
+
+async fn list_content(store: &Store<State>) {
+    async fn list_item(store: &Store<State>, id: TodoId) {
+        let handle = {
+            if let Some(todo) = store.todos_map.borrow().get(&id) {
+                todo.to_owned()
+            } else {
+                return;
+            }
+        };
+        let done_classes = ClassList::new(["done-button"]);
+        let view_classes = ClassList::new(["list-item"]);
+        let input_classes = ClassList::new(["item-input"]);
+        view(ViewProp {
+            children: Some(fragment((
+                button(ButtonProp {
+                    on_press: Some(&mut |_| {
+                        let done = { !*handle.done.borrow() };
+                        reducers::edit_todo_done(store, id, done);
+                    }),
+                    class: Some(&done_classes),
+                    ..Default::default()
+                }),
+                text_input(TextInputProp {
+                    text: Some(&handle.value.as_observable()),
+                    on_blur: Some(&mut |ev| {
+                        reducers::edit_todo_value(store, id, ev.get_text());
+                    }),
+                    class: Some(&input_classes),
+                    ..Default::default()
+                }),
+                button(ButtonProp {
+                    on_press: Some(&mut |_ev| reducers::remove_todo(store, id)),
+                    class: Some(&"delete-button".into()),
+                    ..Default::default()
+                }),
+            ))),
+            class: Some(&view_classes),
+        })
+        .or(async {
+            let done_obs = handle.done.as_observable();
+            let filter_obs = store.filter.as_observable();
+            loop {
+                let v = *done_obs.borrow_observable();
+                let f = *filter_obs.borrow_observable();
+                done_classes.set("done-button-done", v);
+                input_classes.set("item-input-done", v);
+                let visible = match (f, v) {
+                    (DisplayFilter::All, _) => true,
+                    (DisplayFilter::Active, false) => true,
+                    (DisplayFilter::Complete, true) => true,
+                    _ => false,
+                };
+                view_classes.set("hidden", !visible);
+                done_obs.until_change().or(filter_obs.until_change()).await;
+            }
+        })
+        .await;
+    }
+
+    let render = &|id| list_item(store, id);
+    list(ListProp {
+        data: Some(&store.todos_list.as_observable()),
+        render: Some(render),
+        class: Some(&"list-content".into()),
+        ..Default::default()
+    })
+    .await;
+}
+
 async fn bottom_part(store: &Store<State>) {
+    async fn active_label(store: &Store<State>) {
+        let value = ReactiveCell::new("".into());
+        view(ViewProp {
+            children: Some(fragment((text(&value.as_observable()),))),
+            class: Some(&"active-label-box".into()),
+        })
+        .or(async {
+            loop {
+                let count = {
+                    let counts = store.counts.borrow();
+                    counts.total - counts.completed
+                };
+                *value.borrow_mut() = if count == 1 {
+                    format!("{} item left", count)
+                } else {
+                    format!("{} items left", count)
+                };
+                store.counts.as_observable().until_change().await;
+            }
+        })
+        .await;
+    }
+    async fn clear_button(store: &Store<State>) {
+        let classes = ClassList::new(["clear-button"]);
+        button(ButtonProp {
+            children: Some(fragment((text(&"Clear Completed"),))),
+            on_press: Some(&mut |_ev| {
+                reducers::clear_completed(store);
+            }),
+            class: Some(&classes),
+            ..Default::default()
+        })
+        .or(async {
+            loop {
+                classes.set("hidden", store.counts.borrow().completed == 0);
+                store.counts.as_observable().until_change().await;
+            }
+        })
+        .await;
+    }
+    async fn filter_bar(store: &Store<State>) {
+        async fn filter_button(store: &Store<State>, filter: DisplayFilter) {
+            let label = match filter {
+                DisplayFilter::All => "All",
+                DisplayFilter::Active => "Active",
+                DisplayFilter::Complete => "Complete",
+            };
+            let classes = ClassList::new(["filter-button"]);
+            button(ButtonProp {
+                children: Some(fragment((text(&label),))),
+                class: Some(&classes),
+                on_press: Some(&mut |_ev| {
+                    *store.filter.borrow_mut() = filter;
+                }),
+                ..Default::default()
+            })
+            .or(async {
+                loop {
+                    let set = *store.filter.borrow() == filter;
+                    classes.set("filter-button-selected", set);
+                    store.filter.as_observable().until_change().await;
+                }
+            })
+            .await;
+        }
+
+        let buttons = fragment((
+            filter_button(store, DisplayFilter::All),
+            filter_button(store, DisplayFilter::Active),
+            filter_button(store, DisplayFilter::Complete),
+        ));
+        view(ViewProp {
+            children: Some(buttons),
+            class: Some(&"filter-bar".into()),
+        })
+        .await;
+    }
     let classes = ClassList::new(["bottom-part"]);
     view(ViewProp {
         children: Some(fragment((
@@ -229,204 +431,6 @@ async fn bottom_part(store: &Store<State>) {
             store.counts.as_observable().until_change().await;
         }
     })
-    .await;
-}
-async fn active_label(store: &Store<State>) {
-    let value = ReactiveCell::new("".into());
-    view(ViewProp {
-        children: Some(fragment((text(&value.as_observable()),))),
-        class: Some(&"active-label-box".into()),
-    })
-    .or(async {
-        loop {
-            let count = {
-                let counts = store.counts.borrow();
-                counts.total - counts.completed
-            };
-            *value.borrow_mut() = if count == 1 {
-                format!("{} item left", count)
-            } else {
-                format!("{} items left", count)
-            };
-            store.counts.as_observable().until_change().await;
-        }
-    })
-    .await;
-}
-async fn clear_button(store: &Store<State>) {
-    let classes = ClassList::new(["clear-button"]);
-    button(ButtonProp {
-        children: Some(fragment((text(&"Clear Completed"),))),
-        on_press: Some(&mut |_ev| {
-            reducers::clear_completed(store);
-        }),
-        class: Some(&classes),
-        ..Default::default()
-    })
-    .or(async {
-        loop {
-            classes.set("hidden", store.counts.borrow().completed == 0);
-            store.counts.as_observable().until_change().await;
-        }
-    })
-    .await;
-}
-async fn filter_bar(store: &Store<State>) {
-    async fn filter_button(store: &Store<State>, filter: DisplayFilter) {
-        let label = match filter {
-            DisplayFilter::All => "All",
-            DisplayFilter::Active => "Active",
-            DisplayFilter::Complete => "Complete",
-        };
-        let classes = ClassList::new(["filter-button"]);
-        button(ButtonProp {
-            children: Some(fragment((text(&label),))),
-            class: Some(&classes),
-            on_press: Some(&mut |_ev| {
-                *store.filter.borrow_mut() = filter;
-            }),
-            ..Default::default()
-        })
-        .or(async {
-            loop {
-                let set = *store.filter.borrow() == filter;
-                classes.set("filter-button-selected", set);
-                store.filter.as_observable().until_change().await;
-            }
-        })
-        .await;
-    }
-
-    let buttons = fragment((
-        filter_button(store, DisplayFilter::All),
-        filter_button(store, DisplayFilter::Active),
-        filter_button(store, DisplayFilter::Complete),
-    ));
-    view(ViewProp {
-        children: Some(buttons),
-        class: Some(&"filter-bar".into()),
-    })
-    .await;
-}
-async fn list_item(store: &Store<State>, id: TodoId) {
-    let handle = {
-        if let Some(todo) = store.todos_map.borrow().get(&id) {
-            todo.to_owned()
-        } else {
-            return;
-        }
-    };
-    let done_classes = ClassList::new(["done-button"]);
-    let view_classes = ClassList::new(["list-item"]);
-    let input_classes = ClassList::new(["item-input"]);
-    view(ViewProp {
-        children: Some(fragment((
-            button(ButtonProp {
-                on_press: Some(&mut |_| {
-                    let done = { !*handle.done.borrow() };
-                    reducers::edit_todo_done(store, id, done);
-                }),
-                class: Some(&done_classes),
-                ..Default::default()
-            }),
-            text_input(TextInputProp {
-                text: Some(&handle.value.as_observable()),
-                on_blur: Some(&mut |ev| {
-                    reducers::edit_todo_value(store, id, ev.get_text());
-                }),
-                class: Some(&input_classes),
-                ..Default::default()
-            }),
-            button(ButtonProp {
-                on_press: Some(&mut |_ev| reducers::remove_todo(store, id)),
-                class: Some(&"delete-button".into()),
-                ..Default::default()
-            }),
-        ))),
-        class: Some(&view_classes),
-    })
-    .or(async {
-        let done_obs = handle.done.as_observable();
-        let filter_obs = store.filter.as_observable();
-        loop {
-            let v = *done_obs.borrow_observable();
-            let f = *filter_obs.borrow_observable();
-            done_classes.set("done-button-done", v);
-            input_classes.set("item-input-done", v);
-            let visible = match (f, v) {
-                (DisplayFilter::All, _) => true,
-                (DisplayFilter::Active, false) => true,
-                (DisplayFilter::Complete, true) => true,
-                _ => false,
-            };
-            view_classes.set("hidden", !visible);
-            done_obs.until_change().or(filter_obs.until_change()).await;
-        }
-    })
-    .await;
-}
-async fn list_content(store: &Store<State>) {
-    let render = &|id| list_item(store, id);
-    list(ListProp {
-        data: Some(&store.todos_list.as_observable()),
-        render: Some(render),
-        class: Some(&"list-content".into()),
-        ..Default::default()
-    })
-    .await;
-}
-async fn top_part(store: &Store<State>) {
-    view(ViewProp {
-        children: Some(fragment((toggle_all_button(store), add_input_box(store)))),
-        class: Some(&"top-part".into()),
-    })
-    .await;
-}
-async fn toggle_all_button(store: &Store<State>) {
-    let classes = ClassList::new(["toggle-all-button"]);
-    button(ButtonProp {
-        class: Some(&classes),
-        on_press: Some(&mut |_ev| {
-            reducers::set_all_done(store, !reducers::get_all_done(store));
-        }),
-        ..Default::default()
-    })
-    .or(async {
-        loop {
-            {
-                let new_len = store.todos_list.borrow().len();
-                classes.set("toggle-all-button-disabled", new_len == 0);
-            }
-            store.todos_list.as_observable().until_change().await;
-        }
-    })
-    .or(async {
-        loop {
-            let all_done = reducers::get_all_done(store);
-            classes.set("toggle-all-button-all-done", all_done);
-            store.counts.as_observable().until_change().await;
-        }
-    })
-    .await;
-}
-async fn add_input_box(store: &Store<State>) {
-    let value = ReactiveCell::new(String::new());
-    fragment((text_input(TextInputProp {
-        text: Some(&value.as_observable()),
-        on_submit: Some(&mut |ev| {
-            let text = ev.get_text();
-            if text.len() > 0 {
-                value.borrow_mut().clear();
-                reducers::add_todo(store, text);
-            }
-        }),
-        on_blur: Some(&mut |ev| {
-            *value.borrow_mut() = ev.get_text();
-        }),
-        class: Some(&"add-input".into()),
-        placeholder: Some(&"What needs to be done?"),
-        ..Default::default()
-    }),))
     .await;
 }
 
