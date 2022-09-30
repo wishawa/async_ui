@@ -14,39 +14,38 @@ This makes Future a good abstraction to build UIs on. And so I made Async-UI —
 
 ```rust
 async fn hello_world() {
-	(Text {
-		text: &"Hello World!"
-	}).await;
+	text(&"Hello World!").await;
 }
 ```
 
-Here `Text` is a built-in component provided by the library. It is a struct that implements `Future`. To render it you simply await it. The async function we just made is also a component. To render it, just `hello_world().await`.
+Here `text` is a built-in component provided by the library. It is an async function. To render it you simply await it. The `hello_world` function we just made is also a component. To render it, just `hello_world().await`.
 
 ## Easily Compose Components
 Now what if you want to render two or more things at once? You can put many Futures together into a `Fragment`. You can then pass the `Fragment` around and await it where you want to render the things you put in. Think of `Fragment` as a glorified `Vec<Box<dyn Future>>`.
 
 ```rust
 async fn hello_world_2() {
-	Fragment::new((
+	fragment((
 		hello_world(),
-		Button {
-			children: Fragment::new((
-				Text {
-					text: &"Say hello back"
-				},
-			)),
-			on_press: &mut |_ev: PressEvent| {
-				todo!()
-			},
-			..Default::default()
-		}
+		button([
+			ButtonProp::Children(
+				fragment((
+					text(&"Say hello back"),
+				))
+			),
+			ButtonProp::OnPress(
+				&mut |_ev: PressEvent| {
+					todo!();
+				}
+			)
+		])
 	)).await;
 }
 ```
 
 Here, we are rendering the "Hello World!" and a button next to it. Inside the button we have the text "Say hello back".
 
-Pretty simple right? Just create components with async functions (or structs, or async blocks), combine them with `Fragment`, and await them where you want them to render.
+Pretty simple right? Just create components with async functions (or structs, or async blocks), combine them with `fragment`, and await them where you want them to render.
 
 ## Bring your own Reactivity — or use ours
 The core of async-ui doesn't know anything about reactivity. It's just async Rust! You can use channels ([async-channel](https://crates.io/crates/async-channel) is a great crate). You can use the excellent [futures-signals](https://crates.io/crates/futures-signals) crate. You can use whatever works in async Rust.
@@ -60,23 +59,19 @@ async fn counter() {
 	// ReactiveCell is for ReactiveCell! It is like a RefCell that you can subscribe to.
 	let count_string = ReactiveCell::new(count.to_string());
 
-	Fragment::new((
-		Text {
-			// When count_string changes, the text will change.
-			text: &count_string.as_observable(),
-		},
-		Button {
-			children: Fragment::new((
-				Text: {
-					text: &"+",
-				},
-			)),
-			on_press: &mut |_press_event| {
+	fragment((
+		// When count_string changes, the text will change.
+		text(&count_string.as_observable()),
+		button([
+			ButtonProp::Children(fragment((
+				text(&"+"),
+			))),
+			ButtonProp::OnPress(&mut |_ev| {
 				// Upon press, increment count and update the string accordingly.
 				count += 1;
 				*count_string.borrow_mut() = count.to_string();
-			},
-		}
+			})
+		])
 	)).await;
 }
 ```

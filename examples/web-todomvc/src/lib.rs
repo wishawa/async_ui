@@ -158,7 +158,7 @@ mod reducers {
     }
 }
 
-#[derive(Track, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Track, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct TodoId(usize);
 
 #[derive(Track)]
@@ -197,6 +197,7 @@ async fn root() {
                 ))),
                 ViewProp::Class(&"main-container".into()),
             ]),
+            footer(),
         ))),
         ViewProp::Class(&"wrapper".into()),
     ])
@@ -314,6 +315,7 @@ async fn list_item(store: &Store<State>, id: TodoId) {
     };
     let done_classes = ClassList::new(["done-button"]);
     let view_classes = ClassList::new(["list-item"]);
+    let input_classes = ClassList::new(["item-input"]);
     view([
         ViewProp::Children(fragment((
             button([
@@ -328,32 +330,33 @@ async fn list_item(store: &Store<State>, id: TodoId) {
                 TextInputProp::OnBlur(&mut |ev| {
                     reducers::edit_todo_value(store, id, ev.get_text());
                 }),
-                TextInputProp::Class(&"item-input".into()),
+                TextInputProp::Class(&input_classes),
             ]),
             button([
                 ButtonProp::OnPress(&mut |_ev| reducers::remove_todo(store, id)),
                 ButtonProp::Class(&"delete-button".into()),
             ]),
-            async {
-                let done_obs = handle.done.as_observable();
-                let filter_obs = store.filter.as_observable();
-                loop {
-                    let v = *done_obs.borrow_observable();
-                    let f = *filter_obs.borrow_observable();
-                    done_classes.set("done-button-done", v);
-                    let visible = match (f, v) {
-                        (DisplayFilter::All, _) => true,
-                        (DisplayFilter::Active, false) => true,
-                        (DisplayFilter::Complete, true) => true,
-                        _ => false,
-                    };
-                    view_classes.set("hidden", !visible);
-                    done_obs.until_change().or(filter_obs.until_change()).await;
-                }
-            },
         ))),
         ViewProp::Class(&view_classes),
     ])
+    .or(async {
+        let done_obs = handle.done.as_observable();
+        let filter_obs = store.filter.as_observable();
+        loop {
+            let v = *done_obs.borrow_observable();
+            let f = *filter_obs.borrow_observable();
+            done_classes.set("done-button-done", v);
+            input_classes.set("item-input-done", v);
+            let visible = match (f, v) {
+                (DisplayFilter::All, _) => true,
+                (DisplayFilter::Active, false) => true,
+                (DisplayFilter::Complete, true) => true,
+                _ => false,
+            };
+            view_classes.set("hidden", !visible);
+            done_obs.until_change().or(filter_obs.until_change()).await;
+        }
+    })
     .await;
 }
 async fn list_content(store: &Store<State>) {
@@ -384,7 +387,7 @@ async fn toggle_all_button(store: &Store<State>) {
         loop {
             {
                 let new_len = store.todos_list.borrow().len();
-                classes.set("hidden", new_len == 0);
+                classes.set("toggle-all-button-disabled", new_len == 0);
             }
             store.todos_list.as_observable().until_change().await;
         }
@@ -415,5 +418,13 @@ async fn add_input_box(store: &Store<State>) {
         TextInputProp::Class(&"add-input".into()),
         TextInputProp::Placeholder(&"What needs to be done?"),
     ]),))
+    .await;
+}
+
+async fn footer() {
+    view([
+        ViewProp::Children(fragment((text(&"Made with Async-UI"),))),
+        ViewProp::Class(&"footer".into()),
+    ])
     .await;
 }
