@@ -1,12 +1,11 @@
-mod dummy;
 mod events;
 
 mod button;
 mod text;
 mod text_input;
-pub use button::Button;
-pub use text::Text;
-pub use text_input::TextInput;
+pub use button::{button, ButtonProps};
+pub use text::text;
+pub use text_input::{text_input, TextInputProps};
 
 use async_ui_core::{
     backend::BackendTrait,
