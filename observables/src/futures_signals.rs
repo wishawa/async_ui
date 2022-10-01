@@ -97,6 +97,24 @@ where
         }
     }
 }
+
+pub trait ObservableFromSignal
+where
+    Self: Signal + Unpin + Sized,
+    Self::Item: Default,
+{
+    fn as_observable(self) -> FromSignal<Self> {
+        FromSignal::new(self)
+    }
+}
+
+impl<S> ObservableFromSignal for S
+where
+    S: Signal + Unpin,
+    S::Item: Default,
+{
+}
+
 impl<S> Observable for FromSignal<S>
 where
     S: Signal + Unpin,

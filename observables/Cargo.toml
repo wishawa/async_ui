@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 futures-signals = { version = "0.3.30", optional = true }
 waker-fn = { version = "1.1.0", optional = true }
+async-channel = { version = "1.7.1", optional = true }
 pin-project-lite = "0.2.9"
 
 [features]
-default = ["futures-signals"]
+default = ["futures-signals", "async-channel"]
 futures-signals = ["dep:futures-signals", "dep:waker-fn"]
+async-channel = ["dep:async-channel", "dep:waker-fn"]

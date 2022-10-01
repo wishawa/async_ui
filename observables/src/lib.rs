@@ -14,6 +14,8 @@ mod transformers;
 mod version;
 pub use next_change::NextChangeFuture;
 
+#[cfg(feature = "async-channel")]
+pub mod async_channel;
 pub mod cell;
 #[cfg(feature = "futures-signals")]
 pub mod futures_signals;
