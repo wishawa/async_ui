@@ -4,7 +4,7 @@ use super::ElementFuture;
 
 #[derive(Default)]
 pub struct ViewProps<'c> {
-    pub children: Option<Fragment<'c>>,
+    pub children: Fragment<'c>,
     pub class: Option<&'c ClassList<'c>>,
 }
 pub async fn view<'c>(ViewProps { children, class }: ViewProps<'c>) {
@@ -12,5 +12,5 @@ pub async fn view<'c>(ViewProps { children, class }: ViewProps<'c>) {
     if let Some(class) = class {
         class.set_dom(elem.class_list());
     }
-    ElementFuture::new(children.unwrap_or_default(), elem.into()).await;
+    ElementFuture::new(children, elem.into()).await;
 }

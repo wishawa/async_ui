@@ -1,4 +1,7 @@
-use std::{future::{Future, pending}, rc::Rc};
+use std::{
+    future::{pending, Future},
+    rc::Rc,
+};
 
 use async_executor::{LocalExecutor, Task};
 thread_local! {

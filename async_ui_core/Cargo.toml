@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-scoped_async_spawn = { path = "../scoped_async_spawn/" }
+scoped_async_spawn = { path = "../scoped_async_spawn/", version = "0.1.0" }
 async-task = "4.3.0"
 async-executor = "1.4.1"
 pin-project-lite = "0.2.9"

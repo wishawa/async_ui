@@ -1,5 +1,3 @@
-use std::future::pending;
-
 use futures_lite::FutureExt;
 use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
@@ -14,7 +12,7 @@ use super::{
 
 #[derive(Default)]
 pub struct ButtonProps<'c> {
-    pub children: Option<Fragment<'c>>,
+    pub children: Fragment<'c>,
     pub on_press: Option<&'c mut dyn FnMut(PressEvent)>,
     pub class: Option<&'c ClassList<'c>>,
 }
@@ -48,14 +46,7 @@ pub async fn button<'c>(
         class.set_dom(button.class_list());
     }
 
-    let future = (async {
-        if let Some(children) = children {
-            children.await;
-        } else {
-            pending::<()>().await;
-        }
-    })
-    .or(async {
+    let future = children.or(async {
         manager.grab_waker().await;
         loop {
             let mut events = manager.get_queue().await;

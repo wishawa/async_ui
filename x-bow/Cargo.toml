@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-x-bow-macros = { path = "../x-bow-macros/" }
-observables = { path = "../observables/" }
+x-bow-macros = { path = "../x-bow-macros/", version = "0.1.0" }
+observables = { path = "../observables/", version = "0.1.0", default-features = false }

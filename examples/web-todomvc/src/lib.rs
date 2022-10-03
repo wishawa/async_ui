@@ -187,25 +187,21 @@ async fn root() {
         },
     });
     view(ViewProps {
-        children: Some(fragment((
+        children: fragment((
             header(),
             view(ViewProps {
-                children: Some(fragment((
-                    top_part(&store),
-                    list_content(&store),
-                    bottom_part(&store),
-                ))),
+                children: fragment((top_part(&store), list_content(&store), bottom_part(&store))),
                 class: Some(&"main-container".into()),
             }),
             footer(),
-        ))),
+        )),
         class: Some(&"wrapper".into()),
     })
     .await;
 }
 async fn header() {
     view(ViewProps {
-        children: Some(fragment((text(&"todos"),))),
+        children: fragment((text(&"todos"),)),
         class: Some(&"header-box".into()),
     })
     .await;
@@ -260,7 +256,7 @@ async fn top_part(store: &Store<State>) {
         .await;
     }
     view(ViewProps {
-        children: Some(fragment((toggle_all_button(store), add_input_box(store)))),
+        children: fragment((toggle_all_button(store), add_input_box(store))),
         class: Some(&"top-part".into()),
     })
     .await;
@@ -279,7 +275,7 @@ async fn list_content(store: &Store<State>) {
         let view_classes = ClassList::new(["list-item"]);
         let input_classes = ClassList::new(["item-input"]);
         view(ViewProps {
-            children: Some(fragment((
+            children: fragment((
                 button(ButtonProps {
                     on_press: Some(&mut |_| {
                         let done = { !*handle.done.borrow() };
@@ -301,7 +297,7 @@ async fn list_content(store: &Store<State>) {
                     class: Some(&"delete-button".into()),
                     ..Default::default()
                 }),
-            ))),
+            )),
             class: Some(&view_classes),
         })
         .or(async {
@@ -339,7 +335,7 @@ async fn bottom_part(store: &Store<State>) {
     async fn active_label(store: &Store<State>) {
         let value = ReactiveCell::new("".into());
         view(ViewProps {
-            children: Some(fragment((text(&value.as_observable()),))),
+            children: fragment((text(&value.as_observable()),)),
             class: Some(&"active-label-box".into()),
         })
         .or(async {
@@ -361,7 +357,7 @@ async fn bottom_part(store: &Store<State>) {
     async fn clear_button(store: &Store<State>) {
         let classes = ClassList::new(["clear-button"]);
         button(ButtonProps {
-            children: Some(fragment((text(&"Clear Completed"),))),
+            children: fragment((text(&"Clear Completed"),)),
             on_press: Some(&mut |_ev| {
                 reducers::clear_completed(store);
             }),
@@ -385,7 +381,7 @@ async fn bottom_part(store: &Store<State>) {
             };
             let classes = ClassList::new(["filter-button"]);
             button(ButtonProps {
-                children: Some(fragment((text(&label),))),
+                children: fragment((text(&label),)),
                 class: Some(&classes),
                 on_press: Some(&mut |_ev| {
                     *store.filter.borrow_mut() = filter;
@@ -408,20 +404,20 @@ async fn bottom_part(store: &Store<State>) {
             filter_button(store, DisplayFilter::Complete),
         ));
         view(ViewProps {
-            children: Some(buttons),
+            children: buttons,
             class: Some(&"filter-bar".into()),
         })
         .await;
     }
     let classes = ClassList::new(["bottom-part"]);
     view(ViewProps {
-        children: Some(fragment((
+        children: fragment((
             view(ViewProps {
-                children: Some(fragment((active_label(store), clear_button(store)))),
+                children: (fragment((active_label(store), clear_button(store)))),
                 class: Some(&"bottom-labels".into()),
             }),
             filter_bar(store),
-        ))),
+        )),
         class: Some(&classes),
     })
     .or(async {
@@ -436,7 +432,7 @@ async fn bottom_part(store: &Store<State>) {
 
 async fn footer() {
     view(ViewProps {
-        children: Some(fragment((text(&"Made with Async-UI"),))),
+        children: fragment((text(&"Made with Async-UI"),)),
         class: Some(&"footer".into()),
     })
     .await;

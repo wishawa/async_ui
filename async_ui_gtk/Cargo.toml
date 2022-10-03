@@ -6,10 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-observables = { path = "../observables/" }
-async_ui_core = { path = "../async_ui_core/" }
+observables = { path = "../observables/", version = "0.1.0" }
+async_ui_core = { path = "../async_ui_core/", version = "0.1.0" }
 async-task = "4.3.0"
-scoped_async_spawn = { path = "../scoped_async_spawn/" }
+scoped_async_spawn = { path = "../scoped_async_spawn/", version = "0.1.0" }
 
 scoped-tls = "1.0.0"
 waker-fn = "1.1.0"
