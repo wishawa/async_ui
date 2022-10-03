@@ -4,10 +4,12 @@ mod button;
 mod list;
 mod text;
 mod text_input;
+mod view;
 pub use button::{button, ButtonProps};
-pub use list::{list, ListProps};
+pub use list::{list, ListModel, ListProps};
 pub use text::text;
 pub use text_input::{text_input, TextInputProps};
+pub use view::{view, ViewProps};
 
 use async_ui_core::{
     backend::BackendTrait,

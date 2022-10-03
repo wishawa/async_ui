@@ -1,7 +1,4 @@
-use std::{
-    future::{pending, IntoFuture},
-    rc::Rc,
-};
+use std::{future::IntoFuture, rc::Rc};
 
 use async_task::Task;
 pub use async_ui_core::list::ListModel;
@@ -63,7 +60,6 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
     let (data, render) = match (data, render) {
         (Some(d), Some(r)) => (d, r),
         _ => {
-            pending::<()>().await;
             return;
         }
     };

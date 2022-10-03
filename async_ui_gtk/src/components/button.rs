@@ -1,5 +1,3 @@
-use std::future::pending;
-
 use futures_lite::FutureExt;
 use glib::Cast;
 use gtk::traits::ButtonExt;
@@ -17,7 +15,7 @@ use super::{
 pub struct PressEvent {}
 #[derive(Default)]
 pub struct ButtonProps<'c> {
-    pub children: Option<Fragment<'c>>,
+    pub children: Fragment<'c>,
     pub on_press: Option<&'c mut (dyn FnMut(PressEvent) + 'c)>,
 }
 
@@ -34,14 +32,7 @@ pub async fn button<'c>(
         button.connect_clicked(move |_b| mgr.add_event(QueuedEvent::Click));
     }
     ElementFuture::new(
-        (async {
-            if let Some(children) = children {
-                children.await;
-            } else {
-                pending::<()>().await;
-            }
-        })
-        .or(async {
+        (children).or(async {
             manager.grab_waker().await;
             loop {
                 let mut events = manager.get_queue().await;

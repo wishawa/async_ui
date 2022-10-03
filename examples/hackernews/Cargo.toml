@@ -1,0 +1,18 @@
+[package]
+name = "hackernews"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+observables = { path = "../../observables/" }
+serde = { version = "1.0", features = ["derive"] }
+surf = { version = "2.3.2", default-features = false }
+async_ui_gtk = { path = "../../async_ui_gtk/", optional = true }
+async_ui_web = { path = "../../async_ui_web/", optional = true }
+
+[features]
+default = []
+web = ["dep:async_ui_web", "surf/wasm-client"]
+gtk = ["dep:async_ui_gtk", "surf/h1-client-rustls"]

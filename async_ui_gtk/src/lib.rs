@@ -5,6 +5,7 @@ pub mod components;
 mod executor;
 mod mount;
 mod widget;
+pub use gtk;
 pub use mount::{mount, mount_at};
 
 pub type Fragment<'c> = FragmentBase<'c, Backend>;

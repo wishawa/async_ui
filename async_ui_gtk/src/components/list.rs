@@ -1,15 +1,16 @@
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
-    future::{pending, IntoFuture},
+    future::IntoFuture,
     rc::Rc,
 };
 
 use async_task::Task;
+pub use async_ui_core::list::ListModel;
 use async_ui_core::{
     backend::BackendTrait,
     executor::spawn_local,
-    list::{Change, ListModel, ListModelPrivateAPIs},
+    list::{Change, ListModelPrivateAPIs},
     vnode::{
         node_concrete::{ConcreteNodeVNode, RefNode},
         VNodeTrait, WithVNode,
@@ -17,7 +18,7 @@ use async_ui_core::{
 };
 use futures_lite::pin;
 use glib::{Cast, Object, ObjectExt, StaticType};
-use gtk::{gio::ListStore, SingleSelection, Widget};
+use gtk::{gio::ListStore, NoSelection, Widget};
 use im_rc::Vector;
 use observables::{ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;
@@ -98,6 +99,14 @@ pub struct ListProps<'c, T: Clone, F: IntoFuture<Output = ()>> {
     pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
     pub render: Option<&'c dyn Fn(T) -> F>,
 }
+impl<'c, T: Clone, F: IntoFuture<Output = ()>> Default for ListProps<'c, T, F> {
+    fn default() -> Self {
+        Self {
+            data: None,
+            render: None,
+        }
+    }
+}
 struct ListItemWidgetOp;
 impl SingleChildWidgetOp for ListItemWidgetOp {
     fn set_child(&self, this: &Object, child: &mut WrappedWidget) {
@@ -127,17 +136,18 @@ pub async fn list<'c, T: Clone, F: IntoFuture<Output = ()>>(
     let (data, render) = match (data, render) {
         (Some(d), Some(r)) => (d, r),
         _ => {
-            pending::<()>().await;
             return;
         }
     };
     let store = ListStore::new(KeyObject::static_type());
-    let selection_model = SingleSelection::new(Some(&store));
+    let selection_model = NoSelection::new(Some(&store));
     let factory = gtk::SignalListItemFactory::new();
     let list_view = gtk::ListView::new(Some(&selection_model), Some(&factory));
     let scrolled_window = gtk::ScrolledWindow::builder()
         .hscrollbar_policy(gtk::PolicyType::Never)
         .child(&list_view)
+        .propagate_natural_height(true)
+        .propagate_natural_width(true)
         .build();
     let dummy_widget = gtk::Label::new(None);
 
@@ -156,22 +166,17 @@ pub async fn list<'c, T: Clone, F: IntoFuture<Output = ()>>(
         pin!(guard);
         let bind_channel = Rc::new(RefCell::new(VecDeque::new()));
 
-        // let waker = poll_fn(|cx| Poll::Ready(cx.waker().to_owned())).await;
-        // let waker_bind = waker.clone();
         let bind_channel_bind = bind_channel.clone();
         factory.connect_bind(move |_fac, li| {
             bind_channel_bind
                 .borrow_mut()
                 .push_back((li.to_owned(), true));
-            // waker_bind.wake_by_ref();
         });
-        // let waker_unbind = waker.clone();
         let bind_channel_unbind = bind_channel.clone();
         factory.connect_unbind(move |_fac, li| {
             bind_channel_unbind
                 .borrow_mut()
                 .push_back((li.to_owned(), false));
-            // waker_unbind.wake_by_ref();
         });
 
         let mut last_version = {
@@ -189,7 +194,11 @@ pub async fn list<'c, T: Clone, F: IntoFuture<Output = ()>>(
                     store.append(&KeyObject::new(current_id));
                 }
             }
-            ListModelPrivateAPIs(&start_bm).get_version()
+            let model = ListModelPrivateAPIs(&start_bm);
+            model
+                .total_listeners()
+                .set(model.total_listeners().get() + 1);
+            model.get_version()
         };
         drop(start_bm);
         let _guard = scopeguard::guard((), |_| {
@@ -301,5 +310,6 @@ pub async fn list<'c, T: Clone, F: IntoFuture<Output = ()>>(
             inner_widget: dummy_widget.upcast(),
             op: WidgetOp::NoChild,
         },
-    );
+    )
+    .await;
 }
