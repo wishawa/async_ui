@@ -162,8 +162,8 @@ pub async fn text_input<'c>(
             }
         }),
         WrappedWidget {
-            widget: input.upcast(),
-            inner_widget: None,
+            widget: input.clone().upcast(),
+            inner_widget: input.upcast(),
             op: WidgetOp::NoChild,
         },
     )

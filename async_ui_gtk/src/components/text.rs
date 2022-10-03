@@ -7,7 +7,7 @@ use super::ElementFuture;
 
 pub async fn text<'c>(text: &'c dyn ObservableAs<str>) {
     let node = gtk::Label::new(None);
-    let widget = node.clone().upcast();
+    let widget: gtk::Widget = node.clone().upcast();
     ElementFuture::new(
         async {
             loop {
@@ -16,8 +16,8 @@ pub async fn text<'c>(text: &'c dyn ObservableAs<str>) {
             }
         },
         WrappedWidget {
-            widget,
-            inner_widget: None,
+            widget: widget.clone(),
+            inner_widget: widget.upcast(),
             op: WidgetOp::NoChild,
         },
     )

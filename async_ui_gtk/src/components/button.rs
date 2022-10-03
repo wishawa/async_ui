@@ -56,8 +56,8 @@ pub async fn button<'c>(
             }
         }),
         WrappedWidget {
-            widget: button.upcast(),
-            inner_widget: None,
+            widget: button.clone().upcast(),
+            inner_widget: button.upcast(),
             op: WidgetOp::SingleChild(&ButtonOp),
         },
     )

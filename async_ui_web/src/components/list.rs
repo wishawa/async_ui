@@ -17,7 +17,7 @@ use async_ui_core::{
 use futures_lite::pin;
 use im_rc::Vector;
 use observables::{ObservableAs, ObservableAsExt};
-use scoped_async_spawn::{boxed::ScopeSafeBox, SpawnGuard};
+use scoped_async_spawn::SpawnGuard;
 use slab::Slab;
 use web_sys::Node;
 
@@ -69,7 +69,7 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
     };
     let container_node: Node = container_node.clone().into();
     let container_node_copy = container_node.clone();
-    let inside = ScopeSafeBox::from_boxed(Box::new(async move {
+    let inside = async move {
         let parent_vnode = Backend::get_vnode_key().with(Clone::clone);
 
         let parent_context = parent_vnode.get_context_map();
@@ -176,6 +176,6 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
                     .set(model_priv.pending_listeners().get() - 1);
             }
         }
-    }) as _);
+    };
     ElementFuture::new(inside, container_node_copy).await
 }

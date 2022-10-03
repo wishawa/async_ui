@@ -5,7 +5,7 @@ use super::{MultiChildWidgetOp, WrappedWidget};
 
 pub struct GtkBoxOp;
 impl MultiChildWidgetOp for GtkBoxOp {
-    fn remove_child(&self, this: &gtk::Widget, child: &mut WrappedWidget) {
+    fn remove_child(&self, this: &glib::Object, child: &mut WrappedWidget) {
         let casted = this.downcast_ref::<gtk::Box>().unwrap();
         casted.remove(&child.widget);
     }

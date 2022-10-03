@@ -8,16 +8,16 @@ pub struct GtkCenterBoxOpEnd;
 macro_rules! impl_for {
     ($name:ident, $set_wg:ident, $get_wg:ident) => {
         impl SingleChildWidgetOp for $name {
-            fn set_child(&self, this: &gtk::Widget, child: &mut WrappedWidget) {
+            fn set_child(&self, this: &glib::Object, child: &mut WrappedWidget) {
                 let casted = this.downcast_ref::<gtk::CenterBox>().unwrap();
                 casted.$set_wg(Some(&child.widget));
             }
 
-            fn get_child(&self, this: &gtk::Widget) -> Option<gtk::Widget> {
+            fn get_child(&self, this: &glib::Object) -> Option<gtk::Widget> {
                 let casted = this.downcast_ref::<gtk::CenterBox>().unwrap();
                 casted.$get_wg()
             }
-            fn unset_child(&self, this: &gtk::Widget) {
+            fn unset_child(&self, this: &glib::Object) {
                 let casted = this.downcast_ref::<gtk::CenterBox>().unwrap();
                 casted.$set_wg(Option::<&gtk::Widget>::None);
             }

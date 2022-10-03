@@ -22,8 +22,8 @@ pub fn mount_at<F: IntoFuture<Output = ()> + 'static>(root: F, node: gtk::Box) {
             ConcreteNodeVNode::new(
                 RefNode::<Backend>::Parent {
                     parent: WrappedWidget {
-                        widget: node.upcast(),
-                        inner_widget: None,
+                        widget: node.clone().upcast(),
+                        inner_widget: node.upcast(),
                         op: crate::widget::WidgetOp::MultiChild(&GtkBoxOp),
                     },
                 },

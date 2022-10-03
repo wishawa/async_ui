@@ -1,4 +1,4 @@
-use glib::Cast;
+use glib::{Cast, Object};
 use gtk::{
     traits::{BoxExt, WidgetExt},
     Widget,
@@ -15,13 +15,13 @@ pub trait WrappedWidgetTrait {}
 #[derive(Clone)]
 pub struct WrappedWidget {
     pub(crate) widget: Widget,
-    pub(crate) inner_widget: Option<Widget>,
+    pub(crate) inner_widget: glib::Object,
     pub(crate) op: WidgetOp,
 }
 
 impl WrappedWidget {
     pub fn add_child_node(&mut self, child: &mut Self, insert_before_sibling: Option<&Self>) {
-        let this = self.inner_widget.as_ref().unwrap_or(&self.widget);
+        let this = &self.inner_widget;
         match self.op {
             WidgetOp::MultiChild(mc) => {
                 mc.add_child(this, child, insert_before_sibling);
@@ -36,11 +36,11 @@ impl WrappedWidget {
                         this,
                         &mut WrappedWidget {
                             widget: widget.clone(),
-                            inner_widget: None,
+                            inner_widget: widget.clone().upcast(),
                             op,
                         },
                     );
-                    self.inner_widget = Some(widget);
+                    self.inner_widget = widget.upcast();
                     self.op = op;
                     self.add_child_node(child, insert_before_sibling);
                 } else {
@@ -51,7 +51,7 @@ impl WrappedWidget {
         }
     }
     pub fn del_child_node(&mut self, child: &mut Self) {
-        let this = self.inner_widget.as_ref().unwrap_or(&self.widget);
+        let this = &self.inner_widget;
         match self.op {
             WidgetOp::MultiChild(mc) => {
                 mc.remove_child(this, child);
@@ -72,14 +72,17 @@ pub enum WidgetOp {
 }
 
 pub trait MultiChildWidgetOp {
-    fn add_child(&self, this: &Widget, child: &mut WrappedWidget, before: Option<&WrappedWidget>) {
-        child.widget.insert_before(this, before.map(|w| &w.widget));
+    fn add_child(&self, this: &Object, child: &mut WrappedWidget, before: Option<&WrappedWidget>) {
+        child.widget.insert_before(
+            this.downcast_ref::<Widget>().unwrap(),
+            before.map(|w| &w.widget),
+        );
     }
-    fn remove_child(&self, this: &Widget, child: &mut WrappedWidget);
+    fn remove_child(&self, this: &Object, child: &mut WrappedWidget);
 }
 
 pub trait SingleChildWidgetOp {
-    fn set_child(&self, this: &Widget, child: &mut WrappedWidget);
-    fn get_child(&self, this: &Widget) -> Option<Widget>;
-    fn unset_child(&self, this: &Widget);
+    fn set_child(&self, this: &Object, child: &mut WrappedWidget);
+    fn get_child(&self, this: &Object) -> Option<Widget>;
+    fn unset_child(&self, this: &Object);
 }

@@ -4,17 +4,17 @@ macro_rules! impl_for {
     ($name:ident, $opname:ident) => {
         pub struct $opname;
         impl SingleChildWidgetOp for $opname {
-            fn set_child(&self, this: &gtk::Widget, child: &mut WrappedWidget) {
+            fn set_child(&self, this: &glib::Object, child: &mut WrappedWidget) {
                 let casted = this.downcast_ref::<gtk::$name>().unwrap();
                 casted.set_child(Some(&child.widget));
             }
 
-            fn get_child(&self, this: &gtk::Widget) -> Option<gtk::Widget> {
+            fn get_child(&self, this: &glib::Object) -> Option<gtk::Widget> {
                 let casted = this.downcast_ref::<gtk::$name>().unwrap();
                 casted.child()
             }
 
-            fn unset_child(&self, this: &gtk::Widget) {
+            fn unset_child(&self, this: &glib::Object) {
                 let casted = this.downcast_ref::<gtk::$name>().unwrap();
                 casted.set_child(Option::<&gtk::Widget>::None);
             }
