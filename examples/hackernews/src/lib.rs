@@ -10,7 +10,7 @@ use async_ui::{
     fragment, mount,
 };
 #[cfg(feature = "web")]
-use async_ui_web::components::{link, ListProps};
+use async_ui_web::components::{link, LinkProps};
 use observables::cell::ReactiveCell;
 
 pub async fn root() {
@@ -34,45 +34,42 @@ pub async fn root() {
                     .await?
                     .body_json()
                     .await?;
-                let by_string = format!("by: {}", story.by);
-                let score_string = format!("{} points", story.score);
 
-                let children = fragment((
-                    view(ViewProps {
-                        children: fragment((text(&story.title),)),
-                        #[cfg(feature = "web")]
-                        class: Some(&"story-title".into()),
-                        ..Default::default()
-                    }),
-                    view(ViewProps {
-                        children: fragment((
-                            view(ViewProps {
-                                children: fragment((text(&by_string),)),
-                                #[cfg(feature = "web")]
-                                class: Some(&"story-author".into()),
-                                ..Default::default()
-                            }),
-                            view(ViewProps {
-                                children: fragment((text(&score_string),)),
-                                ..Default::default()
-                            }),
-                        )),
-                        #[cfg(feature = "web")]
-                        class: Some(&"story-info-bar".into()),
-                        ..Default::default()
-                    }),
-                ));
                 #[cfg(feature = "web")]
-                link(LinkProps {
-                    children,
-                    class: Some(&"story-item".into()),
-                    href: Some(&story.url),
-                    ..Default::default()
-                })
-                .await;
+                use {link as item_wrap, LinkProps as ItemWrapProps};
                 #[cfg(feature = "gtk")]
-                view(ViewProps {
-                    children,
+                use {view as item_wrap, ViewProps as ItemWrapProps};
+
+                item_wrap(ItemWrapProps {
+                    children: fragment((
+                        view(ViewProps {
+                            children: fragment((text(&story.title),)),
+                            #[cfg(feature = "web")]
+                            class: Some(&"story-title".into()),
+                            ..Default::default()
+                        }),
+                        view(ViewProps {
+                            children: fragment((
+                                view(ViewProps {
+                                    children: fragment((text(&format!("by: {}", story.by)),)),
+                                    #[cfg(feature = "web")]
+                                    class: Some(&"story-author".into()),
+                                    ..Default::default()
+                                }),
+                                view(ViewProps {
+                                    children: fragment((text(&format!("{} points", story.score)),)),
+                                    ..Default::default()
+                                }),
+                            )),
+                            #[cfg(feature = "web")]
+                            class: Some(&"story-info-bar".into()),
+                            ..Default::default()
+                        }),
+                    )),
+                    #[cfg(feature = "web")]
+                    class: Some(&"story-item".into()),
+                    #[cfg(feature = "web")]
+                    href: Some(&story.url),
                     ..Default::default()
                 })
                 .await;
@@ -88,7 +85,7 @@ pub async fn root() {
                 ..Default::default()
             }),
             button(ButtonProps {
-                children: fragment((text(&"load more"),)),
+                children: fragment((text(&"Load More Stories"),)),
                 on_press: Some(&mut |_ev| {
                     let mut bm = list_model.borrow_mut();
                     for item in ids.drain(..40) {
