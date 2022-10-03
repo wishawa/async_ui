@@ -1,0 +1,19 @@
+.story-item {
+	display: flex;
+	flex-direction: column;
+	padding: 0.5rem;
+	margin: 0.5rem;
+	border-radius: 1rem;
+	box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2);
+	max-width: 36rem;
+	color: black;
+	background-color: white;
+	text-decoration: none;
+}
+
+
+.story-info-bar {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+}
