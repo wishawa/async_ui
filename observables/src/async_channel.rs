@@ -68,10 +68,10 @@ impl<T: Default> FromReceiver<T> {
 }
 
 pub trait ObservableFromChannel<T> {
-    fn as_observable(receiver: Receiver<T>) -> FromReceiver<T>;
+    fn as_observable(self) -> FromReceiver<T>;
 }
 impl<T: Default> ObservableFromChannel<T> for Receiver<T> {
-    fn as_observable(receiver: Receiver<T>) -> FromReceiver<T> {
-        FromReceiver::new(receiver)
+    fn as_observable(self) -> FromReceiver<T> {
+        FromReceiver::new(self)
     }
 }
