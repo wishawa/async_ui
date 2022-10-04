@@ -2,6 +2,9 @@
 name = "async_ui_web"
 version = "0.1.0"
 edition = "2021"
+description = "Async UI for the Browser"
+license = "MPL-2.0"
+repository = "https://github.com/wishawa/async_ui"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
