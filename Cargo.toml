@@ -12,6 +12,7 @@ members = [
 	"examples/playground/",
 	"examples/web-counter/",
 	"examples/gtk-counter/",
+	"examples/gtk-login-form/",
 	"examples/web-todomvc/",
 	"examples/hackernews/",
 	"examples/web-hackernews/",

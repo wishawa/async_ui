@@ -8,6 +8,8 @@ mod widget;
 pub use gtk;
 pub use mount::{mount, mount_at};
 
+pub use futures_lite;
+
 pub type Fragment<'c> = FragmentBase<'c, Backend>;
 
 pub mod __private_macro_only {

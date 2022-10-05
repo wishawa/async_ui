@@ -1,0 +1,11 @@
+[package]
+name = "gtk-login-form"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async_ui_gtk = { path = "../../async_ui_gtk/" }
+observables = { path = "../../observables/" }
+futures-timer = "3.0.2"
