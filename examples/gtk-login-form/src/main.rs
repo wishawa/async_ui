@@ -11,7 +11,10 @@ fn main() {
     mount(root());
 }
 async fn root() {
+    // Make the user log in
     login_flow().await;
+
+    // They're logged in!
     text(&"You're in!").await;
 }
 async fn login_flow() {
@@ -38,6 +41,7 @@ async fn check_login(username: String, password: String) -> bool {
     username == "wisha" && password == "hunter2"
 }
 async fn invalid_login_popup() {
+    // This is not a popup. I haven't implemented popups yet.
     text(&"login invalid :(").await;
 }
 async fn login_form() -> (String, String) {
@@ -46,24 +50,31 @@ async fn login_form() -> (String, String) {
     let done = ReactiveCell::new(false);
     race(
         fragment((
+            // Username input
             text_input(TextInputProps {
                 on_blur: Some(&mut |ev| username = ev.get_text()),
                 placeholder: Some(&"Username"),
                 ..Default::default()
             }),
+            // Password input
             text_input(TextInputProps {
                 on_blur: Some(&mut |ev| password = ev.get_text()),
                 placeholder: Some(&"Password"),
                 ..Default::default()
             }),
+            // Submit button
             button(ButtonProps {
                 children: fragment((text(&"submit"),)),
                 on_press: Some(&mut |_ev| {
+                    // When user press submit, set done to true...
                     *done.borrow_mut() = true;
                 }),
                 ..Default::default()
             }),
         )),
+        // When done is changed, this future will completes,
+        // causing the race to conclude.
+        // The function will then return.
         done.as_observable().until_change(),
     )
     .await;
