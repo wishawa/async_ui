@@ -20,6 +20,7 @@ pub(super) enum QueuedEvent {
     // KeyDown(KeyboardEvent),
     Focus(FocusEvent),
     Blur(FocusEvent),
+    Check(),
 }
 
 pub(super) struct EventsManager {

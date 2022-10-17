@@ -18,12 +18,14 @@ use web_sys::Node;
 mod events;
 
 mod button;
+mod checkbox;
 mod link;
 mod list;
 mod text;
 mod text_input;
 mod view;
 pub use button::{button, ButtonProps};
+pub use checkbox::{checkbox, CheckboxProps};
 pub use link::{link, LinkProps};
 pub use list::{list, ListModel, ListProps};
 pub use text::text;
