@@ -1,3 +1,5 @@
+use std::{future::IntoFuture, rc::Rc};
+
 use async_ui_core::fragment::Fragment as FragmentBase;
 use backend::Backend;
 mod backend;
@@ -27,4 +29,12 @@ pub mod __private_macro_only {
 
 pub fn fragment<'c, T: Into<Fragment<'c>>>(tuple: T) -> Fragment<'c> {
     tuple.into()
+}
+
+pub async fn with_context<I: IntoFuture, T: 'static>(future: I, value: Rc<T>) -> I::Output {
+    use async_ui_core::vnode::node_context::WithContext;
+    WithContext::<Backend, _>::new(future.into_future(), value).await
+}
+pub fn get_context<T: 'static>() -> Rc<T> {
+    async_ui_core::vnode::node_context::get_context::<Backend, T>()
 }
