@@ -87,7 +87,7 @@ where
                     inner: parent
                         .get_context_map()
                         .inner
-                        .update(value.type_id(), value),
+                        .update(value.as_ref().type_id(), value),
                 };
                 let vnode = Rc::new(ContextVNode::new(parent, context).into());
                 vnode
