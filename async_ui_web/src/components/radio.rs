@@ -11,7 +11,7 @@ use super::ElementFuture;
 
 #[derive(Default)]
 pub struct RadioProps<E: Clone + PartialEq + 'static> {
-    value: E,
+    pub value: E,
 }
 
 #[derive(Default)]

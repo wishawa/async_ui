@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlInputElement};
 
-use crate::window::DOCUMENT;
+use crate::{utils::class_list::ClassList, window::DOCUMENT};
 
 use super::{
     events::{create_handler, EventsManager, QueuedEvent},
@@ -24,12 +24,14 @@ impl CheckboxChangeEvent {
 pub struct CheckboxProps<'c> {
     pub value: Option<&'c dyn ObservableAs<bool>>,
     pub on_change: Option<&'c mut dyn FnMut(CheckboxChangeEvent)>,
+    pub class: Option<&'c ClassList<'c>>,
 }
 
 pub async fn checkbox<'c>(
     CheckboxProps {
         value,
         mut on_change,
+        class,
     }: CheckboxProps<'c>,
 ) {
     let elem: HtmlInputElement = DOCUMENT.with(|doc| {
@@ -44,6 +46,9 @@ pub async fn checkbox<'c>(
         let h = create_handler(&manager, |_ev: Event| QueuedEvent::Check());
         elem.set_onchange(Some(h.get_function()));
         handlers.push(h);
+    }
+    if let Some(cl) = class {
+        cl.set_dom(elem.class_list());
     }
     let elem_1 = elem.clone();
     let elem_2 = elem.clone();
