@@ -1,5 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
+use async_ui_web::components::{radio_button, radio_group, RadioGroupProps, RadioProps};
 use async_ui_web::futures_lite::FutureExt;
 use async_ui_web::{
     components::{
@@ -192,10 +193,12 @@ async fn root() {
             view(ViewProps {
                 children: fragment((top_part(&store), list_content(&store), bottom_part(&store))),
                 class: Some(&"main-container".into()),
+                ..Default::default()
             }),
             footer(),
         )),
         class: Some(&"wrapper".into()),
+        ..Default::default()
     })
     .await;
 }
@@ -203,6 +206,7 @@ async fn header() {
     view(ViewProps {
         children: fragment((text(&"todos"),)),
         class: Some(&"header-box".into()),
+        ..Default::default()
     })
     .await;
 }
@@ -258,6 +262,7 @@ async fn top_part(store: &Store<State>) {
     view(ViewProps {
         children: fragment((toggle_all_button(store), add_input_box(store))),
         class: Some(&"top-part".into()),
+        ..Default::default()
     })
     .await;
 }
@@ -299,6 +304,7 @@ async fn list_content(store: &Store<State>) {
                 }),
             )),
             class: Some(&view_classes),
+            ..Default::default()
         })
         .or(async {
             let done_obs = handle.done.as_observable();
@@ -337,6 +343,7 @@ async fn bottom_part(store: &Store<State>) {
         view(ViewProps {
             children: fragment((text(&value.as_observable()),)),
             class: Some(&"active-label-box".into()),
+            ..Default::default()
         })
         .or(async {
             loop {
@@ -380,13 +387,10 @@ async fn bottom_part(store: &Store<State>) {
                 DisplayFilter::Complete => "Complete",
             };
             let classes = ClassList::new(["filter-button"]);
-            button(ButtonProps {
-                children: fragment((text(&label),)),
+            view(ViewProps {
+                children: fragment((radio_button(RadioProps { value: filter }), text(&label))),
                 class: Some(&classes),
-                on_press: Some(&mut |_ev| {
-                    *store.filter.borrow_mut() = filter;
-                }),
-                ..Default::default()
+                element_tag: "label",
             })
             .or(async {
                 loop {
@@ -403,9 +407,16 @@ async fn bottom_part(store: &Store<State>) {
             filter_button(store, DisplayFilter::Active),
             filter_button(store, DisplayFilter::Complete),
         ));
-        view(ViewProps {
-            children: buttons,
-            class: Some(&"filter-bar".into()),
+        radio_group(RadioGroupProps {
+            children: fragment((view(ViewProps {
+                children: buttons,
+                class: Some(&"filter-bar".into()),
+                ..Default::default()
+            }),)),
+            value: Some(&store.filter.as_observable()),
+            on_change: Some(&mut |filt: DisplayFilter| {
+                *store.filter.borrow_mut() = filt;
+            }),
         })
         .await;
     }
@@ -415,10 +426,12 @@ async fn bottom_part(store: &Store<State>) {
             view(ViewProps {
                 children: (fragment((active_label(store), clear_button(store)))),
                 class: Some(&"bottom-labels".into()),
+                ..Default::default()
             }),
             filter_bar(store),
         )),
         class: Some(&classes),
+        ..Default::default()
     })
     .or(async {
         loop {
@@ -434,6 +447,7 @@ async fn footer() {
     view(ViewProps {
         children: fragment((text(&"Made with Async-UI"),)),
         class: Some(&"footer".into()),
+        ..Default::default()
     })
     .await;
 }

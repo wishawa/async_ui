@@ -171,6 +171,17 @@ input {
 	padding: 0.5rem;
 	width: 6rem;
 	margin: 0.5rem;
+	cursor: pointer;
+	transition: transform 100ms linear;
+	background-color: #eee;
+	border-style: solid;
+	border-radius: 0.5rem;
+	border-width: 1px;
+	border-color: #eee;
+	text-align: center;
+}
+.filter-button > input[type="radio"] {
+	display: none;
 }
 .filter-button-selected {
 	border-color: rgba(47,47,47,1);
