@@ -34,10 +34,9 @@ pub async fn checkbox<'c>(
 ) {
     let elem: HtmlInputElement = DOCUMENT.with(|doc| {
         let elem = doc.create_element("input").expect("create element failed");
-        elem.set_attribute("type", "checkbox")
-            .expect("set attribute failed");
         elem.unchecked_into()
     });
+    elem.set_type("checkbox");
     let value = value.unwrap_or(&false);
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
