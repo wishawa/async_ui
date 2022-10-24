@@ -57,7 +57,9 @@ where
             guard: SpawnGuard::new(),
         }
     }
-    pub fn new_from_iter<F: IntoFuture<Output = ()> + 'c, I: IntoIterator<Item = F>>(children: I) -> Self {
+    pub fn new_from_iter<F: IntoFuture<Output = ()> + 'c, I: IntoIterator<Item = F>>(
+        children: I,
+    ) -> Self {
         Self::new_from_vec_child(children.into_iter().map(Child::new).collect())
     }
 }
