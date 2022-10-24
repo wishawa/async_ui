@@ -10,6 +10,8 @@ mod mount;
 pub mod utils;
 mod window;
 pub use mount::{mount, mount_at};
+pub use web_sys;
+pub use window::{DOCUMENT, WINDOW};
 
 pub use futures_lite;
 

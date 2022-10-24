@@ -60,7 +60,7 @@ impl Drop for ElementFutureInner {
     }
 }
 impl<F: Future> ElementFuture<F> {
-    fn new(future: F, node: Node) -> Self {
+    pub fn new(future: F, node: Node) -> Self {
         Self {
             future,
             inner: ElementFutureInner { node, vnodes: None },
