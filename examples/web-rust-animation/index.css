@@ -1,0 +1,15 @@
+.container {
+	min-height: 50vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: row;
+}
+
+.dot {
+	margin: 0.5px;
+	width: 4px;
+	height: 4px;
+	border-radius: 2px;
+	background-color: black;
+}

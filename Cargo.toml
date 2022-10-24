@@ -17,4 +17,5 @@ members = [
 	"examples/hackernews/",
 	"examples/web-hackernews/",
 	"examples/gtk-hackernews/",
+	"examples/web-rust-animation/",
 ]
