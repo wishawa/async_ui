@@ -6,6 +6,8 @@ use std::{
     task::Waker,
 };
 
+use smallvec::SmallVec;
+
 use crate::{Listenable, Observable, ObservableBorrow, Version};
 
 use self::borrow_mut::ReactiveCellBorrowMut;
@@ -16,7 +18,7 @@ pub struct ReactiveCell<T> {
 
 struct Inner<T> {
     data: T,
-    listeners: Vec<Waker>,
+    listeners: SmallVec<[Waker; 2]>,
     version: Version,
 }
 
@@ -24,7 +26,7 @@ impl<T> ReactiveCell<T> {
     pub fn new(data: T) -> Self {
         let inner = RefCell::new(Inner {
             data,
-            listeners: Vec::new(),
+            listeners: SmallVec::new(),
             version: Version::new(),
         });
         Self { inner }
