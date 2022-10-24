@@ -49,4 +49,5 @@ features = [
 	'FocusEvent',
 	'Comment',
 	'DomTokenList',
+	'CssStyleDeclaration',
 ]
