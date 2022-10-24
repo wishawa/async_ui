@@ -1,6 +1,6 @@
 mod child;
 use std::{
-    future::Future,
+    future::{Future, IntoFuture},
     pin::Pin,
     rc::Rc,
     task::{Context, Poll},
@@ -20,7 +20,7 @@ pub mod __private_macro_only {
     #[macro_export]
     macro_rules! fragment {
         [$($ch:expr),*] => {
-            $crate::__private_macro_only::Fragment::new_from_vec(::std::vec![
+            $crate::__private_macro_only::Fragment::new_from_vec_child(::std::vec![
                 $($crate::__private_macro_only::Child::new($ch)),*
             ])
         }
@@ -43,23 +43,25 @@ where
     B: BackendTrait,
 {
     fn default() -> Self {
-        Self::new_from_vec(Vec::new())
+        Self::new_from_vec_child(Vec::new())
     }
 }
 impl<'c, B> Fragment<'c, B>
 where
     B: BackendTrait,
 {
-    pub fn new_from_vec(children: Vec<Child<'c, B>>) -> Self {
+    pub fn new_from_vec_child(children: Vec<Child<'c, B>>) -> Self {
         Self {
             children,
             mounted: false,
             guard: SpawnGuard::new(),
         }
     }
+    pub fn new_from_iter<F: IntoFuture<Output = ()> + 'c, I: IntoIterator<Item = F>>(children: I) -> Self {
+        Self::new_from_vec_child(children.into_iter().map(Child::new).collect())
+    }
 }
 
-use std::future::IntoFuture;
 macro_rules! impl_tuple_of_children {
     ($($arg:ident=$num:tt),*) => {
         impl<'c, B: BackendTrait, $($arg : IntoFuture<Output = ()> + 'c,)*> From<($($arg,)*)> for Fragment<'c, B> {
