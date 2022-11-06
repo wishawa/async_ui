@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    common::{Inner, InnerTrait},
+    common::{WrappedFuture, WrappedFutureTrait},
     pointer::Pointer,
     scope::check_scope,
     GiveUnforgettableScope, RemoteStaticFuture,
@@ -18,7 +18,7 @@ use crate::{
 
 type Invariant<'s> = (&'s (), fn(&'s ()));
 
-struct SpawnedTracker<'s>(SmallVec<[PinWeak<dyn InnerTrait + 's>; 1]>);
+struct SpawnedTracker<'s>(SmallVec<[PinWeak<dyn WrappedFutureTrait + 's>; 1]>);
 pin_project! {
     pub struct SpawnGuard<'s> {
         spawned: SpawnedTracker<'s>,
@@ -45,7 +45,7 @@ impl<'s> SpawnGuard<'s> {
         if !check_scope(here) {
             panic!("Not in scope.");
         }
-        let remote = Rc::pin(PinCell::new(Inner::Running {
+        let remote = Rc::pin(PinCell::new(WrappedFuture::Running {
             fut: unsafe { GiveUnforgettableScope::new(fut) },
         }));
         let this = self.project();
@@ -62,7 +62,7 @@ impl<'s> Drop for SpawnedTracker<'s> {
     fn drop(&mut self) {
         self.0.drain(..).for_each(|ch| {
             if let Some(ch) = ch.upgrade() {
-                ch.as_ref().abort();
+                ch.as_ref().drop_future_now();
             }
         })
     }

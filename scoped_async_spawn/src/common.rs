@@ -7,7 +7,7 @@ use crate::GiveUnforgettableScope;
 
 pin_project! {
     #[project = InnerProject]
-    pub(crate) enum Inner<F: Future> {
+    pub(crate) enum WrappedFuture<F: Future> {
         Running {
             #[pin] fut: GiveUnforgettableScope<F>,
         },
@@ -15,7 +15,7 @@ pin_project! {
     }
 }
 
-impl<F: Future> Future for Inner<F> {
+impl<F: Future> Future for WrappedFuture<F> {
     type Output = F::Output;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
@@ -31,7 +31,7 @@ pub struct RemoteStaticFuture<T> {
 }
 impl<T> RemoteStaticFuture<T> {
     pub(crate) unsafe fn new<'x, F: Future<Output = T> + 'x>(
-        remote: Pin<Rc<PinCell<Inner<F>>>>,
+        remote: Pin<Rc<PinCell<WrappedFuture<F>>>>,
     ) -> Self {
         let remote = remote as Pin<Rc<PinCell<dyn Future<Output = T> + 'x>>>;
         let remote = unsafe {
@@ -53,13 +53,13 @@ impl<T> Future for RemoteStaticFuture<T> {
         bm.poll(cx)
     }
 }
-pub(crate) trait InnerTrait {
-    fn abort(self: Pin<&Self>);
+pub(crate) trait WrappedFutureTrait {
+    fn drop_future_now(self: Pin<&Self>);
 }
-impl<F: Future> InnerTrait for PinCell<Inner<F>> {
-    fn abort(self: Pin<&Self>) {
+impl<F: Future> WrappedFutureTrait for PinCell<WrappedFuture<F>> {
+    fn drop_future_now(self: Pin<&Self>) {
         let mut bm = self.borrow_mut();
         let mut bm = PinMut::as_mut(&mut bm);
-        bm.set(Inner::Aborted);
+        bm.set(WrappedFuture::Aborted);
     }
 }
