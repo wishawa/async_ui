@@ -26,6 +26,7 @@ impl<F: Future> Future for WrappedFuture<F> {
         }
     }
 }
+
 pub struct RemoteStaticFuture<T> {
     remote: Pin<Rc<PinCell<dyn Future<Output = T> + 'static>>>,
 }

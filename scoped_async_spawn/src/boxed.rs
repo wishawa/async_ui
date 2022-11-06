@@ -8,6 +8,11 @@ use crate::{
 };
 
 pin_project! {
+    /**
+     * Allows [SpawnGuard][crate::SpawnGuard] to be used in the boxed future.
+     *
+     * If you need to use SpawnGuard within a future, and you want to box the future, use this instead of standard Box.
+     */
     pub struct ScopeSafeBox<T>
     where
         T: ?Sized
@@ -32,7 +37,7 @@ impl<T: ?Sized> ScopeSafeBox<T> {
             data,
         }
     }
-    pub fn with_scope<R, F: FnOnce(Pin<&mut T>) -> R>(self: Pin<&mut Self>, func: F) -> R {
+    fn run_in_scope<R, F: FnOnce(Pin<&mut T>) -> R>(self: Pin<&mut Self>, func: F) -> R {
         let this = self.project();
         let fut_ref: &T = &**this.data;
         let fut_ptr = Pointer::new(fut_ref);
@@ -48,7 +53,7 @@ impl<F: Future + ?Sized> Future for ScopeSafeBox<F> {
         if !is_in_scope {
             panic!("Not in scope.");
         } else {
-            self.with_scope(|fut| fut.poll(cx))
+            self.run_in_scope(|fut| fut.poll(cx))
         }
     }
 }

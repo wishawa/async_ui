@@ -20,7 +20,13 @@ use crate::{
 type Invariant<'s> = (&'s (), fn(&'s ()));
 
 struct SpawnedTracker<'s>(SmallVec<[PinWeak<dyn WrappedFutureTrait + 's>; 1]>);
+
 pin_project! {
+    /**
+     * The guard that ends spawned tasks before they go beyond their lifetime.
+     *
+     * This must be pinned before use.
+     */
     pub struct SpawnGuard<'s> {
         spawned: SpawnedTracker<'s>,
         #[pin]
@@ -30,6 +36,9 @@ pin_project! {
 }
 
 impl<'s> SpawnGuard<'s> {
+    /**
+     * Construct a new guard.
+     */
     pub fn new() -> Self {
         let spawned = SpawnedTracker(SmallVec::new());
         Self {
@@ -38,6 +47,17 @@ impl<'s> SpawnGuard<'s> {
             _phantom_pin: PhantomPinned,
         }
     }
+    /**
+     * Convert a non-'static future to a 'static one.
+     *
+     * The guard keeps access to the future,
+     * and will end the future before it could go beyond its lifetime.
+     *
+     * The future should not panic on drop. Doing so will cause process abort.
+     *
+     * If you want to create a guard within the future, make sure that guard last across a yield point.
+     * Otherwise that guard will panic [see issue](https://github.com/wishawa/async_ui/issues/6).
+     */
     pub fn convert_future<F: Future + 's>(
         self: Pin<&mut Self>,
         fut: F,
@@ -53,6 +73,12 @@ impl<'s> SpawnGuard<'s> {
         this.spawned.0.push(PinWeak::downgrade(remote.clone()));
         unsafe { RemoteStaticFuture::new(remote) }
     }
+    /**
+     * Clear completed future from the guard.
+     *
+     * The guard keeps track of all spawned future, so it can grow as you spawn more and more.
+     * This method removes the guard's reference to completed futures.
+     */
     pub fn clear_dead_futures(self: Pin<&mut Self>) {
         let this = self.project();
         this.spawned.0.retain(|el| PinWeak::strong_count(el) > 0);
