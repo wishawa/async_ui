@@ -5,6 +5,7 @@ use smallvec::SmallVec;
 use std::{
     future::Future,
     marker::{PhantomData, PhantomPinned},
+    panic::AssertUnwindSafe,
     pin::Pin,
     rc::Rc,
 };
@@ -60,10 +61,15 @@ impl<'s> SpawnGuard<'s> {
 
 impl<'s> Drop for SpawnedTracker<'s> {
     fn drop(&mut self) {
-        self.0.drain(..).for_each(|ch| {
-            if let Some(ch) = ch.upgrade() {
-                ch.as_ref().drop_future_now();
-            }
-        })
+        let res = std::panic::catch_unwind(AssertUnwindSafe(|| {
+            self.0.drain(..).for_each(|ch| {
+                if let Some(ch) = ch.upgrade() {
+                    ch.as_ref().drop_future_now();
+                }
+            })
+        }));
+        if res.is_err() {
+            std::process::abort();
+        }
     }
 }
