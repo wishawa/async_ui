@@ -87,15 +87,19 @@ impl<'s> SpawnGuard<'s> {
 
 impl<'s> Drop for SpawnedTracker<'s> {
     fn drop(&mut self) {
-        let res = std::panic::catch_unwind(AssertUnwindSafe(|| {
-            self.0.drain(..).for_each(|ch| {
-                if let Some(ch) = ch.upgrade() {
-                    ch.as_ref().drop_future_now();
-                }
-            })
-        }));
-        if res.is_err() {
-            std::process::abort();
+        struct AbortBomb;
+        impl Drop for AbortBomb {
+            fn drop(&mut self) {
+                let _bomb = AbortBomb;
+                panic!("Aborting due to panic when dropping tracked futures");
+            }
         }
+        let bomb = AbortBomb;
+        self.0.drain(..).for_each(|ch| {
+            if let Some(ch) = ch.upgrade() {
+                ch.as_ref().drop_future_now();
+            }
+        });
+        std::mem::forget(bomb);
     }
 }
