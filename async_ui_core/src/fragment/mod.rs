@@ -74,74 +74,19 @@ macro_rules! impl_tuple_of_children {
         }
     };
 }
-impl_tuple_of_children!();
-impl_tuple_of_children!(A0 = 0);
-impl_tuple_of_children!(A0 = 0, A1 = 1);
-impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2);
-impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3);
-impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4);
-impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5);
-impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6);
-impl_tuple_of_children!(
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7
-);
-impl_tuple_of_children!(
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7,
-    A8 = 8
-);
-impl_tuple_of_children!(
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7,
-    A8 = 8,
-    A9 = 9
-);
-impl_tuple_of_children!(
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7,
-    A8 = 8,
-    A9 = 9,
-    A10 = 10
-);
-impl_tuple_of_children!(
-    A0 = 0,
-    A1 = 1,
-    A2 = 2,
-    A3 = 3,
-    A4 = 4,
-    A5 = 5,
-    A6 = 6,
-    A7 = 7,
-    A8 = 8,
-    A9 = 9,
-    A10 = 10,
-    A11 = 11
-);
+#[rustfmt::skip] impl_tuple_of_children!();
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6, A7 = 7);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6, A7 = 7, A8 = 8);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6, A7 = 7, A8 = 8, A9 = 9);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6, A7 = 7, A8 = 8, A9 = 9, A10 = 10);
+#[rustfmt::skip] impl_tuple_of_children!(A0 = 0, A1 = 1, A2 = 2, A3 = 3, A4 = 4, A5 = 5, A6 = 6, A7 = 7, A8 = 8, A9 = 9, A10 = 10, A11 = 11);
 
 impl<'c, B> Future for Fragment<'c, B>
 where
