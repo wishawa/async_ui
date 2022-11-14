@@ -29,12 +29,12 @@ fn insert_after(parent: &Node, child: &Node, after: Option<&Node>) {
         .expect("insert failed");
 }
 
-pub struct ListProps<'c, T: Clone, F: IntoFuture<Output = ()>> {
+pub struct ListProps<'c, T: Clone, F: IntoFuture> {
     pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
     pub render: Option<&'c dyn Fn(T) -> F>,
     pub class: Option<&'c ClassList<'c>>,
 }
-impl<'c, T: Clone + 'c, F: IntoFuture<Output = ()>> Default for ListProps<'c, T, F> {
+impl<'c, T: Clone + 'c, F: IntoFuture> Default for ListProps<'c, T, F> {
     fn default() -> Self {
         Self {
             data: Default::default(),
@@ -44,7 +44,7 @@ impl<'c, T: Clone + 'c, F: IntoFuture<Output = ()>> Default for ListProps<'c, T,
     }
 }
 
-pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
+pub async fn list<'c, T: Clone + 'c, F: IntoFuture + 'c>(
     ListProps {
         data,
         render,
@@ -91,7 +91,9 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture<Output = ()> + 'c>(
                     ),
                 )
             };
-            let fut = guard.as_mut().convert_future(fut);
+            let fut = guard.as_mut().convert_future(async {
+                fut.await;
+            });
             let task = spawn_local(fut);
             (reference_node, task)
         };

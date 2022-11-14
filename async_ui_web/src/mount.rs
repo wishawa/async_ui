@@ -11,7 +11,7 @@ use web_sys::Node;
 
 use crate::backend::Backend;
 
-pub fn mount_at<F: IntoFuture<Output = ()> + 'static>(root: F, node: Node) {
+pub fn mount_at<F: IntoFuture + 'static>(root: F, node: Node) {
     let fut = WithVNode::new(
         root.into_future(),
         Rc::new(
@@ -25,7 +25,7 @@ pub fn mount_at<F: IntoFuture<Output = ()> + 'static>(root: F, node: Node) {
     core_mount::<Backend, _>(fut)
 }
 
-pub fn mount<F: IntoFuture<Output = ()> + 'static>(root: F) {
+pub fn mount<F: IntoFuture + 'static>(root: F) {
     let node = web_sys::window()
         .unwrap()
         .document()

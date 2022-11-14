@@ -15,7 +15,7 @@ use crate::{
     widget::{gtk_box::GtkBoxOp, WrappedWidget},
 };
 
-pub fn mount_at<F: IntoFuture<Output = ()> + 'static>(root: F, node: gtk::Box) {
+pub fn mount_at<F: IntoFuture + 'static>(root: F, node: gtk::Box) {
     let fut = WithVNode::new(
         root.into_future(),
         Rc::new(
@@ -35,7 +35,7 @@ pub fn mount_at<F: IntoFuture<Output = ()> + 'static>(root: F, node: gtk::Box) {
     core_mount::<Backend, _>(fut)
 }
 
-pub fn mount<F: IntoFuture<Output = ()> + 'static>(root: F) {
+pub fn mount<F: IntoFuture + 'static>(root: F) {
     use gtk::prelude::*;
     let app = Application::builder()
         .application_id("async-ui.test.app")

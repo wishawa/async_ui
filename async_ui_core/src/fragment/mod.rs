@@ -64,7 +64,7 @@ where
 
 macro_rules! impl_tuple_of_children {
     ($($arg:ident=$num:tt),*) => {
-        impl<'c, B: BackendTrait, $($arg : IntoFuture<Output = ()> + 'c,)*> From<($($arg,)*)> for Fragment<'c, B> {
+        impl<'c, B: BackendTrait, $($arg : IntoFuture + 'c,)*> From<($($arg,)*)> for Fragment<'c, B> {
             #[allow(unused_variables)]
             fn from(source: ($($arg,)*)) -> Self {
                 crate::fragment![

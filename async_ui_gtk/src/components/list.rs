@@ -95,11 +95,11 @@ impl KeyObject {
     }
 }
 
-pub struct ListProps<'c, T: Clone, F: IntoFuture<Output = ()>> {
+pub struct ListProps<'c, T: Clone, F: IntoFuture> {
     pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
     pub render: Option<&'c dyn Fn(T) -> F>,
 }
-impl<'c, T: Clone, F: IntoFuture<Output = ()>> Default for ListProps<'c, T, F> {
+impl<'c, T: Clone, F: IntoFuture> Default for ListProps<'c, T, F> {
     fn default() -> Self {
         Self {
             data: None,
@@ -130,9 +130,7 @@ struct ItemAndTask<T> {
     task: Option<Task<()>>,
 }
 
-pub async fn list<'c, T: Clone, F: IntoFuture<Output = ()>>(
-    ListProps { data, render }: ListProps<'c, T, F>,
-) {
+pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListProps<'c, T, F>) {
     let (data, render) = match (data, render) {
         (Some(d), Some(r)) => (d, r),
         _ => {
@@ -226,7 +224,13 @@ pub async fn list<'c, T: Clone, F: IntoFuture<Output = ()>>(
                                     },
                                     parent_context.clone(),
                                 );
-                                let fut = WithVNode::<Backend, _>::new(fut, Rc::new(vnode.into()));
+
+                                let fut = WithVNode::<Backend, _>::new(
+                                    async {
+                                        fut.await;
+                                    },
+                                    Rc::new(vnode.into()),
+                                );
                                 let fut = guard.as_mut().convert_future(fut);
                                 *task = Some(spawn_local(fut));
                             }
