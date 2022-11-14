@@ -21,7 +21,7 @@ pub mod __private_macro_only {
     macro_rules! fragment {
         [$($ch:expr),*] => {
             $crate::__private_macro_only::Fragment::new_from_vec_child(::std::vec![
-                $($crate::__private_macro_only::Child::new($ch)),*
+                $($crate::__private_macro_only::Child::from($ch)),*
             ])
         }
     }
@@ -57,10 +57,8 @@ where
             guard: SpawnGuard::new(),
         }
     }
-    pub fn new_from_iter<F: IntoFuture<Output = ()> + 'c, I: IntoIterator<Item = F>>(
-        children: I,
-    ) -> Self {
-        Self::new_from_vec_child(children.into_iter().map(Child::new).collect())
+    pub fn new_from_iter<F: IntoFuture + 'c, I: IntoIterator<Item = F>>(children: I) -> Self {
+        Self::new_from_vec_child(children.into_iter().map(Child::from).collect())
     }
 }
 

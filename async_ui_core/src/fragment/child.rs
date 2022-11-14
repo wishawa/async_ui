@@ -21,7 +21,7 @@ pin_project! {
     struct ElementFuture<B, F>
     where
         B: BackendTrait,
-        F: Future<Output = ()>
+        F: Future
     {
         #[pin]
         future: F,
@@ -31,19 +31,21 @@ pin_project! {
 impl<B, F> Future for ElementFuture<B, F>
 where
     B: BackendTrait,
-    F: Future<Output = ()>,
+    F: Future,
 {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        B::get_vnode_key().set(&this.vnode, || this.future.poll(cx))
+        B::get_vnode_key()
+            .set(&this.vnode, || this.future.poll(cx))
+            .map(|_| ())
     }
 }
 impl<'c, B, F> ChildInnerTrait<'c, B> for ChildInner<F>
 where
     Self: 'c,
     B: BackendTrait,
-    F: Future<Output = ()>,
+    F: Future,
 {
     fn spawn(&mut self, vnode: Rc<VNode<B>>, guard: Pin<&mut SpawnGuard<'c>>) {
         match std::mem::replace(self, Self::Null) {
@@ -61,7 +63,7 @@ where
 }
 enum ChildInner<F>
 where
-    F: Future<Output = ()>,
+    F: Future,
 {
     Null,
     NotMounted { component: F },
@@ -74,20 +76,24 @@ where
     inner: Box<dyn ChildInnerTrait<'c, B>>,
 }
 
-impl<'c, B> Child<'c, B>
+impl<'c, B, I> From<I> for Child<'c, B>
 where
     B: BackendTrait,
+    I: IntoFuture,
+    I::IntoFuture: 'c,
 {
-    pub fn new<I>(future: I) -> Self
-    where
-        I: IntoFuture<Output = ()>,
-        I::IntoFuture: 'c,
-    {
+    fn from(future: I) -> Self {
         let component = future.into_future();
         Self {
             inner: Box::new(ChildInner::NotMounted { component }),
         }
     }
+}
+
+impl<'c, B> Child<'c, B>
+where
+    B: BackendTrait,
+{
     pub(super) fn mount(&mut self, vnode: Rc<VNode<B>>, guard: Pin<&mut SpawnGuard<'c>>) {
         self.inner.spawn(vnode, guard);
     }
