@@ -72,25 +72,30 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
         .await;
         Ok(())
     }
-    fragment((
-        list(ListProps {
-            data: Some(&list_model.as_observable()),
-            render: Some(&|id| item(&client, id)),
-            ..Default::default()
-        }),
-        button(ButtonProps {
-            children: fragment((text(&"Load More Stories"),)),
-            on_press: Some(&mut |_ev| {
-                let mut bm = list_model.borrow_mut();
-                for item in ids.drain(..std::cmp::min(40, ids.len())) {
-                    bm.push(item);
-                }
+    view(ViewProps {
+        children: fragment((
+            list(ListProps {
+                data: Some(&list_model.as_observable()),
+                render: Some(&|id| item(&client, id)),
+                ..Default::default()
             }),
-            #[cfg(feature = "web")]
-            class: Some(&"load-more-button".into()),
-            ..Default::default()
-        }),
-    ))
+            button(ButtonProps {
+                children: fragment((text(&"Load More Stories"),)),
+                on_press: Some(&mut |_ev| {
+                    let mut bm = list_model.borrow_mut();
+                    for item in ids.drain(..std::cmp::min(40, ids.len())) {
+                        bm.push(item);
+                    }
+                }),
+                #[cfg(feature = "web")]
+                class: Some(&"load-more-button".into()),
+                ..Default::default()
+            }),
+        )),
+        #[cfg(feature = "gtk")]
+        width: Some(640),
+        ..Default::default()
+    })
     .await;
     Ok(())
 }
