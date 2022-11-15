@@ -80,7 +80,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
             children: fragment((text(&"Load More Stories"),)),
             on_press: Some(&mut |_ev| {
                 let mut bm = list_model.borrow_mut();
-                for item in ids.drain(..40) {
+                for item in ids.drain(..std::cmp::min(40, ids.len())) {
                     bm.push(item);
                 }
             }),
