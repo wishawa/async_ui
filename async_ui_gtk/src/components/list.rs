@@ -13,7 +13,10 @@ use async_ui_core::{
 };
 use futures_lite::pin;
 use glib::Cast;
-use gtk::{traits::BoxExt, Widget};
+use gtk::{
+    traits::{BoxExt, WidgetExt},
+    Widget,
+};
 use im_rc::Vector;
 use observables::{ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;
@@ -170,15 +173,15 @@ pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListP
             }
         }
     };
-    let out_node = gtk::ScrolledWindow::new();
-    out_node.set_child(Some(&container_node_copy));
-    out_node.set_propagate_natural_height(true);
-    out_node.set_propagate_natural_width(true);
+    let scroll_window = gtk::ScrolledWindow::new();
+    scroll_window.set_child(Some(&container_node_copy));
+    scroll_window.set_propagate_natural_height(true);
+    scroll_window.set_propagate_natural_width(true);
     ElementFuture::new(
         inside,
         WrappedWidget {
-            widget: out_node.clone().upcast(),
-            inner_widget: out_node.upcast(),
+            widget: scroll_window.clone().upcast(),
+            inner_widget: scroll_window.upcast(),
             op: WidgetOp::NoChild,
         },
     )
