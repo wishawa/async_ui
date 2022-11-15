@@ -5,7 +5,6 @@ use smallvec::SmallVec;
 use std::{
     future::Future,
     marker::{PhantomData, PhantomPinned},
-    panic::AssertUnwindSafe,
     pin::Pin,
     rc::Rc,
 };
