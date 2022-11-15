@@ -9,13 +9,13 @@ use std::{
 
 pub(super) enum QueuedEvent {
     Click,
-    MouseDown,
-    MouseUp,
+    // MouseDown,
+    // MouseUp,
     Input,
     Submit,
-    KeyPress,
-    KeyUp,
-    KeyDown,
+    // KeyPress,
+    // KeyUp,
+    // KeyDown,
     Focus,
     Blur,
 }
