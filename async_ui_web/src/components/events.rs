@@ -83,7 +83,7 @@ impl EventsManager {
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::JsCast;
 
-use crate::executor::schedule;
+use crate::executor::run_now;
 
 pub(super) struct EventHandler<'h> {
     closure: Closure<dyn Fn(Event) + 'h>,
@@ -96,7 +96,7 @@ impl<'h> EventHandler<'h> {
         let closure = Closure::new(move |event: Event| {
             let event: E = event.unchecked_into();
             execute(event);
-            schedule();
+            run_now();
         });
         Self { closure }
     }
