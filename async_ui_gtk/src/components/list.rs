@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     collections::{HashMap, VecDeque},
     future::IntoFuture,
     rc::Rc,
@@ -20,7 +19,7 @@ use futures_lite::pin;
 use glib::{Cast, Object, ObjectExt, StaticType};
 use gtk::{gio::ListStore, NoSelection, Widget};
 use im_rc::Vector;
-use observables::{ObservableAs, ObservableAsExt};
+use observables::{cell::ReactiveCell, ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;
 
 use crate::{
@@ -125,12 +124,17 @@ impl SingleChildWidgetOp for ListItemWidgetOp {
     }
 }
 
-struct ItemAndTask<T> {
-    item: T,
-    task: Option<Task<()>>,
-}
-
 pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListProps<'c, T, F>) {
+    #[derive(Debug)]
+    struct ItemAndTask<T> {
+        item: T,
+        task: Option<Task<()>>,
+    }
+    struct BindCommand {
+        list_item: gtk::ListItem,
+        key: u32,
+        is_bind: bool,
+    }
     let (data, render) = match (data, render) {
         (Some(d), Some(r)) => (d, r),
         _ => {
@@ -162,19 +166,41 @@ pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListP
 
         let guard = SpawnGuard::new();
         pin!(guard);
-        let bind_channel = Rc::new(RefCell::new(VecDeque::new()));
+        let bind_channel = Rc::new(ReactiveCell::new(VecDeque::new()));
 
         let bind_channel_bind = bind_channel.clone();
         factory.connect_bind(move |_fac, li| {
-            bind_channel_bind
-                .borrow_mut()
-                .push_back((li.to_owned(), true));
+            let position = li.position();
+            let key = li
+                .item()
+                .unwrap()
+                .downcast::<KeyObject>()
+                .unwrap()
+                .get_key_id();
+            println!("send bind {key} @ {position}");
+            bind_channel_bind.borrow_mut().push_back(BindCommand {
+                list_item: li.to_owned(),
+                key,
+                is_bind: true,
+            });
+            glib::MainContext::default().iteration(false);
         });
         let bind_channel_unbind = bind_channel.clone();
         factory.connect_unbind(move |_fac, li| {
-            bind_channel_unbind
-                .borrow_mut()
-                .push_back((li.to_owned(), false));
+            let position = li.position();
+            let key = li
+                .item()
+                .unwrap()
+                .downcast::<KeyObject>()
+                .unwrap()
+                .get_key_id();
+            println!("send unbind {key} @ {position}");
+            bind_channel_unbind.borrow_mut().push_back(BindCommand {
+                list_item: li.to_owned(),
+                key,
+                is_bind: false,
+            });
+            glib::MainContext::default().iteration(false);
         });
 
         let mut last_version = {
@@ -206,13 +232,84 @@ pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListP
                 .total_listeners()
                 .set(model.total_listeners().get() - 1);
         });
+
         loop {
             {
-                for (list_item, is_bind) in bind_channel.borrow_mut().drain(..) {
-                    let key = list_item.item().unwrap().downcast::<KeyObject>().unwrap();
-                    if is_bind {
-                        match keys_map.get_mut(&key.get_key_id()) {
-                            Some(ItemAndTask { item, task }) if task.is_none() => {
+                println!("reading changes");
+                let model = &*data.borrow_observable_as();
+                let model_priv = ListModelPrivateAPIs(model);
+                let changes = model_priv.changes_since_version(last_version);
+                let current_version = model_priv.get_version();
+                if last_version != current_version {
+                    println!("there's change");
+                    for change in changes {
+                        match change {
+                            Change::Splice {
+                                remove_range,
+                                replace_with,
+                            } => {
+                                let n_items = ExactSizeIterator::len(remove_range);
+                                let mut right = keys_list.split_off(remove_range.start);
+                                let mut new_right = right.split_off(n_items);
+                                for key in right.into_iter() {
+                                    store.remove(remove_range.start as u32);
+                                    keys_map.remove(&key);
+                                }
+                                for item in replace_with.iter().rev() {
+                                    current_id += 1;
+                                    keys_map.insert(
+                                        current_id,
+                                        ItemAndTask {
+                                            item: item.to_owned(),
+                                            task: None,
+                                        },
+                                    );
+                                    new_right.push_front(current_id);
+                                    store.insert(
+                                        remove_range.start as u32,
+                                        &KeyObject::new(current_id),
+                                    );
+                                }
+                                keys_list.append(new_right);
+                            }
+                            Change::Remove { index } => {
+                                let key = keys_list.remove(*index);
+                                store.remove(*index as u32);
+                                keys_map.remove(&key).unwrap();
+                            }
+                            Change::Insert { index, value } => {
+                                current_id += 1;
+                                println!("insert {current_id}");
+                                keys_map.insert(
+                                    current_id,
+                                    ItemAndTask {
+                                        item: value.to_owned(),
+                                        task: None,
+                                    },
+                                );
+                                keys_list.insert(*index, current_id);
+                                store.insert(*index as u32, &KeyObject::new(current_id));
+                            }
+                        }
+                    }
+                    last_version = current_version;
+                    model_priv
+                        .pending_listeners()
+                        .set(model_priv.pending_listeners().get() - 1);
+                }
+            }
+            let data_fut = data.until_change();
+            {
+                for BindCommand {
+                    list_item,
+                    key,
+                    is_bind,
+                } in bind_channel.borrow_mut().drain(..)
+                {
+                    match (keys_map.get_mut(&key), is_bind) {
+                        (Some(ItemAndTask { item, task }), true) => {
+                            println!("bind {key} @");
+                            if task.is_none() {
                                 let fut = render(item.to_owned()).into_future();
                                 let vnode = ConcreteNodeVNode::<Backend>::new(
                                     RefNode::Parent {
@@ -224,7 +321,6 @@ pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListP
                                     },
                                     parent_context.clone(),
                                 );
-
                                 let fut = WithVNode::<Backend, _>::new(
                                     async {
                                         fut.await;
@@ -233,77 +329,30 @@ pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListP
                                 );
                                 let fut = guard.as_mut().convert_future(fut);
                                 *task = Some(spawn_local(fut));
+                            } else {
+                                panic!("double bind {key} @",);
                             }
-                            _ => panic!("invalid bind"),
-                        };
-                    } else {
-                        match keys_map.get_mut(&key.get_key_id()) {
-                            Some(ItemAndTask { task, .. }) if task.is_some() => {
+                        }
+                        (Some(ItemAndTask { task, .. }), false) => {
+                            println!("unbind {key} @");
+                            if task.is_some() {
                                 *task = None;
+                                list_item.set_child(Option::<&gtk::Widget>::None);
+                            } else {
+                                panic!("double unbind {key} @");
                             }
-                            Some(ItemAndTask { .. }) => panic!("invalid unbind"),
-                            _ => {}
                         }
+                        _ => {}
                     }
                 }
             }
-            data.until_change().await;
-            {
-                let model = &*data.borrow_observable_as();
-                let model_priv = ListModelPrivateAPIs(model);
-                let changes = model_priv.changes_since_version(last_version);
-                for change in changes {
-                    match change {
-                        Change::Splice {
-                            remove_range,
-                            replace_with,
-                        } => {
-                            let n_items = ExactSizeIterator::len(remove_range);
-                            let mut right = keys_list.split_off(remove_range.start);
-                            let mut new_right = right.split_off(n_items);
-                            for key in right.into_iter() {
-                                store.remove(remove_range.start as u32);
-                                keys_map.remove(&key);
-                            }
-                            for item in replace_with.iter().rev() {
-                                current_id += 1;
-                                keys_map.insert(
-                                    current_id,
-                                    ItemAndTask {
-                                        item: item.to_owned(),
-                                        task: None,
-                                    },
-                                );
-                                new_right.push_front(current_id);
-                                store
-                                    .insert(remove_range.start as u32, &KeyObject::new(current_id));
-                            }
-                            keys_list.append(new_right);
-                        }
-                        Change::Remove { index } => {
-                            let key = keys_list.remove(*index);
-                            store.remove(*index as u32);
-                            keys_map.remove(&key).unwrap();
-                        }
-                        Change::Insert { index, value } => {
-                            current_id += 1;
-                            keys_map.insert(
-                                current_id,
-                                ItemAndTask {
-                                    item: value.to_owned(),
-                                    task: None,
-                                },
-                            );
-                            keys_list.insert(*index, current_id);
-                            store.insert(*index as u32, &KeyObject::new(current_id));
-                        }
-                    }
-                }
-                last_version = model_priv.get_version();
-                model_priv
-                    .pending_listeners()
-                    .set(model_priv.pending_listeners().get() - 1);
-            }
+
+            use futures_lite::FutureExt;
+            bind_channel
+                .as_observable()
+                .until_change()
+                .or(data_fut)
+                .await;
         }
     };
 
