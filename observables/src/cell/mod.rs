@@ -2,6 +2,7 @@ mod borrow_mut;
 use std::{
     borrow::Borrow,
     cell::{Ref, RefCell},
+    fmt::Debug,
     marker::PhantomData,
     task::Waker,
 };
@@ -14,6 +15,25 @@ use self::borrow_mut::ReactiveCellBorrowMut;
 
 pub struct ReactiveCell<T> {
     inner: RefCell<Inner<T>>,
+}
+
+impl<T: Debug> Debug for ReactiveCell<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut d = f.debug_tuple("ReactiveCell");
+        match self.inner.try_borrow() {
+            Ok(inside) => d.field(&inside.data).finish(),
+            Err(_) => {
+                // https://doc.rust-lang.org/src/core/fmt/mod.rs.html#2618
+                struct BorrowedPlaceholder;
+                impl Debug for BorrowedPlaceholder {
+                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        f.write_str("<borrowed>")
+                    }
+                }
+                d.field(&BorrowedPlaceholder).finish()
+            }
+        }
+    }
 }
 
 struct Inner<T> {
