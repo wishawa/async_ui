@@ -20,7 +20,9 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
         .await?
         .body_json()
         .await?;
-    let list_model = ReactiveCell::new(ListModel::from_iter(ids.drain(..40)));
+    let list_model = ReactiveCell::new(ListModel::from_iter(
+        ids.drain(..std::cmp::min(40, ids.len())),
+    ));
     async fn item(client: &surf::Client, story_id: u64) -> Result<(), Box<dyn Error>> {
         let story: Story = client
             .get(format!(
