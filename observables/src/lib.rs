@@ -1,5 +1,4 @@
 use std::{
-    borrow::Borrow,
     cell::Ref,
     ops::Deref,
     // sync::{Arc, MutexGuard, RwLockReadGuard},
@@ -8,7 +7,6 @@ use std::{
 
 use transformers::map::Map;
 pub use version::Version;
-mod impls;
 mod next_change;
 mod transformers;
 mod version;
@@ -56,10 +54,6 @@ impl<'b, T: ?Sized> ObservableBorrow<'b, T> {
         }
     }
 }
-pub trait Observable: Listenable {
-    type Data: ?Sized;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data>;
-}
 
 pub trait ObservableAs<Z: ?Sized>: Listenable {
     fn borrow_observable_as<'b>(&'b self) -> ObservableBorrow<'b, Z>;
@@ -74,16 +68,6 @@ pub trait ObservableAsExt<Z: ?Sized>: ObservableAs<Z> {
     }
     fn until_change<'i>(&'i self) -> NextChangeFuture<Self, &'i Self> {
         NextChangeFuture::new(self)
-    }
-}
-impl<Z, O> ObservableAs<Z> for O
-where
-    Z: ?Sized,
-    O: Observable + ?Sized,
-    O::Data: Borrow<Z>,
-{
-    fn borrow_observable_as<'b>(&'b self) -> ObservableBorrow<'b, Z> {
-        self.borrow_observable().map_to(Borrow::borrow)
     }
 }
 

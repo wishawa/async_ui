@@ -9,7 +9,7 @@ use std::{
 
 use smallvec::SmallVec;
 
-use crate::{Listenable, Observable, ObservableBorrow, Version};
+use crate::{Listenable, ObservableAs, ObservableBorrow, Version};
 
 use self::borrow_mut::ReactiveCellBorrowMut;
 
@@ -78,9 +78,8 @@ impl<T, A: Borrow<ReactiveCell<T>>> Listenable for ReactiveCellObservable<T, A> 
         self.inner.borrow().inner.borrow().version
     }
 }
-impl<T, A: Borrow<ReactiveCell<T>>> Observable for ReactiveCellObservable<T, A> {
-    type Data = T;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
+impl<U, T: Borrow<U>, A: Borrow<ReactiveCell<T>>> ObservableAs<U> for ReactiveCellObservable<T, A> {
+    fn borrow_observable_as<'b>(&'b self) -> ObservableBorrow<'b, U> {
         ObservableBorrow::RefCell(Ref::map(self.inner.borrow().inner.borrow(), |r| {
             r.data.borrow()
         }))
