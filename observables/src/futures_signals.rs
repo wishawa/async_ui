@@ -9,7 +9,7 @@ use std::{
 use futures_signals::signal::Signal;
 use waker_fn::waker_fn;
 
-use crate::{Listenable, Observable, ObservableAs, Version};
+use crate::{Listenable, ObservableAs, ObservableBase, Version};
 
 pub struct ToSignal<W, I, O, M>
 where
@@ -115,7 +115,7 @@ where
 {
 }
 
-impl<S> Observable for FromSignal<S>
+impl<S> ObservableBase for FromSignal<S>
 where
     S: Signal + Unpin,
     S::Item: Default,

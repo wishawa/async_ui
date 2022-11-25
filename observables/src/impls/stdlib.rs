@@ -1,6 +1,6 @@
 use std::borrow::{Borrow, Cow};
 
-use crate::{Listenable, Observable, ObservableBorrow, Version};
+use crate::{Listenable, ObservableBase, ObservableBorrow, Version};
 
 macro_rules! impl_base_inner {
     () => {
@@ -25,7 +25,7 @@ macro_rules! impl_primitive {
     };
     ($primitive:ty, $derefto:ty) => {
         impl_base_primitive!($primitive);
-        impl Observable for $primitive {
+        impl ObservableBase for $primitive {
             type Data = $derefto;
             fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, $derefto> {
                 ObservableBorrow::Borrow(self)
@@ -54,7 +54,7 @@ impl_primitive!(String, str);
 impl<'a, T: Clone + ?Sized> Listenable for Cow<'a, T> {
     impl_base_inner!();
 }
-impl<'a, T: Clone + ?Sized> Observable for Cow<'a, T> {
+impl<'a, T: Clone + ?Sized> ObservableBase for Cow<'a, T> {
     type Data = T;
     fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::Borrow(Borrow::borrow(self))
@@ -64,7 +64,7 @@ impl<'a, T: Clone + ?Sized> Observable for Cow<'a, T> {
 impl<'s> Listenable for &'s str {
     impl_base_inner!();
 }
-impl<'s> Observable for &'s str {
+impl<'s> ObservableBase for &'s str {
     type Data = str;
     fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, str> {
         ObservableBorrow::Borrow(self)

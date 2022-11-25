@@ -10,7 +10,7 @@ use async_ui_web::{
     fragment, mount,
     utils::class_list::ClassList,
 };
-use observables::{cell::ReactiveCell, Observable, ObservableAsExt};
+use observables::{cell::ReactiveCell, ObservableAsExt, ObservableBase};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use x_bow::{create_store, Store, Track};
 

@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, cell::Ref, task::Waker};
 
-use observables::{Listenable, Observable, ObservableBorrow, Version};
+use observables::{Listenable, ObservableBase, ObservableBorrow, Version};
 
 use crate::{
     edge::TrackedEdge,
@@ -14,7 +14,7 @@ where
     tracked: &'a Tracked<N>,
 }
 
-impl<'a, N> Observable for XBowObservable<'a, N>
+impl<'a, N> ObservableBase for XBowObservable<'a, N>
 where
     N: TrackedNode,
     N::Edge: TrackedEdge<Optional = OptionalNo>,
@@ -44,7 +44,7 @@ where
     fallback: <N::Edge as TrackedEdge>::Data,
 }
 
-impl<'a, N> Observable for XBowObservableOrFallback<'a, N>
+impl<'a, N> ObservableBase for XBowObservableOrFallback<'a, N>
 where
     N: TrackedNode,
 {

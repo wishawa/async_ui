@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use observables::{cell::ReactiveCell, Observable, ObservableAsExt};
+use observables::{cell::ReactiveCell, ObservableAs, ObservableAsExt};
 use wasm_bindgen::{prelude::Closure, JsCast};
 
 use crate::WINDOW;
@@ -25,6 +25,6 @@ impl Animator {
                 .expect("request frame failed");
         });
         self.cell.as_observable().until_change().await;
-        return *self.cell.as_observable().borrow_observable();
+        return *self.cell.as_observable().borrow_observable_as();
     }
 }

@@ -9,7 +9,7 @@ use std::{
 use ::async_channel::Receiver;
 use waker_fn::waker_fn;
 
-use crate::{Listenable, Observable, Version};
+use crate::{Listenable, ObservableBase, Version};
 
 pub struct FromReceiver<T> {
     receiver: Receiver<T>,
@@ -39,7 +39,7 @@ impl<T> Listenable for FromReceiver<T> {
     }
 }
 
-impl<T> Observable for FromReceiver<T> {
+impl<T> ObservableBase for FromReceiver<T> {
     type Data = T;
 
     fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, Self::Data> {

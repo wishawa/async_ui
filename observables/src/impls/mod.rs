@@ -1,4 +1,4 @@
-use crate::{Listenable, Observable, ObservableBorrow, Version};
+use crate::{Listenable, ObservableBase, ObservableBorrow, Version};
 mod stdlib;
 
 pub struct NoChange<T>(pub T);
@@ -10,7 +10,7 @@ impl<T> Listenable for NoChange<T> {
         Version::new()
     }
 }
-impl<T> Observable for NoChange<T> {
+impl<T> ObservableBase for NoChange<T> {
     type Data = T;
     fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
         ObservableBorrow::Borrow(&self.0)

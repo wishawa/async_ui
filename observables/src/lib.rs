@@ -56,7 +56,7 @@ impl<'b, T: ?Sized> ObservableBorrow<'b, T> {
         }
     }
 }
-pub trait Observable: Listenable {
+pub trait ObservableBase: Listenable {
     type Data: ?Sized;
     fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data>;
 }
@@ -79,7 +79,7 @@ pub trait ObservableAsExt<Z: ?Sized>: ObservableAs<Z> {
 impl<Z, O> ObservableAs<Z> for O
 where
     Z: ?Sized,
-    O: Observable + ?Sized,
+    O: ObservableBase + ?Sized,
     O::Data: Borrow<Z>,
 {
     fn borrow_observable_as<'b>(&'b self) -> ObservableBorrow<'b, Z> {

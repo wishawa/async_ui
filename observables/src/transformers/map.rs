@@ -5,7 +5,7 @@ use std::{
     task::Waker,
 };
 
-use crate::{Listenable, Observable, ObservableAs, ObservableBorrow, Version};
+use crate::{Listenable, ObservableAs, ObservableBase, ObservableBorrow, Version};
 
 pub struct Map<W, I, O, M>
 where
@@ -35,7 +35,7 @@ where
     }
 }
 
-impl<W, I, O, M> Observable for Map<W, I, O, M>
+impl<W, I, O, M> ObservableBase for Map<W, I, O, M>
 where
     W: ObservableAs<I>,
     M: Fn(&I) -> O,
