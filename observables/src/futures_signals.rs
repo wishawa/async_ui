@@ -1,6 +1,5 @@
 use std::{
-    borrow::Borrow,
-    cell::{Cell, Ref, RefCell},
+    cell::{Cell, RefCell},
     marker::PhantomData,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -10,7 +9,7 @@ use std::{
 use futures_signals::signal::Signal;
 use waker_fn::waker_fn;
 
-use crate::{Listenable, ObservableAs, Version};
+use crate::{Listenable, Observable, ObservableAs, Version};
 
 pub struct ToSignal<W, I, O, M>
 where
@@ -116,13 +115,14 @@ where
 {
 }
 
-impl<U, S> ObservableAs<U> for FromSignal<S>
+impl<S> Observable for FromSignal<S>
 where
     S: Signal + Unpin,
-    S::Item: Default + Borrow<U>,
+    S::Item: Default,
 {
-    fn borrow_observable_as<'b>(&'b self) -> crate::ObservableBorrow<'b, U> {
-        crate::ObservableBorrow::RefCell(Ref::map(self.value.borrow(), Borrow::borrow))
+    type Data = S::Item;
+    fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, S::Item> {
+        crate::ObservableBorrow::RefCell(self.value.borrow())
     }
 }
 

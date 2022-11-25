@@ -1,6 +1,5 @@
 use std::{
-    borrow::Borrow,
-    cell::{Cell, Ref, RefCell},
+    cell::{Cell, RefCell},
     future::Future,
     pin::Pin,
     sync::{Arc, Mutex},
@@ -10,7 +9,7 @@ use std::{
 use ::async_channel::Receiver;
 use waker_fn::waker_fn;
 
-use crate::{Listenable, ObservableAs, Version};
+use crate::{Listenable, Observable, Version};
 
 pub struct FromReceiver<T> {
     receiver: Receiver<T>,
@@ -40,9 +39,11 @@ impl<T> Listenable for FromReceiver<T> {
     }
 }
 
-impl<U, T: Borrow<U>> ObservableAs<U> for FromReceiver<T> {
-    fn borrow_observable_as<'b>(&'b self) -> crate::ObservableBorrow<'b, U> {
-        crate::ObservableBorrow::RefCell(Ref::map(self.last_value.borrow(), Borrow::borrow))
+impl<T> Observable for FromReceiver<T> {
+    type Data = T;
+
+    fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, Self::Data> {
+        crate::ObservableBorrow::RefCell(self.last_value.borrow())
     }
 }
 
