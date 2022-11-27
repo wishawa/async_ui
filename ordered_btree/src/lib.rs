@@ -1,13 +1,18 @@
 use std::rc::{Rc, Weak};
 
 use arrayvec::ArrayVec;
-use qcell::{LCell, LCellOwner};
+use qcell::{
+    generativity::{Guard, Id},
+    LCell, LCellOwner,
+};
 
 // BP = m + 1
-pub struct Root<'owner, V, const BP: usize> {
+pub struct RootWithOwner<'owner, V, const BP: usize> {
     root_chunk: LCell<'owner, Rc<LCell<'owner, Chunk<'owner, V, BP>>>>,
     owner: LCellOwner<'owner>,
 }
+
+pub type OrderedBList<V, const BP: usize> = RootWithOwner<'static, V, BP>;
 
 struct Chunk<'owner, V, const BP: usize> {
     edges: Edges<'owner, V, BP>,
@@ -63,9 +68,12 @@ impl<'owner, V, const BP: usize> Edges<'owner, V, BP> {
 
 const VIOL_CONNECTION: &str = "invariant violation: parent-child connection";
 const VIOL_LEAF_DEPTH: &str = "invariant violation: uniform leaf depth";
-pub struct InsertedId<'owner, V, const BP: usize> {
+pub struct InsertedIdWithOwner<'owner, V, const BP: usize> {
     node: Rc<LCell<'owner, LeafNode<'owner, V, BP>>>,
 }
+
+pub type InsertedId<V, const BP: usize> = InsertedIdWithOwner<'static, V, BP>;
+
 fn search_counts(counts: &[usize], index: usize) -> Option<(usize, usize)> {
     let mut acc = 0;
     for (i, count) in counts.iter().enumerate() {
@@ -76,20 +84,31 @@ fn search_counts(counts: &[usize], index: usize) -> Option<(usize, usize)> {
     }
     return None;
 }
+fn idx_among_siblings<T>(siblings: &[Rc<T>], chunk: &Rc<T>) -> usize {
+    siblings
+        .iter()
+        .position(|sib| Rc::ptr_eq(chunk, sib))
+        .expect(VIOL_CONNECTION)
+}
 
-impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
+impl<'owner, V, const BP: usize> RootWithOwner<'owner, V, BP> {
     const HALF: usize = BP / 2; // ceil(m / 2)
 
-    pub fn get_id(&self, index: usize) -> InsertedId<'owner, V, BP> {
+    pub fn get_id(&self, index: usize) -> InsertedIdWithOwner<'owner, V, BP> {
         self.search(&*self.root_chunk.ro(&self.owner), index)
     }
-    pub fn insert_before_id(&mut self, value: V, id: &InsertedId<'owner, V, BP>) {
+    pub fn insert_before_id(&mut self, value: V, id: &InsertedIdWithOwner<'owner, V, BP>) {
         self.insert_with_offset(value, 0, id)
     }
-    pub fn insert_after_id(&mut self, value: V, id: &InsertedId<'owner, V, BP>) {
+    pub fn insert_after_id(&mut self, value: V, id: &InsertedIdWithOwner<'owner, V, BP>) {
         self.insert_with_offset(value, 1, id)
     }
-    fn insert_with_offset(&mut self, value: V, offset: usize, id: &InsertedId<'owner, V, BP>) {
+    fn insert_with_offset(
+        &mut self,
+        value: V,
+        offset: usize,
+        id: &InsertedIdWithOwner<'owner, V, BP>,
+    ) {
         let chunk_rc = id
             .node
             .ro(&self.owner)
@@ -100,10 +119,7 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
         let chunk = chunk_rc.rw(&mut self.owner);
         match &mut chunk.edges {
             Edges::Leaves { leaves } => {
-                let pos = leaves
-                    .iter()
-                    .position(|leaf| Rc::ptr_eq(&id.node, leaf))
-                    .expect(VIOL_CONNECTION);
+                let pos = idx_among_siblings(leaves, &id.node);
                 let new_leaf = LeafNode {
                     parent: Rc::downgrade(&chunk_rc),
                     value,
@@ -111,9 +127,9 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
                 let new_leaf = Rc::new(LCell::new(new_leaf));
                 leaves.insert(pos + offset, new_leaf);
                 let leaves_len = leaves.len();
-                self.modify_count(&*chunk_rc, 1);
+                self.modify_count(&chunk_rc, 1);
                 if leaves_len == BP {
-                    self.rebalance_split(&chunk_rc)
+                    self.rebalance_overflow(&chunk_rc)
                 }
             }
             Edges::Chunks { .. } => {
@@ -121,7 +137,7 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
             }
         }
     }
-    pub fn remove(&mut self, id: &InsertedId<'owner, V, BP>) {
+    pub fn remove(&mut self, id: &InsertedIdWithOwner<'owner, V, BP>) {
         let chunk_rc = id
             .node
             .ro(&self.owner)
@@ -132,29 +148,51 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
         let chunk = chunk_rc.rw(&mut self.owner);
         match &mut chunk.edges {
             Edges::Leaves { leaves } => {
-                let pos = leaves
-                    .iter()
-                    .position(|leaf| Rc::ptr_eq(&id.node, leaf))
-                    .expect(VIOL_CONNECTION);
+                let pos = idx_among_siblings(leaves, &id.node);
                 leaves.remove(pos);
                 let leaves_len = leaves.len();
-                self.modify_count(&*chunk_rc, -1);
+                self.modify_count(&chunk_rc, -1);
                 if leaves_len < Self::HALF {
-                    self.rebalance_merge(&chunk_rc);
+                    self.rebalance_underflow(&chunk_rc);
                 }
             }
             Edges::Chunks { .. } => unreachable!("{}", VIOL_LEAF_DEPTH),
         }
     }
-
-    pub fn value<'b>(&'b self, id: &'b InsertedId<'owner, V, BP>) -> &'b V {
+    pub fn value<'b>(&'b self, id: &'b InsertedIdWithOwner<'owner, V, BP>) -> &'b V {
         &id.node.ro(&self.owner).value
     }
-    pub fn value_mut<'b>(&'b mut self, id: &'b InsertedId<'owner, V, BP>) -> &'b mut V {
+    pub fn value_mut<'b>(&'b mut self, id: &'b InsertedIdWithOwner<'owner, V, BP>) -> &'b mut V {
         &mut id.node.rw(&mut self.owner).value
     }
-
-    pub fn new(owner: LCellOwner<'owner>) -> Self {
+    pub fn get_index(&self, id: &InsertedIdWithOwner<'owner, V, BP>) -> usize {
+        let chunk_rc = id
+            .node
+            .ro(&self.owner)
+            .parent
+            .upgrade()
+            .expect(VIOL_CONNECTION)
+            .to_owned();
+        let mut pos = match &chunk_rc.ro(&self.owner).edges {
+            Edges::Leaves { leaves } => idx_among_siblings(leaves, &id.node),
+            Edges::Chunks { .. } => unreachable!("{}", VIOL_LEAF_DEPTH),
+        };
+        let mut parent_chunk = chunk_rc;
+        loop {
+            let Some(p) = parent_chunk.ro(&self.owner).parent.as_ref() else {break};
+            parent_chunk = p.upgrade().expect(VIOL_CONNECTION);
+            match &parent_chunk.ro(&self.owner).edges {
+                Edges::Chunks { chunks, counts } => {
+                    pos += counts[0..idx_among_siblings(chunks, &parent_chunk)]
+                        .iter()
+                        .sum::<usize>();
+                }
+                Edges::Leaves { .. } => unreachable!("{}", VIOL_LEAF_DEPTH),
+            }
+        }
+        pos
+    }
+    pub fn new_with_owner(owner: LCellOwner<'owner>) -> Self {
         Self {
             root_chunk: LCell::new(Rc::new(LCell::new(Chunk {
                 edges: Edges::Leaves {
@@ -166,12 +204,17 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
         }
     }
 }
-impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
+impl<V, const BP: usize> OrderedBList<V, BP> {
+    pub fn new() -> Self {
+        Self::new_with_owner(LCellOwner::new(unsafe { Guard::new(Id::new()) }))
+    }
+}
+impl<'owner, V, const BP: usize> RootWithOwner<'owner, V, BP> {
     fn search(
         &self,
         chunk: &Rc<LCell<'owner, Chunk<'owner, V, BP>>>,
         index: usize,
-    ) -> InsertedId<'owner, V, BP> {
+    ) -> InsertedIdWithOwner<'owner, V, BP> {
         let me = &*chunk.ro(&self.owner);
         match &me.edges {
             Edges::Chunks {
@@ -181,13 +224,13 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
                 let (pos, inner_index) = search_counts(&*counts, index).expect("out of bound");
                 self.search(&edges[pos], inner_index)
             }
-            Edges::Leaves { leaves } => InsertedId {
+            Edges::Leaves { leaves } => InsertedIdWithOwner {
                 node: leaves[index].to_owned(),
             },
         }
     }
 
-    fn modify_count(&mut self, chunk: &LCell<'owner, Chunk<'owner, V, BP>>, delta: isize) {
+    fn modify_count(&mut self, chunk: &Rc<LCell<'owner, Chunk<'owner, V, BP>>>, delta: isize) {
         if let Some(parent) = chunk
             .ro(&self.owner)
             .parent
@@ -197,10 +240,7 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
             let parent_chunk = parent.rw(&mut self.owner);
             match &mut parent_chunk.edges {
                 Edges::Chunks { chunks, counts } => {
-                    let pos = chunks
-                        .iter()
-                        .position(|chunk| Rc::ptr_eq(chunk, chunk))
-                        .expect(VIOL_CONNECTION);
+                    let pos = idx_among_siblings(chunks, chunk);
                     let count = counts
                         .get_mut(pos)
                         .expect("invariant violation: counts-edges parallelism");
@@ -208,11 +248,11 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
                 }
                 Edges::Leaves { .. } => unreachable!("{}", VIOL_CONNECTION),
             }
-            self.modify_count(&*parent, delta);
+            self.modify_count(&parent, delta);
         }
     }
 
-    fn rebalance_split(&mut self, chunk: &Rc<LCell<'owner, Chunk<'owner, V, BP>>>) {
+    fn rebalance_overflow(&mut self, chunk: &Rc<LCell<'owner, Chunk<'owner, V, BP>>>) {
         let me = chunk.rw(&mut self.owner);
         let new_edges = match &mut me.edges {
             Edges::Chunks { chunks, counts } => Edges::Chunks {
@@ -250,15 +290,12 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
                     chunks: sibling_chunks,
                     counts: sibling_counts,
                 } => {
-                    let pos = sibling_chunks
-                        .iter()
-                        .position(|sib| Rc::ptr_eq(chunk, sib))
-                        .expect(VIOL_CONNECTION);
+                    let pos = idx_among_siblings(sibling_chunks, chunk);
                     sibling_chunks.insert(pos, new_chunk);
                     sibling_counts[pos] -= new_count;
                     sibling_counts.insert(pos, new_count);
                     if sibling_chunks.len() == BP {
-                        self.rebalance_split(&parent_rc);
+                        self.rebalance_overflow(&parent_rc);
                     }
                 }
                 Edges::Leaves { .. } => unreachable!("{}", VIOL_LEAF_DEPTH),
@@ -282,7 +319,7 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
             *self.root_chunk.rw(&mut self.owner) = new_root;
         }
     }
-    fn rebalance_merge(&mut self, chunk: &Rc<LCell<'owner, Chunk<'owner, V, BP>>>) {
+    fn rebalance_underflow(&mut self, chunk: &Rc<LCell<'owner, Chunk<'owner, V, BP>>>) {
         if let Some(parent_rc) = chunk
             .ro(&self.owner)
             .parent
@@ -294,10 +331,7 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
                     chunks: sibling_chunks,
                     ..
                 } => {
-                    let pos = sibling_chunks
-                        .iter()
-                        .position(|sib| Rc::ptr_eq(chunk, sib))
-                        .expect(VIOL_CONNECTION);
+                    let pos = idx_among_siblings(sibling_chunks, chunk);
                     let next_chunk = sibling_chunks.get(pos + 1).cloned();
                     let prev_chunk = (if pos > 0 {
                         sibling_chunks.get(pos - 1)
@@ -318,63 +352,27 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
                     counts: sibling_counts,
                     ..
                 } => {
-                    fn transfer<'owner, V, const BP: usize>(
-                        src_chunk: Rc<LCell<'owner, Chunk<'owner, V, BP>>>,
-                        dst_chunk: Rc<LCell<'owner, Chunk<'owner, V, BP>>>,
-                        src_chunk_idx: usize,
-                        dst_chunk_idx: usize,
-                        owner: &mut LCellOwner<'owner>,
-                    ) {
-                        match &mut src_chunk.rw(owner).edges {
-                            Edges::Chunks { chunks, counts } => {
-                                let removed_chunk = chunks.remove(src_chunk_idx);
-                                let removed_count = counts.remove(src_chunk_idx);
-                                match &mut dst_chunk.rw(owner).edges {
-                                    Edges::Chunks { chunks, counts } => {
-                                        chunks.insert(dst_chunk_idx, removed_chunk);
-                                        counts.insert(dst_chunk_idx, removed_count);
-                                    }
-                                    _ => unreachable!("{}", VIOL_LEAF_DEPTH),
-                                }
-                            }
-                            Edges::Leaves { leaves } => {
-                                let removed_leaf = leaves.remove(src_chunk_idx);
-                                match &mut dst_chunk.rw(owner).edges {
-                                    Edges::Leaves { leaves } => {
-                                        leaves.insert(dst_chunk_idx, removed_leaf);
-                                    }
-                                    _ => unreachable!("{}", VIOL_LEAF_DEPTH),
-                                }
-                            }
-                        }
-                    }
                     match (next_chunk, prev_chunk) {
                         (Some((next_chunk_len, next_chunk)), _) if next_chunk_len > Self::HALF => {
                             // transfer from next chunk
                             sibling_counts[pos] += 1;
                             sibling_counts[pos + 1] -= 1;
                             let chunk_len = chunk.ro(&self.owner).edges.get_length();
-                            transfer(next_chunk, chunk.to_owned(), 0, chunk_len, &mut self.owner)
+                            self.transfer_item(next_chunk, chunk.to_owned(), 0, chunk_len)
                         }
                         (_, Some((prev_chunk_len, prev_chunk))) if prev_chunk_len > Self::HALF => {
                             // transfer from previous chunk
                             sibling_counts[pos] += 1;
                             sibling_counts[pos - 1] -= 1;
-                            transfer(
-                                prev_chunk,
-                                chunk.to_owned(),
-                                prev_chunk_len - 1,
-                                0,
-                                &mut self.owner,
-                            )
+                            self.transfer_item(prev_chunk, chunk.to_owned(), prev_chunk_len - 1, 0)
                         }
                         (Some(_), _) => {
                             // merge with next chunk
-                            self.rebalance_merge_inner(parent_rc, pos);
+                            self.merge_chunks(parent_rc, pos);
                         }
                         (_, Some(_)) => {
                             // merge with previous chunk
-                            self.rebalance_merge_inner(parent_rc, pos - 1);
+                            self.merge_chunks(parent_rc, pos - 1);
                         }
                         (None, None) => {
                             // only node, should become root
@@ -387,11 +385,7 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
             }
         }
     }
-    fn rebalance_merge_inner(
-        &mut self,
-        parent: Rc<LCell<'owner, Chunk<'owner, V, BP>>>,
-        l_idx: usize,
-    ) {
+    fn merge_chunks(&mut self, parent: Rc<LCell<'owner, Chunk<'owner, V, BP>>>, l_idx: usize) {
         let (r_chunk, r_count, underflowed) = match &mut parent.rw(&mut self.owner).edges {
             Edges::Chunks { chunks, counts } => (
                 chunks.remove(l_idx + 1),
@@ -431,7 +425,37 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
             _ => unreachable!("{}", VIOL_LEAF_DEPTH),
         }
         if underflowed {
-            self.rebalance_merge(&parent);
+            self.rebalance_underflow(&parent);
+        }
+    }
+    fn transfer_item(
+        &mut self,
+        src_chunk: Rc<LCell<'owner, Chunk<'owner, V, BP>>>,
+        dst_chunk: Rc<LCell<'owner, Chunk<'owner, V, BP>>>,
+        src_chunk_idx: usize,
+        dst_chunk_idx: usize,
+    ) {
+        match &mut src_chunk.rw(&mut self.owner).edges {
+            Edges::Chunks { chunks, counts } => {
+                let removed_chunk = chunks.remove(src_chunk_idx);
+                let removed_count = counts.remove(src_chunk_idx);
+                match &mut dst_chunk.rw(&mut self.owner).edges {
+                    Edges::Chunks { chunks, counts } => {
+                        chunks.insert(dst_chunk_idx, removed_chunk);
+                        counts.insert(dst_chunk_idx, removed_count);
+                    }
+                    _ => unreachable!("{}", VIOL_LEAF_DEPTH),
+                }
+            }
+            Edges::Leaves { leaves } => {
+                let removed_leaf = leaves.remove(src_chunk_idx);
+                match &mut dst_chunk.rw(&mut self.owner).edges {
+                    Edges::Leaves { leaves } => {
+                        leaves.insert(dst_chunk_idx, removed_leaf);
+                    }
+                    _ => unreachable!("{}", VIOL_LEAF_DEPTH),
+                }
+            }
         }
     }
 }
@@ -439,6 +463,21 @@ impl<'owner, V, const BP: usize> Root<'owner, V, BP> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    struct Both<T, const BP: usize> {
+        vec: Vec<T>,
+        obl: OrderedBList<T, BP>,
+    }
+
+    impl<T: Clone, const BP: usize> Both<T, BP> {
+        fn new() -> Self {
+            Self {
+                vec: Vec::new(),
+                obl: OrderedBList::new(),
+            }
+        }
+        fn insert(&mut self, index: usize, element: T) {}
+    }
 
     #[test]
     fn it_works() {}
