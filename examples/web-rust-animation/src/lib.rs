@@ -25,11 +25,11 @@ async fn app() {
         class: Some(&"container".into()),
         ..Default::default()
     }),
-    text(&"
+    text(&["
         This example showcases Async UI's \"escape hatch\" that allows you to work directly with web_sys when needed.
         The animation is driven by Rust through web_sys, scheduled with requestAnimationFrame.
         Each dot is a div with its own async loop.
-    ")
+    "])
 ))
     .await;
 }

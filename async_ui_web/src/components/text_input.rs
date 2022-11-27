@@ -70,8 +70,8 @@ pub async fn text_input<'c>(
         placeholder,
     }: TextInputProps<'c>,
 ) {
-    let text = text.unwrap_or(&"");
-    let placeholder = placeholder.unwrap_or(&"");
+    let text = text.unwrap_or(&[""]);
+    let placeholder = placeholder.unwrap_or(&[""]);
     let multiline = multiline.unwrap_or_default();
 
     let input = DOCUMENT.with(|doc| {

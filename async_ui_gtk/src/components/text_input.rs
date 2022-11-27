@@ -80,8 +80,8 @@ pub async fn text_input<'c>(
         placeholder,
     }: TextInputProps<'c>,
 ) {
-    let text = text.unwrap_or(&"");
-    let placeholder = placeholder.unwrap_or(&"");
+    let text = text.unwrap_or(&[""]);
+    let placeholder = placeholder.unwrap_or(&[""]);
 
     let manager = EventsManager::new();
     let input: gtk::Widget;

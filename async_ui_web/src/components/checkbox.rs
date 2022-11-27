@@ -39,7 +39,7 @@ pub async fn checkbox<'c>(
         elem.unchecked_into()
     });
     elem.set_type("checkbox");
-    let value = value.unwrap_or(&false);
+    let value = value.unwrap_or(&[false]);
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
     if on_change.is_some() {

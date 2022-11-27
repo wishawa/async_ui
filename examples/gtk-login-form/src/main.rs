@@ -15,7 +15,7 @@ async fn root() {
     login_flow().await;
 
     // They're logged in!
-    text(&"You're in!").await;
+    text(&["You're in!"]).await;
 }
 async fn login_flow() {
     loop {
@@ -42,7 +42,7 @@ async fn check_login(username: String, password: String) -> bool {
 }
 async fn invalid_login_popup() {
     // This is not a popup. I haven't implemented popups yet.
-    text(&"login invalid :(").await;
+    text(&["login invalid :("]).await;
 }
 async fn login_form() -> (String, String) {
     let mut username = String::new();
@@ -53,18 +53,18 @@ async fn login_form() -> (String, String) {
             // Username input
             text_input(TextInputProps {
                 on_blur: Some(&mut |ev| username = ev.get_text()),
-                placeholder: Some(&"Username"),
+                placeholder: Some(&["Username"]),
                 ..Default::default()
             }),
             // Password input
             text_input(TextInputProps {
                 on_blur: Some(&mut |ev| password = ev.get_text()),
-                placeholder: Some(&"Password"),
+                placeholder: Some(&["Password"]),
                 ..Default::default()
             }),
             // Submit button
             button(ButtonProps {
-                children: fragment((text(&"submit"),)),
+                children: fragment((text(&["submit"]),)),
                 on_press: Some(&mut |_ev| {
                     // When user press submit, set done to true...
                     *done.borrow_mut() = true;

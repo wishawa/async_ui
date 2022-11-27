@@ -204,7 +204,7 @@ async fn root() {
 }
 async fn header() {
     view(ViewProps {
-        children: fragment((text(&"todos"),)),
+        children: fragment((text(&["todos"]),)),
         class: Some(&"header-box".into()),
         ..Default::default()
     })
@@ -254,7 +254,7 @@ async fn top_part(store: &Store<State>) {
                 *value.borrow_mut() = ev.get_text();
             }),
             class: Some(&"add-input".into()),
-            placeholder: Some(&"What needs to be done?"),
+            placeholder: Some(&["What needs to be done?"]),
             ..Default::default()
         }),))
         .await;
@@ -364,7 +364,7 @@ async fn bottom_part(store: &Store<State>) {
     async fn clear_button(store: &Store<State>) {
         let classes = ClassList::new(["clear-button"]);
         button(ButtonProps {
-            children: fragment((text(&"Clear Completed"),)),
+            children: fragment((text(&["Clear Completed"]),)),
             on_press: Some(&mut |_ev| {
                 reducers::clear_completed(store);
             }),
@@ -388,7 +388,7 @@ async fn bottom_part(store: &Store<State>) {
             };
             let classes = ClassList::new(["filter-button"]);
             view(ViewProps {
-                children: fragment((radio_button(RadioProps { value: filter }), text(&label))),
+                children: fragment((radio_button(RadioProps { value: filter }), text(&[label]))),
                 class: Some(&classes),
                 element_tag: "label",
             })
@@ -445,7 +445,7 @@ async fn bottom_part(store: &Store<State>) {
 
 async fn footer() {
     view(ViewProps {
-        children: fragment((text(&"Made with Async-UI"),)),
+        children: fragment((text(&["Made with Async-UI"]),)),
         class: Some(&"footer".into()),
         ..Default::default()
     })

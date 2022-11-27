@@ -33,7 +33,7 @@ pub async fn link<'c>(
         let elem: HtmlAnchorElement = elem.unchecked_into();
         elem
     });
-    let href = href.unwrap_or(&"");
+    let href = href.unwrap_or(&[""]);
 
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();

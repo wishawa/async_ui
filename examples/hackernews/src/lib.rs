@@ -40,7 +40,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
         item_wrap(ItemWrapProps {
             children: fragment((
                 view(ViewProps {
-                    children: fragment((text(&story.title),)),
+                    children: fragment((text(&[story.title]),)),
                     #[cfg(not(feature = "gtk"))]
                     class: Some(&"story-title".into()),
                     ..Default::default()
@@ -48,13 +48,13 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
                 view(ViewProps {
                     children: fragment((
                         view(ViewProps {
-                            children: fragment((text(&format!("by: {}", story.by)),)),
+                            children: fragment((text(&[format!("by: {}", story.by)]),)),
                             #[cfg(not(feature = "gtk"))]
                             class: Some(&"story-author".into()),
                             ..Default::default()
                         }),
                         view(ViewProps {
-                            children: fragment((text(&format!("{} points", story.score)),)),
+                            children: fragment((text(&[format!("{} points", story.score)]),)),
                             ..Default::default()
                         }),
                     )),
@@ -80,7 +80,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
                 ..Default::default()
             }),
             button(ButtonProps {
-                children: fragment((text(&"Load More Stories"),)),
+                children: fragment((text(&["Load More Stories"]),)),
                 on_press: Some(&mut |_ev| {
                     let mut bm = list_model.borrow_mut();
                     for item in ids.drain(..std::cmp::min(40, ids.len())) {
