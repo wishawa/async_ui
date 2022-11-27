@@ -13,10 +13,7 @@ use async_ui_core::{
 };
 use futures_lite::pin;
 use glib::Cast;
-use gtk::{
-    traits::{BoxExt, WidgetExt},
-    Widget,
-};
+use gtk::{traits::BoxExt, Widget};
 use im_rc::Vector;
 use observables::{ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;

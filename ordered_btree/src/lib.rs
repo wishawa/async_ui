@@ -30,7 +30,7 @@ enum Edges<V, const BP: usize> {
 impl<V, const BP: usize> Edges<V, BP> {
     fn set_parent(&mut self, parent: Weak<RefCell<Chunk<V, BP>>>) {
         match self {
-            Edges::Chunks { chunks, counts } => {
+            Edges::Chunks { chunks, .. } => {
                 for chunk in chunks.iter() {
                     chunk.borrow_mut().parent = Some(parent.clone());
                 }
@@ -138,6 +138,16 @@ impl<V, const BP: usize> Cursor<V, BP> {
 impl<V, const BP: usize> Root<V, BP> {
     pub fn cursor(self: &Rc<Self>, index: usize) -> Cursor<V, BP> {
         self.search(&*self.root.borrow(), index)
+    }
+    pub fn new() -> Self {
+        Self {
+            root: RefCell::new(Rc::new(RefCell::new(Chunk {
+                edges: Edges::Leaves {
+                    leaves: ArrayVec::new(),
+                },
+                parent: None,
+            }))),
+        }
     }
 }
 impl<V, const BP: usize> Root<V, BP> {

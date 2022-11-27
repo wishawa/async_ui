@@ -1,15 +1,15 @@
-use std::{collections::VecDeque, error::Error, future::pending};
+use std::{collections::VecDeque, error::Error};
 
 #[cfg(feature = "gtk")]
 use async_ui_gtk as async_ui;
-#[cfg(feature = "web")]
+#[cfg(not(feature = "gtk"))]
 use async_ui_web as async_ui;
 
 use async_ui::{
     components::{button, list, text, view, ButtonProps, ListModel, ListProps, ViewProps},
-    fragment, mount,
+    fragment,
 };
-#[cfg(feature = "web")]
+#[cfg(not(feature = "gtk"))]
 use async_ui_web::components::{link, LinkProps};
 use observables::cell::ReactiveCell;
 
@@ -32,7 +32,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
             .body_json()
             .await?;
 
-        #[cfg(feature = "web")]
+        #[cfg(not(feature = "gtk"))]
         use {link as item_wrap, LinkProps as ItemWrapProps};
         #[cfg(feature = "gtk")]
         use {view as item_wrap, ViewProps as ItemWrapProps};
@@ -41,7 +41,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
             children: fragment((
                 view(ViewProps {
                     children: fragment((text(&story.title),)),
-                    #[cfg(feature = "web")]
+                    #[cfg(not(feature = "gtk"))]
                     class: Some(&"story-title".into()),
                     ..Default::default()
                 }),
@@ -49,7 +49,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
                     children: fragment((
                         view(ViewProps {
                             children: fragment((text(&format!("by: {}", story.by)),)),
-                            #[cfg(feature = "web")]
+                            #[cfg(not(feature = "gtk"))]
                             class: Some(&"story-author".into()),
                             ..Default::default()
                         }),
@@ -58,14 +58,14 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
                             ..Default::default()
                         }),
                     )),
-                    #[cfg(feature = "web")]
+                    #[cfg(not(feature = "gtk"))]
                     class: Some(&"story-info-bar".into()),
                     ..Default::default()
                 }),
             )),
-            #[cfg(feature = "web")]
+            #[cfg(not(feature = "gtk"))]
             class: Some(&"story-item".into()),
-            #[cfg(feature = "web")]
+            #[cfg(not(feature = "gtk"))]
             href: Some(&story.url),
             ..Default::default()
         })
@@ -87,7 +87,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
                         bm.push(item);
                     }
                 }),
-                #[cfg(feature = "web")]
+                #[cfg(not(feature = "gtk"))]
                 class: Some(&"load-more-button".into()),
                 ..Default::default()
             }),
@@ -103,10 +103,10 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
 #[derive(serde::Deserialize)]
 struct Story {
     by: String,
-    descendants: usize,
-    id: u64,
+    // descendants: usize,
+    // id: u64,
     title: String,
-    time: u64,
-    url: String,
+    // time: u64,
+    // url: String,
     score: i32,
 }
