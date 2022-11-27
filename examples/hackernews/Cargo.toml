@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 observables = { path = "../../observables/" }
 serde = { version = "1.0", features = ["derive"] }
-surf = { version = "2.3.2", default-features = false }
+surf = { git = "https://github.com/wishawa/surf", branch = "patch-1", default-features = false }
 async_ui_gtk = { path = "../../async_ui_gtk/", optional = true }
 async_ui_web = { path = "../../async_ui_web/", optional = true }
 
