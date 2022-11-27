@@ -662,22 +662,38 @@ mod tests {
         both.remove(5);
         assert_eq!(both.obl.depth(), 1);
         both.compare();
-    }
-    #[test]
-    fn basic_insert() {
-        let mut both: Both<usize, 7> = Both::new();
-        for i in 0..128 {
-            both.insert(i, i);
-            both.compare();
-        }
-    }
-    #[test]
-    fn basic_insert_remove() {
+
         let mut both: Both<usize, 7> = Both::new();
         for i in 0..22 {
             both.insert(i, i);
         }
         both.remove(0);
         both.compare();
+    }
+    #[test]
+    fn compare_insert_remove_1() {
+        let mut both: Both<usize, 7> = Both::new();
+        for _ in 0..5 {
+            for i in 0..27 {
+                both.insert(i, i);
+            }
+            for i in 0..3 {
+                both.remove(2 * (2 - i));
+            }
+            both.compare();
+        }
+    }
+    #[test]
+    fn compare_insert_remove_2() {
+        let mut both: Both<usize, 7> = Both::new();
+        for _ in 0..5 {
+            for i in 0..232 {
+                both.insert(i, i);
+            }
+            for i in 0..116 {
+                both.remove(2 * (115 - i));
+            }
+            both.compare();
+        }
     }
 }
