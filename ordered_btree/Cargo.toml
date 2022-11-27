@@ -9,3 +9,4 @@ repository = "https://github.com/wishawa/async_ui"
 
 [dependencies]
 arrayvec = "0.7.2"
+qcell = "0.5.2"
