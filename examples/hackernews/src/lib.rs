@@ -66,7 +66,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
             #[cfg(not(feature = "gtk"))]
             class: Some(&"story-item".into()),
             #[cfg(not(feature = "gtk"))]
-            href: Some(&story.url),
+            href: Some(&[story.url]),
             ..Default::default()
         })
         .await;
@@ -107,6 +107,6 @@ struct Story {
     // id: u64,
     title: String,
     // time: u64,
-    // url: String,
+    url: String,
     score: i32,
 }

@@ -1,4 +1,4 @@
-use crate::{Listenable, ObservableBase, ObservableBorrow, Version};
+use crate::{Listenable, ObservableBase, Version};
 
 impl<T> Listenable for [T; 1] {
     fn add_waker(&self, _waker: std::task::Waker) {
@@ -10,7 +10,8 @@ impl<T> Listenable for [T; 1] {
 }
 impl<T> ObservableBase for [T; 1] {
     type Data = T;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
-        ObservableBorrow::Borrow(&self[0])
+
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        f(&self[0])
     }
 }

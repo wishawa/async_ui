@@ -68,11 +68,6 @@ pub async fn checkbox<'c>(
             }
         }
     })
-    .or(async {
-        loop {
-            elem_2.set_checked(*value.borrow_observable_as());
-            value.until_change().await;
-        }
-    });
+    .or(value.for_each(|v| elem_2.set_checked(*v)));
     ElementFuture::new(future, elem.into()).await;
 }

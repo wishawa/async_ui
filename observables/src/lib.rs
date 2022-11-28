@@ -1,12 +1,6 @@
-use std::{
-    borrow::Borrow,
-    cell::Ref,
-    ops::Deref,
-    // sync::{Arc, MutexGuard, RwLockReadGuard},
-    task::Waker,
-};
+use std::{borrow::Borrow, task::Waker};
 
-use transformers::map::Map;
+use transformers::{for_each::ForEach, map::Map};
 pub use version::Version;
 mod impls;
 mod next_change;
@@ -24,47 +18,40 @@ pub trait Listenable {
     fn add_waker(&self, waker: Waker);
     fn get_version(&self) -> Version;
 }
-pub enum ObservableBorrow<'b, T: ?Sized> {
-    Borrow(&'b T),
-    RefCell(Ref<'b, T>),
-    // Mutex(MutexGuard<'b, T>),
-    // RwLock(RwLockReadGuard<'b, T>),
-    // OtherBoxed(Box<dyn Deref<Target = T> + 'b>),
-    // OtherRc(Rc<dyn Deref<Target = T> + 'b>),
-    // OtherArc(Arc<dyn Deref<Target = T> + 'b>),
-}
 
-impl<'b, T: ?Sized> Deref for ObservableBorrow<'b, T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        match self {
-            ObservableBorrow::Borrow(x) => x.deref(),
-            ObservableBorrow::RefCell(x) => x.deref(),
-            // ObservableBorrow::Mutex(x) => x.deref(),
-            // ObservableBorrow::RwLock(x) => x.deref(),
-            // ObservableBorrow::OtherBoxed(x) => x.deref(),
-            // ObservableBorrow::OtherRc(x) => x.deref(),
-            // ObservableBorrow::OtherArc(x) => x.deref(),
-        }
-    }
-}
-impl<'b, T: ?Sized> ObservableBorrow<'b, T> {
-    fn map_to<U: ?Sized, M: Fn(&T) -> &U>(self, mapper: M) -> ObservableBorrow<'b, U> {
-        match self {
-            ObservableBorrow::Borrow(x) => ObservableBorrow::Borrow(mapper(x)),
-            ObservableBorrow::RefCell(x) => ObservableBorrow::RefCell(Ref::map(x, mapper)),
-        }
-    }
-}
 pub trait ObservableBase: Listenable {
     type Data: ?Sized;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data>;
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U;
 }
 
 pub trait ObservableAs<Z: ?Sized>: Listenable {
-    fn borrow_observable_as<'b>(&'b self) -> ObservableBorrow<'b, Z>;
+    fn visit_dyn_as(&self, visitor: &mut dyn FnMut(&Z));
+    #[allow(non_snake_case)]
+    fn __import_ObservableAsExt_for_methods(&self) {}
 }
 pub trait ObservableAsExt<Z: ?Sized>: ObservableAs<Z> {
+    fn visit<U, F: FnOnce(&Z) -> U>(&self, visitor: F) -> U {
+        enum State<U, F> {
+            Func(F),
+            Result(U),
+            Null,
+        }
+        let mut state = State::Func(visitor);
+        self.visit_dyn_as(&mut |v| match std::mem::replace(&mut state, State::Null) {
+            State::Func(f) => state = State::Result(f(v)),
+            _ => panic!("already visited"),
+        });
+        match state {
+            State::Result(u) => u,
+            _ => panic!("visitor function not called"),
+        }
+    }
+    fn get(&self) -> Z::Owned
+    where
+        Z: ToOwned,
+    {
+        self.visit(ToOwned::to_owned)
+    }
     fn map<O, M>(self, mapper: M) -> Map<Self, Z, O, M>
     where
         M: Fn(&Z) -> O,
@@ -75,6 +62,23 @@ pub trait ObservableAsExt<Z: ?Sized>: ObservableAs<Z> {
     fn until_change<'i>(&'i self) -> NextChangeFuture<Self, &'i Self> {
         NextChangeFuture::new(self)
     }
+    fn for_each<H>(self, handler: H) -> ForEach<Self, Z, H>
+    where
+        H: FnMut(&Z),
+        Self: Sized,
+    {
+        ForEach::new(self, handler)
+    }
+    // fn for_each_async<H, F>(
+    //     &self,
+    //     handler: H,
+    // ) -> ForEachAsync<Self, H, F>
+    // where
+    //     H: FnMut(&Z) -> F,
+    //     F: Future<Output = ()>,
+    //     Self: Sized
+    // {
+    // }
 }
 impl<Z, O> ObservableAs<Z> for O
 where
@@ -82,14 +86,59 @@ where
     O: ObservableBase + ?Sized,
     O::Data: Borrow<Z>,
 {
-    fn borrow_observable_as<'b>(&'b self) -> ObservableBorrow<'b, Z> {
-        self.borrow_observable().map_to(Borrow::borrow)
+    fn visit_dyn_as(&self, visitor: &mut dyn FnMut(&Z)) {
+        self.visit_base(|val| visitor(val.borrow()));
     }
 }
+
+// struct ObservableWrapper<'a, O: ?Sized, Z>{
+//     pub data: &'a O,
+//     _phantom: PhantomData<Z>
+// }
+
+// impl<'a, O, Z> Listenable for ObservableWrapper<'a, O, Z>
+// where
+//     O: Listenable + ?Sized
+// {
+//     fn add_waker(&self, waker: Waker) {
+//         <O as Listenable>::add_waker(self.0, waker)
+//     }
+//     fn get_version(&self) -> Version {
+//         <O as Listenable>::get_version(self.0)
+//     }
+// }
+
+// impl<'a, O, Z> ObservableBase for ObservableWrapper<'a, O, Z>
+// where
+//     O: ObservableBase + ?Sized
+// {
+//     type Data = Z;
+
+//     fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+//         <O as ObservableBase>::visit_base(self.0, f)
+//     }
+// }
 
 impl<Z, O> ObservableAsExt<Z> for O
 where
     Z: ?Sized,
     O: ObservableAs<Z> + ?Sized,
 {
+}
+
+impl<'a, Z: ?Sized> Listenable for &'a dyn ObservableAs<Z> {
+    fn add_waker(&self, waker: Waker) {
+        (*self).add_waker(waker)
+    }
+    fn get_version(&self) -> Version {
+        (*self).get_version()
+    }
+}
+
+impl<'a, Z: ?Sized> ObservableBase for &'a dyn ObservableAs<Z> {
+    type Data = Z;
+
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        (*self).visit(f)
+    }
 }

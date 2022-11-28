@@ -9,7 +9,7 @@ use std::{
 use futures_signals::signal::Signal;
 use waker_fn::waker_fn;
 
-use crate::{Listenable, ObservableAs, ObservableBase, Version};
+use crate::{Listenable, ObservableAs, ObservableAsExt, ObservableBase, Version};
 
 pub struct ToSignal<W, I, O, M>
 where
@@ -52,8 +52,7 @@ where
         let current_version = this.wrapped.get_version();
         if current_version > this.last_version {
             this.last_version = current_version;
-            let val = this.wrapped.borrow_observable_as();
-            let out = (this.mapper)(&*val);
+            let out = this.wrapped.visit(|val| (this.mapper)(&*val));
             this.wrapped.add_waker(cx.waker().to_owned());
             Poll::Ready(Some(out))
         } else {
@@ -121,8 +120,8 @@ where
     S::Item: Default,
 {
     type Data = S::Item;
-    fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, S::Item> {
-        crate::ObservableBorrow::RefCell(self.value.borrow())
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        f(&*self.value.borrow())
     }
 }
 

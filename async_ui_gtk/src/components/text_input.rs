@@ -147,20 +147,12 @@ pub async fn text_input<'c>(
                 }
             }
         })
-        .or(async {
-            loop {
-                buffer.set_value(&*text.borrow_observable_as());
-                text.until_change().await;
+        .or(text.for_each(|t| buffer.set_value(t)))
+        .or(placeholder.for_each(|t| {
+            if let Some(ent) = entry_node.as_ref() {
+                ent.set_placeholder_text(Some(t));
             }
-        })
-        .or(async {
-            loop {
-                if let Some(ent) = entry_node.as_ref() {
-                    ent.set_placeholder_text(Some(&*placeholder.borrow_observable_as()));
-                }
-                placeholder.until_change().await;
-            }
-        }),
+        })),
         WrappedWidget {
             widget: input.clone().upcast(),
             inner_widget: input.upcast(),

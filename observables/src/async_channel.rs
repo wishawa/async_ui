@@ -42,8 +42,8 @@ impl<T> Listenable for FromReceiver<T> {
 impl<T> ObservableBase for FromReceiver<T> {
     type Data = T;
 
-    fn borrow_observable<'b>(&'b self) -> crate::ObservableBorrow<'b, Self::Data> {
-        crate::ObservableBorrow::RefCell(self.last_value.borrow())
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        f(&*self.last_value.borrow())
     }
 }
 

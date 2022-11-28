@@ -1,6 +1,6 @@
-use std::{borrow::Borrow, cell::Ref, task::Waker};
+use std::{borrow::Borrow, task::Waker};
 
-use observables::{Listenable, ObservableBase, ObservableBorrow, Version};
+use observables::{Listenable, ObservableBase, Version};
 
 use crate::{
     edge::TrackedEdge,
@@ -20,8 +20,9 @@ where
     N::Edge: TrackedEdge<Optional = OptionalNo>,
 {
     type Data = <N::Edge as TrackedEdge>::Data;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
-        ObservableBorrow::RefCell(Ref::map(self.tracked.borrow(), Borrow::borrow))
+
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        f(&*self.tracked.borrow())
     }
 }
 
@@ -49,11 +50,12 @@ where
     N: TrackedNode,
 {
     type Data = <N::Edge as TrackedEdge>::Data;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, Self::Data> {
+
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
         if let Some(b) = self.tracked.borrow_opt() {
-            ObservableBorrow::RefCell(Ref::map(b, Borrow::borrow))
+            f(&*b)
         } else {
-            ObservableBorrow::Borrow(self.fallback.borrow())
+            f(self.fallback.borrow())
         }
     }
 }

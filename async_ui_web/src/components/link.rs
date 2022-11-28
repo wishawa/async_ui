@@ -63,18 +63,14 @@ pub async fn link<'c>(
                 }
             }
         })
-        .or(async {
-            loop {
-                let s = &*href.borrow_observable_as();
-                if !s.is_empty() {
-                    anchor_copy.set_href(s);
-                } else {
-                    anchor_copy
-                        .remove_attribute("href")
-                        .expect("anchor remove attribute failed");
-                }
-                href.until_change().await;
+        .or(href.for_each(|href| {
+            if !href.is_empty() {
+                anchor_copy.set_href(href);
+            } else {
+                anchor_copy
+                    .remove_attribute("href")
+                    .expect("anchor remove attribute failed");
             }
-        });
+        }));
     ElementFuture::new(future, anchor.into()).await
 }

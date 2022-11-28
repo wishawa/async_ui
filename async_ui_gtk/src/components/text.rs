@@ -9,12 +9,7 @@ pub async fn text<'c>(text: &'c dyn ObservableAs<str>) {
     let node = gtk::Label::new(None);
     let widget: gtk::Widget = node.clone().upcast();
     ElementFuture::new(
-        async {
-            loop {
-                node.set_label(&*text.borrow_observable_as());
-                text.until_change().await;
-            }
-        },
+        text.for_each(|t| node.set_label(t)),
         WrappedWidget {
             widget: widget.clone(),
             inner_widget: widget.upcast(),

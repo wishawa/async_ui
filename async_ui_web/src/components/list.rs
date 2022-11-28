@@ -97,9 +97,7 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture + 'c>(
             let task = spawn_local(fut);
             (reference_node, task)
         };
-        let mut last_version = {
-            let model = &*data.borrow_observable_as();
-
+        let mut last_version = data.visit(|model| {
             let start = model.underlying_vector();
             let mut last_node = None;
             for item in start.iter() {
@@ -114,66 +112,69 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture + 'c>(
                 .total_listeners()
                 .set(model.total_listeners().get() + 1);
             model.get_version()
-        };
-        let _guard = scopeguard::guard((), |_| {
-            let b = data.borrow_observable_as();
-            let model = ListModelPrivateAPIs(&*b);
-            model
-                .total_listeners()
-                .set(model.total_listeners().get() - 1);
         });
-        loop {
-            data.until_change().await;
-            {
-                let model = &*data.borrow_observable_as();
-                let model_priv = ListModelPrivateAPIs(model);
-                let changes = model_priv.changes_since_version(last_version);
-                for change in changes {
-                    match change {
-                        Change::Splice {
-                            remove_range,
-                            replace_with,
-                        } => {
-                            let n_items = ExactSizeIterator::len(remove_range);
-                            let mut right = nodes.split_off(remove_range.start);
-                            let new_right = right.split_off(n_items);
-                            for (node, task_id) in right.into_iter() {
-                                std::mem::drop(tasks.remove(task_id));
-                                container_node.remove_child(&node).ok();
-                            }
-                            let insert_after: Option<Node> =
-                                nodes.back().map(|(node, _)| node).cloned();
-                            nodes.extend(replace_with.iter().map(|t| {
-                                let fut = render(t.to_owned()).into_future();
-                                let (node, task) = create_item_task(fut, insert_after.as_ref());
-                                let task_id = tasks.insert(task);
-                                (node, task_id)
-                            }));
-                            nodes.append(new_right);
-                        }
-                        Change::Remove { index } => {
-                            let (node, task_id) = nodes.remove(*index);
+        let _guard = scopeguard::guard((), |_| {
+            data.visit(|model| {
+                let model = ListModelPrivateAPIs(&*model);
+                model
+                    .total_listeners()
+                    .set(model.total_listeners().get() - 1);
+            });
+        });
+        let mut first = true;
+        data.for_each(|model| {
+            if first {
+                first = false;
+                return;
+            }
+            let model_priv = ListModelPrivateAPIs(model);
+            let changes = model_priv.changes_since_version(last_version);
+            for change in changes {
+                match change {
+                    Change::Splice {
+                        remove_range,
+                        replace_with,
+                    } => {
+                        let n_items = ExactSizeIterator::len(remove_range);
+                        let mut right = nodes.split_off(remove_range.start);
+                        let new_right = right.split_off(n_items);
+                        for (node, task_id) in right.into_iter() {
                             std::mem::drop(tasks.remove(task_id));
                             container_node.remove_child(&node).ok();
                         }
-                        Change::Insert { index, value } => {
-                            let fut = render(value.to_owned()).into_future();
-                            let (node, task) = create_item_task(fut, {
-                                (*index > 0)
-                                    .then(|| nodes.get(index - 1).map(|(node, _task_id)| node))
-                                    .flatten()
-                            });
+                        let insert_after: Option<Node> =
+                            nodes.back().map(|(node, _)| node).cloned();
+                        nodes.extend(replace_with.iter().map(|t| {
+                            let fut = render(t.to_owned()).into_future();
+                            let (node, task) = create_item_task(fut, insert_after.as_ref());
                             let task_id = tasks.insert(task);
-                            nodes.insert(*index, (node, task_id));
-                        }
+                            (node, task_id)
+                        }));
+                        nodes.append(new_right);
+                    }
+                    Change::Remove { index } => {
+                        let (node, task_id) = nodes.remove(*index);
+                        std::mem::drop(tasks.remove(task_id));
+                        container_node.remove_child(&node).ok();
+                    }
+                    Change::Insert { index, value } => {
+                        let fut = render(value.to_owned()).into_future();
+                        let (node, task) = create_item_task(fut, {
+                            (*index > 0)
+                                .then(|| nodes.get(index - 1).map(|(node, _task_id)| node))
+                                .flatten()
+                        });
+                        let task_id = tasks.insert(task);
+                        nodes.insert(*index, (node, task_id));
                     }
                 }
-                last_version = model_priv.get_version();
-                model_priv
-                    .pending_listeners()
-                    .set(model_priv.pending_listeners().get() - 1);
             }
-        }
+            last_version = model_priv.get_version();
+            model_priv
+                .pending_listeners()
+                .set(model_priv.pending_listeners().get() - 1);
+        })
+        .await;
     };
     ElementFuture::new(inside, container_node_copy).await
 }

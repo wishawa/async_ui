@@ -36,18 +36,13 @@ pub async fn radio_group<'c, E: Clone + PartialEq + 'static>(
     let ptr = &children as *const Fragment<'_>;
     let name = format!("radio-{ptr:x?}");
     let value = if let Some(v) = value { v } else { return };
-    let value = ReactiveCell::new(value.borrow_observable_as().clone());
+    let value = ReactiveCell::new(value.get());
     let group = Rc::new(RadioGroup { name, value });
     let group_1 = group.clone();
     with_context::<_, RadioGroup<E>>(children, group)
-        .or(async {
-            loop {
-                group_1.value.as_observable().until_change().await;
-                on_change
-                    .as_mut()
-                    .map(|f| f(group_1.value.as_observable().borrow_observable_as().clone()));
-            }
-        })
+        .or(group_1.value.as_observable().for_each(|e| {
+            on_change.as_mut().map(|f| f(e.to_owned()));
+        }))
         .await;
 }
 
@@ -64,7 +59,7 @@ pub async fn radio_button<E: Clone + PartialEq + 'static>(RadioProps { value }: 
     let elem_1 = elem.clone();
     let value_1 = value.clone();
     let func: Closure<dyn Fn(Event)> = Closure::new(move |_ev: Event| {
-        if elem_1.checked() && *ctx_1.value.as_observable().borrow_observable_as() != value_1 {
+        if elem_1.checked() && ctx_1.value.as_observable().visit(|v| *v != value_1) {
             ctx_1.value.set(value_1.clone());
         }
     });
@@ -73,12 +68,9 @@ pub async fn radio_button<E: Clone + PartialEq + 'static>(RadioProps { value }: 
     let elem_2 = elem.clone();
 
     ElementFuture::new(
-        async {
-            loop {
-                elem_2.set_checked(*ctx.value.as_observable().borrow_observable_as() == value);
-                ctx.value.as_observable().until_change().await;
-            }
-        },
+        ctx.value
+            .as_observable()
+            .for_each(|v| elem_2.set_checked(*v == value)),
         elem.into(),
     )
     .await;

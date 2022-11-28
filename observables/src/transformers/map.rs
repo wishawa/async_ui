@@ -1,11 +1,6 @@
-use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
-    marker::PhantomData,
-    task::Waker,
-};
+use std::{cell::RefCell, marker::PhantomData, task::Waker};
 
-use crate::{Listenable, ObservableAs, ObservableBase, ObservableBorrow, Version};
+use crate::{Listenable, ObservableAs, ObservableAsExt, ObservableBase, Version};
 
 pub struct Map<W, I, O, M>
 where
@@ -42,15 +37,14 @@ where
     I: ?Sized,
 {
     type Data = O;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, O> {
-        let input = self.wrapped.borrow_observable_as();
-        let mapped = (self.mapper)(&*input);
-        {
-            *self.last_value.borrow_mut() = Some(mapped);
-        }
-        ObservableBorrow::RefCell(Ref::map(self.last_value.borrow(), |v| {
-            v.as_ref().unwrap().borrow()
-        }))
+
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        self.wrapped.visit(|w| {
+            {
+                *self.last_value.borrow_mut() = Some((self.mapper)(w));
+            }
+            f(self.last_value.borrow().as_ref().unwrap())
+        })
     }
 }
 

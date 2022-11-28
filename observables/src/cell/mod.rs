@@ -1,15 +1,9 @@
 mod borrow_mut;
-use std::{
-    borrow::Borrow,
-    cell::{Ref, RefCell},
-    fmt::Debug,
-    marker::PhantomData,
-    task::Waker,
-};
+use std::{borrow::Borrow, cell::RefCell, fmt::Debug, marker::PhantomData, task::Waker};
 
 use smallvec::SmallVec;
 
-use crate::{Listenable, ObservableBase, ObservableBorrow, Version};
+use crate::{Listenable, ObservableBase, Version};
 
 use self::borrow_mut::ReactiveCellBorrowMut;
 
@@ -80,9 +74,8 @@ impl<T, A: Borrow<ReactiveCell<T>>> Listenable for ReactiveCellObservable<T, A> 
 }
 impl<T, A: Borrow<ReactiveCell<T>>> ObservableBase for ReactiveCellObservable<T, A> {
     type Data = T;
-    fn borrow_observable<'b>(&'b self) -> ObservableBorrow<'b, T> {
-        ObservableBorrow::RefCell(Ref::map(self.inner.borrow().inner.borrow(), |r| {
-            r.data.borrow()
-        }))
+
+    fn visit_base<'b, F: FnOnce(&Self::Data) -> U, U>(&'b self, f: F) -> U {
+        f(&self.inner.borrow().inner.borrow().data)
     }
 }

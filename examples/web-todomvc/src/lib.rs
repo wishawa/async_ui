@@ -10,7 +10,7 @@ use async_ui_web::{
     fragment, mount,
     utils::class_list::ClassList,
 };
-use observables::{cell::ReactiveCell, ObservableAsExt, ObservableBase};
+use observables::{cell::ReactiveCell, ObservableAsExt};
 use wasm_bindgen::{prelude::wasm_bindgen, JsValue};
 use x_bow::{create_store, Store, Track};
 
@@ -310,8 +310,8 @@ async fn list_content(store: &Store<State>) {
             let done_obs = handle.done.as_observable();
             let filter_obs = store.filter.as_observable();
             loop {
-                let v = *done_obs.borrow_observable();
-                let f = *filter_obs.borrow_observable();
+                let v = done_obs.get();
+                let f = filter_obs.get();
                 done_classes.set("done-button-done", v);
                 input_classes.set("item-input-done", v);
                 let visible = match (f, v) {

@@ -144,20 +144,12 @@ pub async fn text_input<'c>(
             }
         }
     })
-    .or(async {
-        loop {
-            input.set_value(&*text.borrow_observable_as());
-            text.until_change().await;
-        }
-    })
-    .or(async {
-        loop {
-            input_elem
-                .set_attribute("placeholder", &*placeholder.borrow_observable_as())
-                .expect("set placeholder failed");
-            placeholder.until_change().await;
-        }
-    });
+    .or(text.for_each(|t| input.set_value(t)))
+    .or(placeholder.for_each(|t| {
+        input_elem
+            .set_attribute("placeholder", t)
+            .expect("set placeholder failed")
+    }));
 
     ElementFuture::new(future, input.as_elem().clone().into()).await;
 }
