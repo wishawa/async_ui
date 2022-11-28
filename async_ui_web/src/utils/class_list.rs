@@ -1,8 +1,26 @@
+/*! For representing the classes an HTML element have.
+ *
+ */
 use std::{borrow::Cow, cell::RefCell, collections::HashSet, hash::Hash};
 
 use smallvec::SmallVec;
 use web_sys::DomTokenList;
 
+/** A type for representing the classes an HTML element have.
+ *
+ * The built-in components take this as prop.
+ *
+ * You can add/remove/toggle classes dynamically.
+ *
+ * You can create class list from arrays
+ * ```rust
+ * let cl = ClassList::new(["container", "flex"]);
+ * ```
+ * Or from string
+ * ```rust
+ * let cl = "container flex".into();
+ * ```
+ */
 pub struct ClassList<'a> {
     inner: RefCell<Inner<'a>>,
 }

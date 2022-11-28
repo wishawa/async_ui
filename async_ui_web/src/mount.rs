@@ -11,6 +11,11 @@ use web_sys::Node;
 
 use crate::backend::Backend;
 
+/** Mount the given element future in a node.
+ *
+ * This will spawn the element future, causing it to render UI.
+ * Everything rendered by the element future will be inside the node.
+ */
 pub fn mount_at<F: IntoFuture + 'static>(root: F, node: Node) {
     let fut = WithVNode::new(
         root.into_future(),
@@ -25,6 +30,9 @@ pub fn mount_at<F: IntoFuture + 'static>(root: F, node: Node) {
     core_mount::<Backend, _>(fut)
 }
 
+/** Mount the given future in the page's <body>.
+ *
+ */
 pub fn mount<F: IntoFuture + 'static>(root: F) {
     let node = web_sys::window()
         .unwrap()

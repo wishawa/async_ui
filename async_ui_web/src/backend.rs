@@ -1,3 +1,7 @@
+/*! The backend interacting with the core crate. Not relevant to users.
+ *
+ */
+
 use async_ui_core::{backend::BackendTrait, vnode::VNode};
 use scoped_tls::{scoped_thread_local, ScopedKey};
 use std::{future::Future, rc::Rc};

@@ -41,6 +41,9 @@ impl<'c> Default for SliderProps<'c> {
         }
     }
 }
+/** Slider - HTML <input type="range">
+ *
+ */
 pub async fn slider(
     SliderProps {
         value,

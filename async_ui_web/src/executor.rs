@@ -1,3 +1,6 @@
+/*! The executor responsible for schduling and running futures. Not relevant to users.
+ *
+ */
 use std::{
     cell::{Cell, RefCell},
     future::Future,

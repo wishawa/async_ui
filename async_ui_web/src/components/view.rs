@@ -16,6 +16,10 @@ impl<'c> Default for ViewProps<'c> {
         }
     }
 }
+/** View - HTML <div> element
+ *
+ * You can customize the `element_tag` prop to use other tags (main, h3, etc.).
+ */
 pub async fn view<'c>(
     ViewProps {
         children,

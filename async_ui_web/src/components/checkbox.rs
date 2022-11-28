@@ -36,6 +36,9 @@ impl<'c> Default for CheckboxProps<'c> {
     }
 }
 
+/** Checkbox - HTML <input type="checkbox">
+ *
+ */
 pub async fn checkbox<'c>(
     CheckboxProps {
         value,

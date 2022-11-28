@@ -73,6 +73,9 @@ impl<'c> Default for TextInputProps<'c> {
     }
 }
 
+/** Text Input - <input> and <textarea>
+ *
+ */
 pub async fn text_input<'c>(
     TextInputProps {
         text,

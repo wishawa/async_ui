@@ -30,6 +30,9 @@ impl<'c> Default for LinkProps<'c> {
     }
 }
 
+/** Link / Anchor - HTML <a> element
+ *
+ */
 pub async fn link<'c>(
     LinkProps {
         href,

@@ -30,6 +30,9 @@ pub struct PressEvent {
     pub native_event: MouseEvent,
 }
 
+/** Button - HTML <button> element
+ *
+ */
 pub async fn button<'c>(
     ButtonProps {
         children,

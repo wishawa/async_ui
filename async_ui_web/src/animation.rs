@@ -1,3 +1,7 @@
+/*! For scheduling Rust-driven animations
+ *
+ * This is not related to CSS animations.
+ */
 use std::rc::Rc;
 
 use observables::{cell::ReactiveCell, ObservableAsExt};
@@ -5,6 +9,17 @@ use wasm_bindgen::{prelude::Closure, JsCast};
 
 use crate::WINDOW;
 
+/** A "clock" for scheduling animation at the browser's preferred frame rate.
+ *
+ * ```rust
+ * let animator = Animator::new();
+ *
+ * loop {
+ *     let timestamp = animator.next_frame().await; // wait until the browser wants a frame
+ *     // render something
+ * }
+ * ```
+ */
 pub struct Animator {
     cell: Rc<ReactiveCell<f64>>,
     func: Closure<dyn Fn(f64)>,
