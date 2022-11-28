@@ -1,11 +1,31 @@
-pub(super) fn dummy_handler<T>() -> &'static mut dyn FnMut(T) {
+use std::marker::PhantomData;
+
+use observables::{Listenable, ObservableAs};
+
+pub fn dummy_handler<T>() -> &'static mut dyn FnMut(T) {
     Box::leak(Box::new(|_| {}))
 }
-pub(super) fn is_dummy_handler<T: 'static>(h: &mut dyn FnMut(T)) -> bool {
+pub fn is_dummy_handler<T: 'static>(h: &mut dyn FnMut(T)) -> bool {
     std::ptr::eq(
         h as *const dyn FnMut(T),
         dummy_handler::<T>() as *const dyn FnMut(T),
     )
+}
+
+pub struct DummyObservableAs<T>(pub PhantomData<T>);
+const DUMMY_USED: &str = "dummy prop used";
+impl<T> Listenable for DummyObservableAs<T> {
+    fn add_waker(&self, _waker: std::task::Waker) {
+        panic!("{}", DUMMY_USED)
+    }
+    fn get_version(&self) -> observables::Version {
+        panic!("{}", DUMMY_USED)
+    }
+}
+impl<T> ObservableAs<T> for DummyObservableAs<T> {
+    fn visit_dyn_as(&self, _visitor: &mut dyn FnMut(&T)) {
+        panic!("{}", DUMMY_USED)
+    }
 }
 
 #[cfg(test)]

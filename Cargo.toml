@@ -2,6 +2,7 @@
 members = [
 	"async_ui/",
 	"async_ui_core/",
+	"async_ui_props/",
 	"async_ui_web/",
 	"async_ui_gtk/",
 	"observables/",

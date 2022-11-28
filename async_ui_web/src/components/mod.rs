@@ -83,7 +83,7 @@ use async_ui_core::{
 use pin_project_lite::pin_project;
 use web_sys::Node;
 
-mod dummy;
+use async_ui_props::dummy;
 mod events;
 
 mod button;

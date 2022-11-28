@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 observables = { path = "../observables/", version = "0.1.0" }
 async_ui_core = { path = "../async_ui_core/", version = "0.1.0" }
+async_ui_props = { path = "../async_ui_props/", version = "0.1.0" }
 async-task = "4.3.0"
 scoped_async_spawn = { path = "../scoped_async_spawn/", version = "0.1.0" }
 

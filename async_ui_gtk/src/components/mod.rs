@@ -1,4 +1,4 @@
-mod dummy;
+use async_ui_props::dummy;
 mod events;
 
 mod button;

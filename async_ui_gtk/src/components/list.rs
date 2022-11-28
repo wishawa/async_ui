@@ -11,11 +11,12 @@ use async_ui_core::{
         VNodeTrait, WithVNode,
     },
 };
+use async_ui_props::dummy::DummyObservableAs;
 use futures_lite::pin;
 use glib::Cast;
 use gtk::{traits::BoxExt, Widget};
 use im_rc::Vector;
-use observables::{Listenable, ObservableAs, ObservableAsExt};
+use observables::{ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;
 use slab::Slab;
 
@@ -31,26 +32,11 @@ pub struct ListProps<'c, T: Clone, F: IntoFuture> {
     pub render: &'c dyn Fn(T) -> F,
 }
 
-struct DummyObservableAs<T>(PhantomData<T>);
-const DUMMY_USED: &str = "dummy prop used";
-impl<T: Clone> Listenable for DummyObservableAs<T> {
-    fn add_waker(&self, _waker: std::task::Waker) {
-        panic!("{}", DUMMY_USED)
-    }
-    fn get_version(&self) -> observables::Version {
-        panic!("{}", DUMMY_USED)
-    }
-}
-impl<T: Clone> ObservableAs<ListModel<T>> for DummyObservableAs<T> {
-    fn visit_dyn_as(&self, _visitor: &mut dyn FnMut(&ListModel<T>)) {
-        panic!("{}", DUMMY_USED)
-    }
-}
 impl<'c, T: Clone + 'c, F: IntoFuture> Default for ListProps<'c, T, F> {
     fn default() -> Self {
         Self {
             data: &DummyObservableAs(PhantomData),
-            render: &|_: T| panic!("{}", DUMMY_USED),
+            render: &|_: T| panic!("render function not provided"),
         }
     }
 }
