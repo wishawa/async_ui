@@ -1,4 +1,4 @@
-use std::{future::IntoFuture, rc::Rc};
+use std::{future::IntoFuture, marker::PhantomData, rc::Rc};
 
 use async_task::Task;
 pub use async_ui_core::list::ListModel;
@@ -15,7 +15,7 @@ use futures_lite::pin;
 use glib::Cast;
 use gtk::{traits::BoxExt, Widget};
 use im_rc::Vector;
-use observables::{ObservableAs, ObservableAsExt};
+use observables::{Listenable, ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;
 use slab::Slab;
 
@@ -27,27 +27,36 @@ use crate::{
 use super::ElementFuture;
 
 pub struct ListProps<'c, T: Clone, F: IntoFuture> {
-    pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
-    pub render: Option<&'c dyn Fn(T) -> F>,
+    pub data: &'c dyn ObservableAs<ListModel<T>>,
+    pub render: &'c dyn Fn(T) -> F,
 }
-impl<'c, T: Clone, F: IntoFuture> Default for ListProps<'c, T, F> {
+
+struct DummyObservableAs<T>(PhantomData<T>);
+const DUMMY_USED: &str = "dummy prop used";
+impl<T: Clone> Listenable for DummyObservableAs<T> {
+    fn add_waker(&self, _waker: std::task::Waker) {
+        panic!("{}", DUMMY_USED)
+    }
+    fn get_version(&self) -> observables::Version {
+        panic!("{}", DUMMY_USED)
+    }
+}
+impl<T: Clone> ObservableAs<ListModel<T>> for DummyObservableAs<T> {
+    fn visit_dyn_as(&self, _visitor: &mut dyn FnMut(&ListModel<T>)) {
+        panic!("{}", DUMMY_USED)
+    }
+}
+impl<'c, T: Clone + 'c, F: IntoFuture> Default for ListProps<'c, T, F> {
     fn default() -> Self {
         Self {
-            data: None,
-            render: None,
+            data: &DummyObservableAs(PhantomData),
+            render: &|_: T| panic!("{}", DUMMY_USED),
         }
     }
 }
 
 pub async fn list<'c, T: Clone, F: IntoFuture>(ListProps { data, render }: ListProps<'c, T, F>) {
     let container_box = gtk::Box::new(gtk::Orientation::Vertical, 0);
-    let (data, render) = match (data, render) {
-        (Some(d), Some(r)) => (d, r),
-        _ => {
-            return;
-        }
-    };
-
     let container_node: gtk::Widget = container_box.clone().upcast();
     let container_node_copy = container_node.clone();
     let wrapped_container_node = WrappedWidget {

@@ -1,4 +1,4 @@
-use std::{future::IntoFuture, rc::Rc};
+use std::{future::IntoFuture, marker::PhantomData, rc::Rc};
 
 use async_task::Task;
 pub use async_ui_core::list::ListModel;
@@ -13,7 +13,7 @@ use async_ui_core::{
 };
 use futures_lite::pin;
 use im_rc::Vector;
-use observables::{ObservableAs, ObservableAsExt};
+use observables::{Listenable, ObservableAs, ObservableAsExt};
 use scoped_async_spawn::SpawnGuard;
 use slab::Slab;
 use web_sys::Node;
@@ -30,16 +30,31 @@ fn insert_after(parent: &Node, child: &Node, after: Option<&Node>) {
 }
 
 pub struct ListProps<'c, T: Clone, F: IntoFuture> {
-    pub data: Option<&'c dyn ObservableAs<ListModel<T>>>,
-    pub render: Option<&'c dyn Fn(T) -> F>,
+    pub data: &'c dyn ObservableAs<ListModel<T>>,
+    pub render: &'c dyn Fn(T) -> F,
     pub class: Option<&'c ClassList<'c>>,
+}
+struct DummyObservableAs<T>(PhantomData<T>);
+const DUMMY_USED: &str = "dummy prop used";
+impl<T: Clone> Listenable for DummyObservableAs<T> {
+    fn add_waker(&self, _waker: std::task::Waker) {
+        panic!("{}", DUMMY_USED)
+    }
+    fn get_version(&self) -> observables::Version {
+        panic!("{}", DUMMY_USED)
+    }
+}
+impl<T: Clone> ObservableAs<ListModel<T>> for DummyObservableAs<T> {
+    fn visit_dyn_as(&self, _visitor: &mut dyn FnMut(&ListModel<T>)) {
+        panic!("{}", DUMMY_USED)
+    }
 }
 impl<'c, T: Clone + 'c, F: IntoFuture> Default for ListProps<'c, T, F> {
     fn default() -> Self {
         Self {
-            data: Default::default(),
-            render: Default::default(),
-            class: Default::default(),
+            data: &DummyObservableAs(PhantomData),
+            render: &|_: T| panic!("{}", DUMMY_USED),
+            class: None,
         }
     }
 }
@@ -54,15 +69,8 @@ pub async fn list<'c, T: Clone + 'c, F: IntoFuture + 'c>(
     let container_node =
         DOCUMENT.with(|doc| doc.create_element("div").expect("create element failed"));
 
-    if let Some(class) = class {
-        class.set_dom(container_node.class_list());
-    }
-    let (data, render) = match (data, render) {
-        (Some(d), Some(r)) => (d, r),
-        _ => {
-            return;
-        }
-    };
+    class.map(|c| c.set_dom(container_node.class_list()));
+
     let container_node: Node = container_node.clone().into();
     let container_node_copy = container_node.clone();
     let inside = async move {

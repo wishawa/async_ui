@@ -81,10 +81,13 @@ impl<'a> ClassList<'a> {
         bm.rust.for_each(|item| {
             dom.add_1(&*item).expect("ClassList add failed");
         });
-        if let DomEnum::Inserted(lst) = &mut bm.dom {
-            lst.push(dom);
-        } else {
-            bm.dom = DomEnum::Inserted(SmallVec::from([dom]));
+        match &mut bm.dom {
+            DomEnum::None => {
+                bm.dom = DomEnum::Inserted(SmallVec::from([dom]));
+            }
+            DomEnum::Inserted(lst) => {
+                lst.push(dom);
+            }
         }
     }
 }

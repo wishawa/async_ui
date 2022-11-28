@@ -8,22 +8,32 @@ use crate::{utils::class_list::ClassList, window::DOCUMENT, Fragment};
 
 use super::{
     button::PressEvent,
+    dummy::{dummy_handler, is_dummy_handler},
     events::{create_handler, EventsManager, QueuedEvent},
     ElementFuture,
 };
 
-#[derive(Default)]
 pub struct LinkProps<'c> {
     pub children: Fragment<'c>,
-    pub href: Option<&'c dyn ObservableAs<str>>,
-    pub on_press: Option<&'c mut dyn FnMut(PressEvent)>,
+    pub href: &'c dyn ObservableAs<str>,
+    pub on_press: &'c mut dyn FnMut(PressEvent),
     pub class: Option<&'c ClassList<'c>>,
+}
+impl<'c> Default for LinkProps<'c> {
+    fn default() -> Self {
+        Self {
+            children: Default::default(),
+            href: &["#"],
+            on_press: dummy_handler(),
+            class: None,
+        }
+    }
 }
 
 pub async fn link<'c>(
     LinkProps {
         href,
-        mut on_press,
+        on_press,
         class,
         children,
     }: LinkProps<'c>,
@@ -33,12 +43,11 @@ pub async fn link<'c>(
         let elem: HtmlAnchorElement = elem.unchecked_into();
         elem
     });
-    let href = href.unwrap_or(&[""]);
 
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
 
-    if on_press.is_some() {
+    if !is_dummy_handler(on_press) {
         let h = create_handler(&manager, |e| QueuedEvent::Click(e));
         anchor.set_onclick(Some(h.get_function()));
         handlers.push(h);
@@ -56,7 +65,7 @@ pub async fn link<'c>(
                 for event in events.drain(..) {
                     match event {
                         QueuedEvent::Click(native_event) => {
-                            on_press.as_mut().map(|f| f(PressEvent { native_event }));
+                            on_press(PressEvent { native_event });
                         }
                         _ => {}
                     }

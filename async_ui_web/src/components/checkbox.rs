@@ -7,6 +7,7 @@ use web_sys::{Event, HtmlInputElement};
 use crate::{utils::class_list::ClassList, window::DOCUMENT};
 
 use super::{
+    dummy::{dummy_handler, is_dummy_handler},
     events::{create_handler, EventsManager, QueuedEvent},
     ElementFuture,
 };
@@ -20,17 +21,25 @@ impl CheckboxChangeEvent {
     }
 }
 
-#[derive(Default)]
 pub struct CheckboxProps<'c> {
-    pub value: Option<&'c dyn ObservableAs<bool>>,
-    pub on_change: Option<&'c mut dyn FnMut(CheckboxChangeEvent)>,
+    pub value: &'c dyn ObservableAs<bool>,
+    pub on_change: &'c mut dyn FnMut(CheckboxChangeEvent),
     pub class: Option<&'c ClassList<'c>>,
+}
+impl<'c> Default for CheckboxProps<'c> {
+    fn default() -> Self {
+        Self {
+            value: &[false],
+            on_change: dummy_handler(),
+            class: None,
+        }
+    }
 }
 
 pub async fn checkbox<'c>(
     CheckboxProps {
         value,
-        mut on_change,
+        on_change,
         class,
     }: CheckboxProps<'c>,
 ) {
@@ -39,10 +48,9 @@ pub async fn checkbox<'c>(
         elem.unchecked_into()
     });
     elem.set_type("checkbox");
-    let value = value.unwrap_or(&[false]);
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
-    if on_change.is_some() {
+    if !is_dummy_handler(on_change) {
         let h = create_handler(&manager, |_ev: Event| QueuedEvent::Change());
         elem.set_onchange(Some(h.get_function()));
         handlers.push(h);
@@ -61,7 +69,7 @@ pub async fn checkbox<'c>(
                 };
                 match event {
                     QueuedEvent::Change() => {
-                        on_change.as_mut().map(|f| f(checkbox_change_event));
+                        on_change(checkbox_change_event);
                     }
                     _ => {}
                 }

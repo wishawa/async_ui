@@ -216,9 +216,9 @@ async fn top_part(store: &Store<State>) {
         let classes = ClassList::new(["toggle-all-button"]);
         button(ButtonProps {
             class: Some(&classes),
-            on_press: Some(&mut |_ev| {
+            on_press: &mut |_ev| {
                 reducers::set_all_done(store, !reducers::get_all_done(store));
-            }),
+            },
             ..Default::default()
         })
         .or(async {
@@ -242,19 +242,19 @@ async fn top_part(store: &Store<State>) {
     async fn add_input_box(store: &Store<State>) {
         let value = ReactiveCell::new(String::new());
         fragment((text_input(TextInputProps {
-            text: Some(&value.as_observable()),
-            on_submit: Some(&mut |ev| {
+            text: &value.as_observable(),
+            on_submit: &mut |ev| {
                 let text = ev.get_text();
                 if text.len() > 0 {
                     value.borrow_mut().clear();
                     reducers::add_todo(store, text);
                 }
-            }),
-            on_blur: Some(&mut |ev| {
+            },
+            on_blur: &mut |ev| {
                 *value.borrow_mut() = ev.get_text();
-            }),
+            },
             class: Some(&"add-input".into()),
-            placeholder: Some(&["What needs to be done?"]),
+            placeholder: &["What needs to be done?"],
             ..Default::default()
         }),))
         .await;
@@ -282,23 +282,23 @@ async fn list_content(store: &Store<State>) {
         view(ViewProps {
             children: fragment((
                 button(ButtonProps {
-                    on_press: Some(&mut |_| {
+                    on_press: &mut |_| {
                         let done = { !*handle.done.borrow() };
                         reducers::edit_todo_done(store, id, done);
-                    }),
+                    },
                     class: Some(&done_classes),
                     ..Default::default()
                 }),
                 text_input(TextInputProps {
-                    text: Some(&handle.value.as_observable()),
-                    on_blur: Some(&mut |ev| {
+                    text: &handle.value.as_observable(),
+                    on_blur: &mut |ev| {
                         reducers::edit_todo_value(store, id, ev.get_text());
-                    }),
+                    },
                     class: Some(&input_classes),
                     ..Default::default()
                 }),
                 button(ButtonProps {
-                    on_press: Some(&mut |_ev| reducers::remove_todo(store, id)),
+                    on_press: &mut |_ev| reducers::remove_todo(store, id),
                     class: Some(&"delete-button".into()),
                     ..Default::default()
                 }),
@@ -329,8 +329,8 @@ async fn list_content(store: &Store<State>) {
 
     let render = &|id| list_item(store, id);
     list(ListProps {
-        data: Some(&store.todos_list.as_observable()),
-        render: Some(render),
+        data: &store.todos_list.as_observable(),
+        render: render,
         class: Some(&"list-content".into()),
         ..Default::default()
     })
@@ -365,9 +365,9 @@ async fn bottom_part(store: &Store<State>) {
         let classes = ClassList::new(["clear-button"]);
         button(ButtonProps {
             children: fragment((text(&["Clear Completed"]),)),
-            on_press: Some(&mut |_ev| {
+            on_press: &mut |_ev| {
                 reducers::clear_completed(store);
-            }),
+            },
             class: Some(&classes),
             ..Default::default()
         })

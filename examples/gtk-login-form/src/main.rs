@@ -52,23 +52,23 @@ async fn login_form() -> (String, String) {
         fragment((
             // Username input
             text_input(TextInputProps {
-                on_blur: Some(&mut |ev| username = ev.get_text()),
-                placeholder: Some(&["Username"]),
+                on_blur: &mut |ev| username = ev.get_text(),
+                placeholder: &["Username"],
                 ..Default::default()
             }),
             // Password input
             text_input(TextInputProps {
-                on_blur: Some(&mut |ev| password = ev.get_text()),
-                placeholder: Some(&["Password"]),
+                on_blur: &mut |ev| password = ev.get_text(),
+                placeholder: &["Password"],
                 ..Default::default()
             }),
             // Submit button
             button(ButtonProps {
                 children: fragment((text(&["submit"]),)),
-                on_press: Some(&mut |_ev| {
+                on_press: &mut |_ev| {
                     // When user press submit, set done to true...
                     *done.borrow_mut() = true;
-                }),
+                },
                 ..Default::default()
             }),
         )),

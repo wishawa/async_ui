@@ -15,6 +15,7 @@ use async_ui_core::{
 use pin_project_lite::pin_project;
 use web_sys::Node;
 
+mod dummy;
 mod events;
 
 mod button;

@@ -8,26 +8,29 @@ use crate::{
 };
 
 use super::{
+    dummy::{dummy_handler, is_dummy_handler},
     events::{EventsManager, QueuedEvent},
     ElementFuture,
 };
 
 pub struct PressEvent {}
-#[derive(Default)]
 pub struct ButtonProps<'c> {
     pub children: Fragment<'c>,
-    pub on_press: Option<&'c mut (dyn FnMut(PressEvent) + 'c)>,
+    pub on_press: &'c mut (dyn FnMut(PressEvent) + 'c),
+}
+impl<'c> Default for ButtonProps<'c> {
+    fn default() -> Self {
+        Self {
+            children: Default::default(),
+            on_press: dummy_handler(),
+        }
+    }
 }
 
-pub async fn button<'c>(
-    ButtonProps {
-        children,
-        mut on_press,
-    }: ButtonProps<'c>,
-) {
+pub async fn button<'c>(ButtonProps { children, on_press }: ButtonProps<'c>) {
     let button = gtk::Button::new();
     let manager = EventsManager::new();
-    if on_press.is_some() {
+    if !is_dummy_handler(on_press) {
         let mgr = manager.clone();
         button.connect_clicked(move |_b| mgr.add_event(QueuedEvent::Click));
     }
@@ -39,7 +42,7 @@ pub async fn button<'c>(
                 for event in events.drain(..) {
                     match event {
                         QueuedEvent::Click => {
-                            on_press.as_mut().map(|f| f(PressEvent {}));
+                            on_press(PressEvent {});
                         }
                         _ => {}
                     }
@@ -54,54 +57,3 @@ pub async fn button<'c>(
     )
     .await;
 }
-
-// pin_project! {
-//     pub struct ButtonFuture<'c> {
-//         #[pin] children: Fragment<'c>,
-//         on_press: &'c mut (dyn FnMut(PressEvent) + 'c),
-//         manager: Rc<EventsManager>
-//     }
-// }
-// impl<'c> Future for ButtonFuture<'c> {
-//     type Output = ();
-
-//     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-//         let this = self.project();
-//         if let Some(mut events) = this.manager.borrow_queue_mut() {
-//             for event in events.drain(..) {
-//                 match event {
-//                     QueuedEvent::Click => (this.on_press)(PressEvent {}),
-//                     _ => {}
-//                 }
-//             }
-//         }
-//         this.children.poll(cx)
-//     }
-// }
-// impl<'c> IntoFuture for Button<'c> {
-//     type Output = ();
-//     type IntoFuture = ElementFuture<ButtonFuture<'c>>;
-
-//     fn into_future(self) -> Self::IntoFuture {
-//         let button = gtk::Button::new();
-//         let Self { children, on_press } = self;
-//         let manager = EventsManager::new();
-//         if !is_dummy(on_press) {
-//             let mgr = manager.clone();
-//             button.connect_clicked(move |_b| mgr.add_event(QueuedEvent::Click));
-//         }
-//         let future = ButtonFuture {
-//             children,
-//             on_press,
-//             manager,
-//         };
-//         ElementFuture::new(
-//             future,
-//             WrappedWidget {
-//                 widget: button.upcast(),
-//                 inner_widget: None,
-//                 op: crate::widget::WidgetOp::SingleChild(&ButtonOp),
-//             },
-//         )
-//     }
-// }

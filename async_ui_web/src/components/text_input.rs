@@ -7,6 +7,7 @@ use web_sys::{HtmlElement, HtmlInputElement, HtmlTextAreaElement};
 use crate::{utils::class_list::ClassList, window::DOCUMENT};
 
 use super::{
+    dummy::{dummy_handler, is_dummy_handler},
     events::{create_handler, EventsManager, QueuedEvent},
     ElementFuture,
 };
@@ -46,34 +47,44 @@ impl TextInputEvent {
         self.node.get_value()
     }
 }
-#[derive(Default)]
 pub struct TextInputProps<'c> {
-    pub text: Option<&'c dyn ObservableAs<str>>,
-    pub on_change_text: Option<&'c mut dyn FnMut(TextInputEvent)>,
-    pub on_submit: Option<&'c mut dyn FnMut(TextInputEvent)>,
-    pub on_blur: Option<&'c mut dyn FnMut(TextInputEvent)>,
-    pub on_focus: Option<&'c mut dyn FnMut(TextInputEvent)>,
-    pub multiline: Option<bool>,
+    pub text: &'c dyn ObservableAs<str>,
+    pub on_change_text: &'c mut dyn FnMut(TextInputEvent),
+    pub on_submit: &'c mut dyn FnMut(TextInputEvent),
+    pub on_blur: &'c mut dyn FnMut(TextInputEvent),
+    pub on_focus: &'c mut dyn FnMut(TextInputEvent),
+    pub multiline: bool,
+    pub placeholder: &'c dyn ObservableAs<str>,
     pub class: Option<&'c ClassList<'c>>,
-    pub placeholder: Option<&'c dyn ObservableAs<str>>,
+}
+
+impl<'c> Default for TextInputProps<'c> {
+    fn default() -> Self {
+        Self {
+            text: &[""],
+            on_change_text: dummy_handler(),
+            on_submit: dummy_handler(),
+            on_blur: dummy_handler(),
+            on_focus: dummy_handler(),
+            multiline: false,
+            placeholder: &[""],
+            class: None,
+        }
+    }
 }
 
 pub async fn text_input<'c>(
     TextInputProps {
         text,
-        mut on_change_text,
-        mut on_submit,
-        mut on_blur,
-        mut on_focus,
+        on_change_text,
+        on_submit,
+        on_blur,
+        on_focus,
         multiline,
         class,
         placeholder,
     }: TextInputProps<'c>,
 ) {
-    let text = text.unwrap_or(&[""]);
-    let placeholder = placeholder.unwrap_or(&[""]);
-    let multiline = multiline.unwrap_or_default();
-
     let input = DOCUMENT.with(|doc| {
         let elem = doc
             .create_element(match multiline {
@@ -91,22 +102,22 @@ pub async fn text_input<'c>(
     let manager = EventsManager::new();
     let input_elem = input.as_elem();
 
-    if on_change_text.is_some() {
+    if !is_dummy_handler(on_change_text) {
         let h = create_handler(&manager, |e| QueuedEvent::Input(e));
         input_elem.set_oninput(Some(h.get_function()));
         handlers.push(h);
     }
-    if on_submit.is_some() {
+    if !is_dummy_handler(on_submit) {
         let h = create_handler(&manager, |e| QueuedEvent::KeyPress(e));
         input_elem.set_onkeypress(Some(h.get_function()));
         handlers.push(h);
     }
-    if on_blur.is_some() {
+    if !is_dummy_handler(on_blur) {
         let h = create_handler(&manager, |e| QueuedEvent::Blur(e));
         input_elem.set_onblur(Some(h.get_function()));
         handlers.push(h);
     }
-    if on_focus.is_some() {
+    if !is_dummy_handler(on_focus) {
         let h = create_handler(&manager, |e| QueuedEvent::Focus(e));
         input_elem.set_onfocus(Some(h.get_function()));
         handlers.push(h);
@@ -125,19 +136,19 @@ pub async fn text_input<'c>(
                 };
                 match event {
                     QueuedEvent::Input(_e) => {
-                        on_change_text.as_mut().map(|f| f(text_input_event));
+                        on_change_text(text_input_event);
                     }
                     QueuedEvent::KeyPress(e) => {
                         if e.key() == "Enter" {
                             e.prevent_default();
-                            on_submit.as_mut().map(|f| f(text_input_event));
+                            on_submit(text_input_event);
                         }
                     }
                     QueuedEvent::Blur(_e) => {
-                        on_blur.as_mut().map(|f| f(text_input_event));
+                        on_blur(text_input_event);
                     }
                     QueuedEvent::Focus(_e) => {
-                        on_focus.as_mut().map(|f| f(text_input_event));
+                        on_focus(text_input_event);
                     }
                     _ => {}
                 }

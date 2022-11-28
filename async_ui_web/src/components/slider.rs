@@ -7,6 +7,7 @@ use web_sys::{Event, HtmlInputElement};
 use crate::DOCUMENT;
 
 use super::{
+    dummy::{dummy_handler, is_dummy_handler},
     events::{create_handler, EventsManager, QueuedEvent},
     ElementFuture,
 };
@@ -22,11 +23,23 @@ impl SliderChangeEvent {
 }
 
 pub struct SliderProps<'c> {
-    pub value: Option<&'c dyn ObservableAs<f64>>,
-    pub min: Option<&'c dyn ObservableAs<f64>>,
-    pub max: Option<&'c dyn ObservableAs<f64>>,
-    pub step: Option<&'c dyn ObservableAs<f64>>,
-    pub on_change: Option<&'c mut dyn FnMut(SliderChangeEvent)>,
+    pub value: &'c dyn ObservableAs<f64>,
+    pub min: &'c dyn ObservableAs<f64>,
+    pub max: &'c dyn ObservableAs<f64>,
+    pub step: &'c dyn ObservableAs<f64>,
+    pub on_change: &'c mut dyn FnMut(SliderChangeEvent),
+}
+
+impl<'c> Default for SliderProps<'c> {
+    fn default() -> Self {
+        Self {
+            value: &[0.0],
+            min: &[0.0],
+            max: &[100.0],
+            step: &[1.0],
+            on_change: dummy_handler(),
+        }
+    }
 }
 pub async fn slider(
     SliderProps {
@@ -34,7 +47,7 @@ pub async fn slider(
         min,
         max,
         step,
-        mut on_change,
+        on_change,
     }: SliderProps<'_>,
 ) {
     let elem: HtmlInputElement = DOCUMENT.with(|doc| {
@@ -42,17 +55,13 @@ pub async fn slider(
         elem.unchecked_into()
     });
     elem.set_type("range");
-    let value = value.unwrap_or(&[0.0]);
-    let min = min.unwrap_or(&[0.0]);
-    let max = max.unwrap_or(&[100.0]);
-    let step = step.unwrap_or(&[1.0]);
 
     let elem_1 = elem.clone();
 
     let mut handlers = SmallVec::<[_; 1]>::new();
     let manager = EventsManager::new();
 
-    if on_change.is_some() {
+    if !is_dummy_handler(on_change) {
         let h = create_handler(&manager, |_ev: Event| QueuedEvent::Change());
         elem.set_onchange(Some(h.get_function()));
         handlers.push(h);
@@ -67,7 +76,7 @@ pub async fn slider(
                 };
                 match event {
                     QueuedEvent::Change() => {
-                        on_change.as_mut().map(|f| f(slider_change_event));
+                        on_change(slider_change_event);
                     }
                     _ => {}
                 }

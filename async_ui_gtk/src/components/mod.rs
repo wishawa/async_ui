@@ -1,3 +1,4 @@
+mod dummy;
 mod events;
 
 mod button;

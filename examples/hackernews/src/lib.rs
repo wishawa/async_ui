@@ -66,7 +66,7 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
             #[cfg(not(feature = "gtk"))]
             class: Some(&"story-item".into()),
             #[cfg(not(feature = "gtk"))]
-            href: Some(&[story.url]),
+            href: &[story.url],
             ..Default::default()
         })
         .await;
@@ -75,25 +75,25 @@ pub async fn root() -> Result<(), Box<dyn Error>> {
     view(ViewProps {
         children: fragment((
             list(ListProps {
-                data: Some(&list_model.as_observable()),
-                render: Some(&|id| item(&client, id)),
+                data: &list_model.as_observable(),
+                render: &|id| item(&client, id),
                 ..Default::default()
             }),
             button(ButtonProps {
                 children: fragment((text(&["Load More Stories"]),)),
-                on_press: Some(&mut |_ev| {
+                on_press: &mut |_ev| {
                     let mut bm = list_model.borrow_mut();
                     for item in ids.drain(..std::cmp::min(40, ids.len())) {
                         bm.push(item);
                     }
-                }),
+                },
                 #[cfg(not(feature = "gtk"))]
                 class: Some(&"load-more-button".into()),
                 ..Default::default()
             }),
         )),
         #[cfg(feature = "gtk")]
-        width: Some(640),
+        width: 640,
         ..Default::default()
     })
     .await;

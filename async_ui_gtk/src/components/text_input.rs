@@ -9,6 +9,7 @@ use observables::{ObservableAs, ObservableAsExt};
 use crate::widget::{WidgetOp, WrappedWidget};
 
 use super::{
+    dummy::{dummy_handler, is_dummy_handler},
     events::{EventsManager, QueuedEvent},
     ElementFuture,
 };
@@ -58,36 +59,45 @@ impl TextInputEvent {
     }
 }
 
-#[derive(Default)]
 pub struct TextInputProps<'c> {
-    pub text: Option<&'c (dyn ObservableAs<str> + 'c)>,
-    pub on_change_text: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    pub on_submit: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    pub on_blur: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    pub on_focus: Option<&'c mut (dyn FnMut(TextInputEvent) + 'c)>,
-    pub multiline: Option<bool>,
-    pub placeholder: Option<&'c (dyn ObservableAs<str> + 'c)>,
+    pub text: &'c (dyn ObservableAs<str> + 'c),
+    pub on_change_text: &'c mut (dyn FnMut(TextInputEvent) + 'c),
+    pub on_submit: &'c mut (dyn FnMut(TextInputEvent) + 'c),
+    pub on_blur: &'c mut (dyn FnMut(TextInputEvent) + 'c),
+    pub on_focus: &'c mut (dyn FnMut(TextInputEvent) + 'c),
+    pub multiline: bool,
+    pub placeholder: &'c (dyn ObservableAs<str> + 'c),
+}
+impl<'c> Default for TextInputProps<'c> {
+    fn default() -> Self {
+        Self {
+            text: &[""],
+            on_change_text: dummy_handler(),
+            on_submit: dummy_handler(),
+            on_blur: dummy_handler(),
+            on_focus: dummy_handler(),
+            multiline: false,
+            placeholder: &[""],
+        }
+    }
 }
 
 pub async fn text_input<'c>(
     TextInputProps {
         text,
-        mut on_change_text,
-        mut on_submit,
-        mut on_blur,
-        mut on_focus,
+        on_change_text,
+        on_submit,
+        on_blur,
+        on_focus,
         multiline,
         placeholder,
     }: TextInputProps<'c>,
 ) {
-    let text = text.unwrap_or(&[""]);
-    let placeholder = placeholder.unwrap_or(&[""]);
-
     let manager = EventsManager::new();
     let input: gtk::Widget;
     let buffer;
     let mut entry_node = None;
-    match multiline.unwrap_or_default() {
+    match multiline {
         true => {
             let text_buffer = gtk::TextBuffer::new(None);
             let text_view = gtk::TextView::new();
@@ -98,7 +108,7 @@ pub async fn text_input<'c>(
         false => {
             let entry_buffer = gtk::EntryBuffer::new(None);
             let entry = gtk::Entry::new();
-            if on_submit.is_some() {
+            if !is_dummy_handler(on_submit) {
                 let mgr = manager.clone();
                 entry.connect_activate(move |_e| {
                     mgr.add_event(QueuedEvent::Submit);
@@ -110,13 +120,13 @@ pub async fn text_input<'c>(
             entry_node = Some(entry);
         }
     };
-    if on_change_text.is_some() {
+    if !is_dummy_handler(on_change_text) {
         let mgr = manager.clone();
         buffer.connect_changed(move || {
             mgr.add_event(QueuedEvent::Input);
         });
     }
-    if on_blur.is_some() || on_focus.is_some() {
+    if !is_dummy_handler(on_blur) || !is_dummy_handler(on_focus) {
         let mgr = manager.clone();
         let focus_controller = gtk::EventControllerFocus::new();
         input.add_controller(&focus_controller);
@@ -138,11 +148,11 @@ pub async fn text_input<'c>(
                         buffer: buffer.clone(),
                     };
                     match event {
-                        QueuedEvent::Input => on_change_text.as_mut().map(|f| f(text_input_event)),
-                        QueuedEvent::Blur => on_blur.as_mut().map(|f| f(text_input_event)),
-                        QueuedEvent::Focus => on_focus.as_mut().map(|f| f(text_input_event)),
-                        QueuedEvent::Submit => on_submit.as_mut().map(|f| f(text_input_event)),
-                        _ => None,
+                        QueuedEvent::Input => on_change_text(text_input_event),
+                        QueuedEvent::Blur => on_blur(text_input_event),
+                        QueuedEvent::Focus => on_focus(text_input_event),
+                        QueuedEvent::Submit => on_submit(text_input_event),
+                        _ => {}
                     };
                 }
             }
