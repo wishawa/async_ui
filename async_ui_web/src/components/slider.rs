@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 use wasm_bindgen::JsCast;
 use web_sys::{Event, HtmlInputElement};
 
-use crate::DOCUMENT;
+use crate::{utils::class_list::ClassList, DOCUMENT};
 
 use super::{
     dummy::{dummy_handler, is_dummy_handler},
@@ -28,6 +28,7 @@ pub struct SliderProps<'c> {
     pub max: &'c dyn ObservableAs<f64>,
     pub step: &'c dyn ObservableAs<f64>,
     pub on_change: &'c mut dyn FnMut(SliderChangeEvent),
+    pub class: Option<&'c ClassList<'c>>,
 }
 
 impl<'c> Default for SliderProps<'c> {
@@ -38,6 +39,7 @@ impl<'c> Default for SliderProps<'c> {
             max: &[100.0],
             step: &[1.0],
             on_change: dummy_handler(),
+            class: None,
         }
     }
 }
@@ -51,6 +53,7 @@ pub async fn slider(
         max,
         step,
         on_change,
+        class,
     }: SliderProps<'_>,
 ) {
     let elem: HtmlInputElement = DOCUMENT.with(|doc| {
@@ -58,6 +61,7 @@ pub async fn slider(
         elem.unchecked_into()
     });
     elem.set_type("range");
+    class.map(|c| c.set_dom(elem.class_list()));
 
     let elem_1 = elem.clone();
 
