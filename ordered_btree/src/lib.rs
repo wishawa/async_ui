@@ -236,8 +236,7 @@ impl<'owner, V, const BP: usize> RootWithOwner<'owner, V, BP> {
             Edges::Chunks { .. } => unreachable!("{}", VIOL_LEAF_DEPTH),
         };
         let mut this_chunk = chunk_rc;
-        loop {
-            let Some(parent_chunk) = this_chunk.ro(&self.owner).parent.upgrade() else {break};
+        while let Some(parent_chunk) = this_chunk.ro(&self.owner).parent.upgrade() {
             match &parent_chunk.ro(&self.owner).edges {
                 Edges::Chunks { chunks, counts } => {
                     pos += counts[0..idx_among_siblings(chunks, &this_chunk)]
@@ -686,11 +685,17 @@ mod tests {
         let mut obl: OrderedBList<usize, 7> = OrderedBList::new();
         let a = obl.insert(0, 999);
         assert_eq!(obl.index_of_id(&a), 0);
-        obl.insert(0, 101);
+        let b = obl.insert(0, 101);
         assert_eq!(obl.index_of_id(&a), 1);
-        for i in 0..20 {
-            obl.insert(i, 200 + i);
+        for i in 0..200 {
+            obl.insert(i, 2000 + i);
             assert_eq!(obl.index_of_id(&a), 2 + i);
+            assert_eq!(obl.index_of_id(&b), 1 + i);
+        }
+        for i in 201..401 {
+            obl.insert(i, 3000 + i);
+            assert_eq!(obl.index_of_id(&a), 1 + i);
+            assert_eq!(obl.index_of_id(&b), 200);
         }
     }
 }
