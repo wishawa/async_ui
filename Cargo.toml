@@ -1,9 +1,12 @@
 [workspace]
 members = [
+	"async_context/",
 	"async_ui/",
 	"async_ui_core/",
 	"async_ui_props/",
 	"async_ui_web/",
+	"async_ui_web_core/",
+	"async_ui_web_components/",
 	"async_ui_gtk/",
 	"observables/",
 	"ordered_btree/",
