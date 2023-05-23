@@ -1,65 +1,21 @@
-/*! The executor responsible for schduling and running futures. Not relevant to users.
- *
- */
-use std::{
-    cell::{Cell, RefCell},
-    future::Future,
-    pin::Pin,
-    task::{Context, Waker},
-};
+use std::{cell::Cell, future::pending};
 
-use wasm_bindgen::{closure::Closure, JsCast, UnwrapThrowExt};
-
-use crate::window::WINDOW;
+use async_executor::LocalExecutor;
+use async_ui_web_core::executor::set_executor_future;
 
 thread_local! {
-    static EXECUTOR: ExecutorSingleton = ExecutorSingleton::new()
-}
-struct ExecutorSingleton {
-    waker: Waker,
-    future: RefCell<Option<Pin<Box<dyn Future<Output = ()>>>>>,
-    scheduled: Cell<bool>,
-    active: Cell<bool>,
+    static EXECUTOR: Cell<Option<&'static LocalExecutor<'static>>> = Cell::new(None);
 }
 
-impl ExecutorSingleton {
-    fn new() -> Self {
-        let waker = waker_fn::waker_fn(schedule);
-        Self {
-            waker,
-            future: RefCell::new(None),
-            scheduled: Cell::new(false),
-            active: Cell::new(false),
-        }
-    }
-}
-pub(crate) fn set_executor_future(future: Box<dyn Future<Output = ()>>) {
-    EXECUTOR.with(|exe| *exe.future.borrow_mut() = Some(future.into()))
-}
-pub fn run_now() {
-    EXECUTOR.with(|exe| {
-        exe.active.set(true);
-        while exe.scheduled.replace(false) {
-            let mut cx = Context::from_waker(&exe.waker);
-            match exe.future.borrow_mut().as_mut() {
-                Some(fu) => {
-                    let _ = fu.as_mut().poll(&mut cx);
-                }
-                None => {}
-            }
-        }
-        exe.active.set(false);
-    })
-}
-pub fn schedule() {
-    EXECUTOR.with(|exe| {
-        if !exe.scheduled.replace(true) && !exe.active.get() {
-            let closure = Closure::once_into_js(run_now);
-            WINDOW.with(|window| {
-                window
-                    .set_timeout_with_callback(&closure.as_ref().unchecked_ref())
-                    .expect_throw("failed to schedule task");
-            })
+pub fn get_executor() -> &'static LocalExecutor<'static> {
+    EXECUTOR.with(|cell| {
+        if let Some(exe) = cell.get() {
+            exe
+        } else {
+            let leaked = Box::leak(Box::new(LocalExecutor::new()));
+            cell.set(Some(&*leaked));
+            set_executor_future(Box::new(leaked.run(pending())));
+            &*leaked
         }
     })
 }

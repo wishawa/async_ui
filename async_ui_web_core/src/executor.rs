@@ -30,7 +30,7 @@ impl ExecutorSingleton {
             future: RefCell::new(None),
             scheduled: Cell::new(false),
             active: Cell::new(false),
-            run_closure: Closure::new(schedule),
+            run_closure: Closure::new(run_now),
         }
     }
 }

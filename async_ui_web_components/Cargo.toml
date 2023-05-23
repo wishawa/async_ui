@@ -6,26 +6,96 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pin-project = "1.0"
 async_ui_web_core = { path = "../async_ui_web_core/" }
-wasm-bindgen = "0.2.83"
-js-sys = "0.3.60"
+
+wasm-bindgen = "0.2.86"
+js-sys = "0.3.63"
+
+smallvec = { version = "1", features = ["union", "const_generics"] }
+
+pin-project = "1.0"
 futures-core = "0.3.25"
-smallvec = { version = "1.9.0", features = ["union", "const_generics"] }
+futures-lite = "1.12.0"
+
+async-executor = "1.5.0"
 
 [dependencies.web-sys]
-version = "0.3.60"
+version = "0.3.63"
 features = [
 	'Node',
 	'Window',
 	'Document',
 	'HtmlElement',
-	'HtmlAnchorElement',
-	'HtmlButtonElement',
-	'HtmlDivElement',
-	'HtmlInputElement',
+	'HtmlAudioElement',
+	'HtmlVideoElement',
+	'HtmlCanvasElement',
+	'HtmlTableColElement',
+	'HtmlDataListElement',
+	'HtmlMetaElement',
+	'HtmlLabelElement',
+	'HtmlHeadElement',
+	'HtmlBrElement',
+	'HtmlTableSectionElement',
+	'HtmlDListElement',
+	'HtmlTableElement',
+	'HtmlUListElement',
+	'HtmlTableCellElement',
+	'HtmlDetailsElement',
+	'HtmlProgressElement',
+	'HtmlSlotElement',
+	'HtmlQuoteElement',
+	'HtmlTimeElement',
+	'HtmlTemplateElement',
+	'HtmlTitleElement',
+	'HtmlOptGroupElement',
+	'HtmlSourceElement',
+	'HtmlFontElement',
+	'HtmlMeterElement',
+	'HtmlFormElement',
+	'HtmlIFrameElement',
+	'HtmlMediaElement',
+	'HtmlLinkElement',
+	'HtmlBodyElement',
+	'HtmlAreaElement',
+	'HtmlHrElement',
+	'HtmlMapElement',
+	'HtmlEmbedElement',
+	'HtmlDataElement',
 	'HtmlSpanElement',
+	'HtmlLiElement',
+	'HtmlOListElement',
+	'HtmlAnchorElement',
+	'HtmlMenuElement',
+	'HtmlHtmlElement',
+	'HtmlTableRowElement',
+	'HtmlDialogElement',
+	'HtmlPreElement',
+	'HtmlLegendElement',
+	'HtmlFrameElement',
+	'HtmlStyleElement',
+	'HtmlTableCaptionElement',
+	'HtmlOptionElement',
+	'HtmlDivElement',
+	'HtmlFrameSetElement',
+	'HtmlDirectoryElement',
+	'HtmlPictureElement',
 	'HtmlTextAreaElement',
+	'HtmlImageElement',
+	'HtmlObjectElement',
+	'HtmlUnknownElement',
+	'HtmlBaseElement',
+	'HtmlInputElement',
+	'HtmlScriptElement',
+	'HtmlOutputElement',
+	'HtmlMenuItemElement',
+	'HtmlParamElement',
+	'HtmlModElement',
+	'HtmlSelectElement',
+	'HtmlTrackElement',
+	'HtmlButtonElement',
+	'HtmlParagraphElement',
+	'HtmlHeadingElement',
+	'HtmlFieldSetElement',
 	'Text',	
 	'ClipboardEvent',
 	'CompositionEvent',
@@ -38,4 +108,5 @@ features = [
 	'Comment',
 	'DomTokenList',
 	'CssStyleDeclaration',
+	'AddEventListenerOptions'
 ]

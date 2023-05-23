@@ -13,7 +13,7 @@ fn compare_slice_reversed<C: Ord>(s1: &[C], s2: &[C]) -> Ordering {
     l1.cmp(&l2)
 }
 
-type PositionSegment = usize;
+type PositionSegment = u32;
 
 #[derive(Clone, PartialEq, Eq, Hash, Default, Debug)]
 pub struct ChildPosition(SmallVec<[PositionSegment; 4]>);
@@ -35,5 +35,8 @@ impl ChildPosition {
         let mut content = self.0.clone();
         content[0] += 1;
         Self(content)
+    }
+    pub fn is_root(&self) -> bool {
+        self.0.is_empty()
     }
 }

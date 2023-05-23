@@ -5,21 +5,27 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[profile.release]
+lto = true
+
 [dependencies]
 pin-project = "1.0"
 scoped-tls-hkt = "0.1.2"
 
-smallvec = { version = "1.9.0", features = ["union", "const_generics"] }
-futures-concurrency = { git = "https://github.com/wishawa/futures-concurrency", branch = "pr-3-poll-only-woken" }
+smallvec = { version = "1", features = ["union", "const_generics"] }
+bitvec = { version = "1.0.1", default-features = false, features = ["alloc"] }
 
-wasm-bindgen = "0.2.83"
-js-sys = "0.3.60"
-parking_lot = { version = "0.11.1", features = ["wasm-bindgen"] }
+wasm-bindgen = "0.2.86"
+js-sys = "0.3.63"
+parking_lot = { version = "0.11", features = ["wasm-bindgen"] }
 
 [dependencies.web-sys]
-version = "0.3.60"
+version = "0.3.63"
 features = [
 	'Node',
 	'Window',
 	'Document',
 ]
+
+[dev-dependencies]
+futures-lite = "1.12.0"

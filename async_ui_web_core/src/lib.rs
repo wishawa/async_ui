@@ -1,18 +1,17 @@
+pub mod combinators;
+mod dropping;
 pub mod executor;
-pub mod fragment;
+mod node_container;
+mod node_sibling;
 mod position;
 pub mod window;
 
-use std::{
-    cell::RefCell,
-    collections::BTreeMap,
-    future::Future,
-    ops::RangeBounds,
-    pin::Pin,
-    task::{Context, Poll},
-};
+pub use node_container::ContainerNodeFuture;
+pub use node_sibling::SiblingNodeFuture;
+use wasm_bindgen::prelude::UnwrapThrowExt;
 
-use pin_project::{pin_project, pinned_drop};
+use std::{cell::RefCell, collections::BTreeMap};
+
 use position::ChildPosition;
 
 enum DomContext<'p> {
@@ -21,14 +20,16 @@ enum DomContext<'p> {
         container: &'p web_sys::Node,
     },
     Sibling {
+        parent: &'p Self,
         group: &'p NodeGroup,
         reference: &'p web_sys::Node,
-        container: &'p web_sys::Node,
     },
     Child {
         parent: &'p Self,
-        index: usize,
+        index: u32,
     },
+    #[cfg(test)]
+    Null,
 }
 
 scoped_tls_hkt::scoped_thread_local!(
@@ -37,33 +38,22 @@ scoped_tls_hkt::scoped_thread_local!(
 
 type NodeGroup = RefCell<BTreeMap<ChildPosition, web_sys::Node>>;
 
-/// Get the parent where our stuff would be rendered in.
 pub fn get_containing_node() -> web_sys::Node {
-    DOM_CONTEXT.with(|ctx| ctx.get_containing_node())
-}
-
-// BTreeMap doesn't have a drain range method (see Rust issue 81074).
-fn drain_btree_for_each<K: Ord + Clone, V, R: RangeBounds<K> + Clone, F: FnMut(V)>(
-    btree: &mut BTreeMap<K, V>,
-    range: R,
-    mut foreach: F,
-) {
-    while let Some((k, _v)) = btree.range(range.clone()).next_back() {
-        let k = k.to_owned();
-        let removed = btree.remove(&k).unwrap();
-        foreach(removed);
-    }
+    DOM_CONTEXT.with(|ctx: &DomContext| ctx.get_containing_node().to_owned())
 }
 
 impl<'p> DomContext<'p> {
-    fn get_containing_node(&self) -> web_sys::Node {
+    fn get_containing_node(&self) -> &web_sys::Node {
         match self {
-            DomContext::Container { container, .. } | DomContext::Sibling { container, .. } => {
-                (*container).to_owned()
+            DomContext::Container { container, .. } => *container,
+            DomContext::Child { parent, .. } | DomContext::Sibling { parent, .. } => {
+                parent.get_containing_node()
             }
-            DomContext::Child { parent, .. } => parent.get_containing_node(),
+            #[cfg(test)]
+            DomContext::Null => unreachable!(),
         }
     }
+    /// Add a new node `new_child` ordered relative to existing siblings according to `position`.
     fn add_child(&self, mut position: ChildPosition, new_child: web_sys::Node) {
         match self {
             DomContext::Container { group, container } => {
@@ -71,12 +61,12 @@ impl<'p> DomContext<'p> {
                 let reference_sibling = group.range((&position)..).next().map(|(_k, v)| v);
                 container
                     .insert_before(&new_child, reference_sibling)
-                    .expect("insert failed");
+                    .unwrap_throw();
                 group.insert(position, new_child);
             }
             DomContext::Sibling {
+                parent,
                 group,
-                container,
                 reference,
             } => {
                 let mut group = group.borrow_mut();
@@ -85,168 +75,57 @@ impl<'p> DomContext<'p> {
                     .next()
                     .map(|(_k, v)| v)
                     .unwrap_or(*reference);
-                container
+                parent
+                    .get_containing_node()
                     .insert_before(&new_child, Some(reference_sibling))
-                    .expect("insert failed");
+                    .unwrap_throw();
                 group.insert(position, new_child);
             }
             DomContext::Child { parent, index } => {
                 position.wrap(*index);
                 parent.add_child(position, new_child);
             }
+            #[cfg(test)]
+            DomContext::Null => {}
         }
     }
+    /// Remove the child at `position` and all its descendants.
     fn remove_child(&self, mut position: ChildPosition) {
         match self {
             DomContext::Container { group, container } => {
                 let mut group = group.borrow_mut();
-                let next_sib = position.next_sibling();
-                drain_btree_for_each(&mut group, (&position)..(&next_sib), |child| {
-                    container.remove_child(&child).expect("child disappeared");
-                })
+                remove_children_here(&mut *group, position, *container);
             }
-            DomContext::Sibling {
-                group, container, ..
-            } => {
+            DomContext::Sibling { group, parent, .. } => {
                 let mut group = group.borrow_mut();
-                let next_sib = position.next_sibling();
-                drain_btree_for_each(&mut group, (&position)..(&next_sib), |child| {
-                    container.remove_child(&child).expect("child disappeared");
-                })
+                remove_children_here(&mut *group, position, parent.get_containing_node());
             }
             DomContext::Child { parent, index } => {
                 position.wrap(*index);
                 parent.remove_child(position);
             }
+            #[cfg(test)]
+            DomContext::Null => {}
         }
     }
 }
 
-/// Future wrapper where anything rendered in its child future
-/// will appear as child of the node.
-#[pin_project(PinnedDrop)]
-pub struct ContainerNodeFuture<C> {
-    #[pin]
-    child_future: C,
-    group: NodeGroup,
-    container: web_sys::Node,
-    first: bool,
-}
-
-impl<C: Future> ContainerNodeFuture<C> {
-    /// Return a future wrapping the given child future.
-    /// Any node rendered by the child future will appear inside the given node.
-    pub fn new(child_future: C, node: web_sys::Node) -> Self {
-        Self {
-            child_future,
-            group: Default::default(),
-            container: node,
-            first: false,
+fn remove_children_here(
+    tree: &mut BTreeMap<ChildPosition, web_sys::Node>,
+    position: ChildPosition,
+    container: &web_sys::Node,
+) {
+    if position.is_root() {
+        tree.values().for_each(|child| {
+            container.remove_child(child).unwrap_throw();
+        });
+        tree.clear();
+    } else {
+        let next = position.next_sibling();
+        let range = (&position)..(&next);
+        while let Some((key, child)) = tree.range(range.clone()).next_back() {
+            container.remove_child(child).unwrap_throw();
+            tree.remove(&key.clone());
         }
-    }
-}
-impl<C: Future> Future for ContainerNodeFuture<C> {
-    type Output = C::Output;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        if *this.first {
-            *this.first = false;
-            DOM_CONTEXT.with(|ctx| {
-                ctx.add_child(ChildPosition::default(), this.container.clone());
-            })
-        }
-        let ctx = DomContext::Container {
-            group: this.group,
-            container: this.container,
-        };
-        DOM_CONTEXT.set(&ctx, || this.child_future.poll(cx))
-    }
-}
-
-#[pinned_drop]
-impl<C> PinnedDrop for ContainerNodeFuture<C> {
-    fn drop(self: Pin<&mut Self>) {
-        if self.container.is_connected() {
-            DOM_CONTEXT.with(|ctx| {
-                ctx.remove_child(ChildPosition::default());
-            })
-        }
-    }
-}
-
-#[pin_project(PinnedDrop)]
-pub struct SiblingNodeFuture<C> {
-    #[pin]
-    child_future: C,
-    group: NodeGroup,
-    container: web_sys::Node,
-    reference: web_sys::Node,
-}
-
-impl<C: Future> SiblingNodeFuture<C> {
-    pub fn new(child_future: C, sibling: web_sys::Node, container: web_sys::Node) -> Self {
-        Self {
-            child_future,
-            group: Default::default(),
-            container,
-            reference: sibling,
-        }
-    }
-}
-impl<C: Future> Future for SiblingNodeFuture<C> {
-    type Output = C::Output;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        let ctx = DomContext::Sibling {
-            group: this.group,
-            reference: this.reference,
-            container: this.container,
-        };
-        DOM_CONTEXT.set(&ctx, || this.child_future.poll(cx))
-    }
-}
-
-#[pinned_drop]
-impl<C> PinnedDrop for SiblingNodeFuture<C> {
-    fn drop(self: Pin<&mut Self>) {
-        let this = self.project();
-        if this.reference.is_connected() {
-            for (_k, v) in this.group.borrow_mut().iter() {
-                this.container.remove_child(v).expect("child disappeared");
-            }
-        }
-    }
-}
-
-#[pin_project]
-pub struct ChildFuture<C> {
-    #[pin]
-    child_future: C,
-    index: usize,
-}
-
-impl<C: Future> ChildFuture<C> {
-    pub fn new(child_future: C, index: usize) -> Self {
-        Self {
-            child_future,
-            index,
-        }
-    }
-}
-
-impl<C: Future> Future for ChildFuture<C> {
-    type Output = C::Output;
-
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let this = self.project();
-        DOM_CONTEXT.with(|parent: &DomContext| {
-            let ctx = DomContext::Child {
-                parent,
-                index: *this.index,
-            };
-            DOM_CONTEXT.set(&ctx, || this.child_future.poll(cx))
-        })
     }
 }

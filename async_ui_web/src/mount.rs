@@ -1,44 +1,21 @@
-use std::{future::IntoFuture, rc::Rc};
+use std::future::Future;
 
-use async_ui_core::{
-    mount as core_mount,
-    vnode::{
-        node_concrete::{ConcreteNodeVNode, RefNode},
-        WithVNode,
-    },
-};
-use web_sys::Node;
+use async_executor::Task;
+use async_ui_web_core::{executor::schedule, window::DOCUMENT};
 
-use crate::backend::Backend;
+use crate::executor::get_executor;
 
-/** Mount the given element future in a node.
- *
- * This will spawn the element future, causing it to render UI.
- * Everything rendered by the element future will be inside the node.
- */
-pub fn mount_at<F: IntoFuture + 'static>(root: F, node: Node) {
-    let fut = WithVNode::new(
-        root.into_future(),
-        Rc::new(
-            ConcreteNodeVNode::new(
-                RefNode::<Backend>::Parent { parent: node },
-                Default::default(),
-            )
-            .into(),
-        ),
-    );
-    core_mount::<Backend, _>(fut)
+#[must_use = "When the returned `Task` is dropped your app unmounts. Call `.detach()` to avoid this."]
+pub fn mount_at<F: Future + 'static>(child_future: F, node: web_sys::Node) -> Task<F::Output> {
+    let fut = async_ui_web_core::ContainerNodeFuture::new_root(child_future, node);
+    let task = get_executor().spawn(fut);
+    schedule();
+    task
 }
-
-/** Mount the given future in the page's <body>.
- *
- */
-pub fn mount<F: IntoFuture + 'static>(root: F) {
-    let node = web_sys::window()
-        .unwrap()
-        .document()
-        .unwrap()
-        .body()
-        .unwrap();
-    mount_at(root, node.into())
+pub fn mount<F: Future + 'static>(child_future: F) {
+    mount_at(
+        child_future,
+        DOCUMENT.with(|doc| doc.body().expect("no body").to_owned().into()),
+    )
+    .detach();
 }

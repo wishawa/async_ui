@@ -1,11 +1,13 @@
 mod common_components;
 mod common_events;
 mod event_handling;
-mod no_child;
-mod wrap;
+mod text_node;
 
-pub use wrap::{IsHtmlElement, WrappedHtmlElement};
 pub mod events {
-    pub use super::event_handling::{EventsHandler, NextEvent};
+    pub use super::common_events::{EmitEditEvent, EmitElementEvent};
+    pub use super::event_handling::{EmitEvent, NextEvent};
 }
-pub use common_components::*;
+pub mod components {
+    pub use super::common_components::*;
+    pub use super::text_node::Text;
+}

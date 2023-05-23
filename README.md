@@ -1,5 +1,49 @@
 # Async UI
 
-Async UI is a proof-of-concept Rust UI library with backend for the web (HTML/JS), and GTK 4. It is not ready for production use yet.
+A web UI framework where Futures are components.
 
-Read [my blog post](https://wishawa.github.io/posts/async-ui-intro/) introducing the library.
+## Async UI is...
+
+* **Just async Rust**; if you know what Futures are and how to join them, you know 90% of Async UI already.
+* **Transparent**; we favor imperative async code, avoiding callbacks and custom DSLs.
+* **Flexible**; you get access to the entire Web API (through [web_sys](https://docs.rs/web-sys/latest/web_sys/)).
+
+## Example Code: Hello World
+```rust
+async fn hello_world() {
+	"Hello World".render().await;
+}
+```
+
+## Example Code: Counter
+```rust
+async fn counter() {
+    let mut count = 0;
+    let value_text = Text::new();
+    let incr_button = Button::new();
+    join((
+        value_text.render(),
+        incr_button.render("Increment".render()),
+        async {
+            loop {
+                value_text.set_data(&count.to_string());
+				incr_button.until_click().await;
+				count += 1;
+            }
+        },
+    ))
+    .await;
+}
+```
+
+## Example Code: Async Control Flow
+```rust
+async fn app() {
+    let resource = loading_indicator(
+        fetch_resource()
+    ).await;
+	show_resource(&resource).await;
+}
+```
+
+## Design

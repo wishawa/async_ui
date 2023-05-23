@@ -13,43 +13,19 @@ doctest = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-observables = { path = "../observables/", version = "0.1.0" }
-async_ui_core = { path = "../async_ui_core/", version = "0.1.0" }
-async_ui_props = { path = "../async_ui_props/", version = "0.1.0" }
-async-task = "4.3.0"
-scoped_async_spawn = { path = "../scoped_async_spawn/", version = "0.1.0" }
+async_ui_web_core = { path = "../async_ui_web_core/" }
+async_ui_web_components = { path = "../async_ui_web_components/" }
+async_ui_web_macros = { path = "../async_ui_web_macros/" }
+async_ui_internal_utils = { path = "../async_ui_internal_utils/" }
 
-scoped-tls = "1.0.0"
-waker-fn = "1.1.0"
+async-executor = "1.5.0"
 futures-lite = "1.12.0"
-pin-project-lite = "0.2.9"
-scopeguard = "1.1.0"
 
-im-rc = "15.1.0"
-slab = "0.4.7"
-smallvec = { version = "1.9.0", features = ["union", "const_generics"] }
+js-sys = "0.3.63"
+wasm-bindgen = "0.2.86"
 
-wasm-bindgen = "0.2.81"
-js-sys = "0.3.59"
-parking_lot = { version = "0.11.1", features = ["wasm-bindgen"] }
 [dependencies.web-sys]
-version = "0.3.58"
+version = "0.3.63"
 features = [
-	'Node',
-	'Window',
-	'Document',
-	'HtmlElement',
-	'HtmlButtonElement',
-	'HtmlAnchorElement',
-	'HtmlInputElement',
-	'HtmlTextAreaElement',
-	'HtmlSpanElement',
-	'Text',	
-	'MouseEvent',
-	'InputEvent',
-	'KeyboardEvent',
-	'FocusEvent',
-	'Comment',
-	'DomTokenList',
-	'CssStyleDeclaration',
+	'DocumentFragment'
 ]
