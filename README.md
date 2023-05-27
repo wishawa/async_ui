@@ -11,7 +11,7 @@ A web UI framework where Futures are components.
 ## Example Code: Hello World
 ```rust
 async fn hello_world() {
-	"Hello World".render().await;
+    "Hello World".render().await;
 }
 ```
 
@@ -27,8 +27,8 @@ async fn counter() {
         async {
             loop {
                 value_text.set_data(&count.to_string());
-				incr_button.until_click().await;
-				count += 1;
+                incr_button.until_click().await;
+                count += 1;
             }
         },
     ))
@@ -42,8 +42,9 @@ async fn app() {
     let resource = loading_indicator(
         fetch_resource()
     ).await;
-	show_resource(&resource).await;
+    show_resource(&resource).await;
 }
 ```
 
 ## Design
+WIP. Please check back later.
