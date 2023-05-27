@@ -5,7 +5,7 @@ mod text_node;
 
 pub mod events {
     pub use super::common_events::{EmitEditEvent, EmitElementEvent};
-    pub use super::event_handling::{EmitEvent, NextEvent};
+    pub use super::event_handling::{EmitEvent, EventFutureStream};
 }
 pub mod components {
     pub use super::common_components::*;

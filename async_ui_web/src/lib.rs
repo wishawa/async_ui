@@ -14,7 +14,7 @@ pub use mount::{mount, mount_at};
 pub use no_child::NoChild;
 
 pub mod event_handling {
-    pub use async_ui_web_components::events::NextEvent;
+    pub use async_ui_web_components::events::EventFutureStream;
 }
 
 pub mod event_traits {

@@ -1,9 +1,9 @@
-use crate::events::{EmitEvent, NextEvent};
+use crate::events::{EmitEvent, EventFutureStream};
 use web_sys::{HtmlElement, HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
 
 macro_rules! make_event_impl {
     ($ev_name:literal, $func_name:ident, $ty:ty) => {
-        fn $func_name(&self) -> NextEvent<$ty> {
+        fn $func_name(&self) -> EventFutureStream<$ty> {
             self.as_ref().until_event($ev_name.into())
         }
     };

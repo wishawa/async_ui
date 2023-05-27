@@ -60,7 +60,7 @@ unsafe impl<const N: usize> SharedArcContent for WakerArrayInner<N> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::super::dummy_waker;
+    use async_ui_internal_utils::dummy_waker::dummy_waker;
 
     use super::*;
     #[test]

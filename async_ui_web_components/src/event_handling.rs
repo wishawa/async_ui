@@ -1,24 +1,30 @@
-use std::{borrow::Cow, cell::RefCell, future::Future, rc::Rc, task::Poll};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    future::Future,
+    rc::Rc,
+    task::{Poll, Waker},
+};
 
+use async_ui_internal_utils::dummy_waker::dummy_waker;
 use futures_core::Stream;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{AddEventListenerOptions, EventTarget};
 
-pub struct NextEvent<E> {
+pub struct EventFutureStream<E> {
     target: EventTarget,
     closure: Option<Closure<dyn Fn(web_sys::Event)>>,
-    shared: Rc<RefCell<Option<E>>>,
+    shared: Rc<RefCell<(Option<E>, Waker)>>,
     options: Option<AddEventListenerOptions>,
     event_name: Cow<'static, str>,
 }
 
-impl<E: JsCast> NextEvent<E> {
+impl<E: JsCast> EventFutureStream<E> {
     pub fn new(target: EventTarget, event_name: Cow<'static, str>) -> Self {
-        let shared = Rc::new(RefCell::new(None));
         Self {
             target,
             closure: None,
-            shared,
+            shared: Rc::new(RefCell::new((None, dummy_waker()))),
             options: None,
             event_name,
         }
@@ -35,7 +41,7 @@ impl<E: JsCast> NextEvent<E> {
     }
 }
 
-impl<E: JsCast + 'static> Future for NextEvent<E> {
+impl<E: JsCast + 'static> Future for EventFutureStream<E> {
     type Output = E;
 
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
@@ -45,7 +51,7 @@ impl<E: JsCast + 'static> Future for NextEvent<E> {
         }
     }
 }
-impl<E: JsCast + 'static> Stream for NextEvent<E> {
+impl<E: JsCast + 'static> Stream for EventFutureStream<E> {
     type Item = E;
 
     fn poll_next(
@@ -53,14 +59,22 @@ impl<E: JsCast + 'static> Stream for NextEvent<E> {
         cx: &mut std::task::Context<'_>,
     ) -> Poll<Option<Self::Item>> {
         let this = self.get_mut();
+
+        {
+            let shared = &mut *this.shared.borrow_mut();
+            let waker = cx.waker();
+            if !shared.1.will_wake(waker) {
+                shared.1 = waker.to_owned();
+            }
+        }
+
         if this.closure.is_none() {
-            let waker = cx.waker().to_owned();
             let shared_weak = Rc::downgrade(&this.shared);
             let closure = Closure::new(move |ev: web_sys::Event| {
                 if let Some(strong) = shared_weak.upgrade() {
                     let inner = &mut *strong.borrow_mut();
-                    *inner = Some(ev.unchecked_into());
-                    waker.wake_by_ref();
+                    inner.0 = Some(ev.unchecked_into());
+                    inner.1.wake_by_ref();
                 }
                 async_ui_web_core::executor::run_now();
             });
@@ -80,7 +94,7 @@ impl<E: JsCast + 'static> Stream for NextEvent<E> {
             }
             this.closure = Some(closure);
             Poll::Pending
-        } else if let Some(ev) = this.shared.borrow_mut().take() {
+        } else if let Some(ev) = this.shared.borrow_mut().0.take() {
             Poll::Ready(Some(ev))
         } else {
             Poll::Pending
@@ -89,16 +103,16 @@ impl<E: JsCast + 'static> Stream for NextEvent<E> {
 }
 
 pub trait EmitEvent {
-    fn until_event<E: JsCast + 'static>(&self, name: Cow<'static, str>) -> NextEvent<E>;
+    fn until_event<E: JsCast + 'static>(&self, name: Cow<'static, str>) -> EventFutureStream<E>;
 }
 
 impl EmitEvent for EventTarget {
-    fn until_event<E: JsCast + 'static>(&self, name: Cow<'static, str>) -> NextEvent<E> {
-        NextEvent::new(self.to_owned(), name)
+    fn until_event<E: JsCast + 'static>(&self, name: Cow<'static, str>) -> EventFutureStream<E> {
+        EventFutureStream::new(self.to_owned(), name)
     }
 }
 
-impl<E> Drop for NextEvent<E> {
+impl<E> Drop for EventFutureStream<E> {
     fn drop(&mut self) {
         if let Some(callback) = self.closure.take() {
             self.target

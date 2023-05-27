@@ -1,7 +1,7 @@
 use core::task::{RawWaker, RawWakerVTable, Waker};
 
 /// A Waker that doesn't do anything.
-pub(crate) fn dummy_waker() -> Waker {
+pub fn dummy_waker() -> Waker {
     fn new_raw_waker() -> RawWaker {
         unsafe fn no_op(_data: *const ()) {}
         unsafe fn clone(_data: *const ()) -> RawWaker {
