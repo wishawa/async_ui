@@ -33,12 +33,10 @@ impl FilterMode {
         }
     }
     fn should_show(&self, checked: bool) -> bool {
-        match (self, checked) {
-            (Self::All, _) => true,
-            (Self::Active, false) => true,
-            (Self::Completed, true) => true,
-            _ => false,
-        }
+        matches!(
+            (self, checked),
+            (Self::All, _) | (Self::Active, false) | (Self::Completed, true)
+        )
     }
 }
 struct GlobalState {
@@ -347,7 +345,7 @@ impl<'a> TodoItem<'a> {
                             wrapper.add_class(style::editing);
                             let editor = Input::new();
                             editor.add_class(style::edit);
-                            editor.set_value(&*self.text.borrow());
+                            editor.set_value(&self.text.borrow());
                             race((
                                 map_to_nothing(editor.render()),
                                 async {
@@ -384,7 +382,7 @@ impl<'a> TodoItem<'a> {
             },
             async {
                 loop {
-                    label.set_inner_text(&*self.text.borrow());
+                    label.set_inner_text(&self.text.borrow());
                     self.text.until_change().await;
                 }
             },

@@ -45,7 +45,7 @@ pub fn get_containing_node() -> web_sys::Node {
 impl<'p> DomContext<'p> {
     fn get_containing_node(&self) -> &web_sys::Node {
         match self {
-            DomContext::Container { container, .. } => *container,
+            DomContext::Container { container, .. } => container,
             DomContext::Child { parent, .. } | DomContext::Sibling { parent, .. } => {
                 parent.get_containing_node()
             }
@@ -94,11 +94,11 @@ impl<'p> DomContext<'p> {
         match self {
             DomContext::Container { group, container } => {
                 let mut group = group.borrow_mut();
-                remove_children_here(&mut *group, position, *container);
+                remove_children_here(&mut group, position, container);
             }
             DomContext::Sibling { group, parent, .. } => {
                 let mut group = group.borrow_mut();
-                remove_children_here(&mut *group, position, parent.get_containing_node());
+                remove_children_here(&mut group, position, parent.get_containing_node());
             }
             DomContext::Child { parent, index } => {
                 position.wrap(*index);

@@ -53,7 +53,8 @@ pub async fn timer() {
         async {
             // Keep incrementing the elapsed time
             let mut stream = gloo_timers::future::IntervalStream::new(50);
-            while let Some(_) = stream.next().await {
+            loop {
+                stream.next().await;
                 if *elapsed.borrow() < *total.borrow() {
                     *elapsed.borrow_mut() += 0.05;
                 }

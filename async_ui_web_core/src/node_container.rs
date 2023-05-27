@@ -57,14 +57,11 @@ impl<C: Future> Future for ContainerNodeFuture<C> {
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
-        match this.add_self {
-            AddSelfMode::ShouldAdd => {
-                *this.add_self = AddSelfMode::Added;
-                DOM_CONTEXT.with(|ctx| {
-                    ctx.add_child(ChildPosition::default(), this.container.clone());
-                })
-            }
-            _ => {}
+        if matches!(this.add_self, AddSelfMode::ShouldAdd) {
+            *this.add_self = AddSelfMode::Added;
+            DOM_CONTEXT.with(|ctx| {
+                ctx.add_child(ChildPosition::default(), this.container.clone());
+            })
         }
         let ctx = DomContext::Container {
             group: this.group,

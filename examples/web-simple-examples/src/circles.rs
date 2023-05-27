@@ -103,7 +103,7 @@ pub async fn circles() {
 								let dist = (((x - mx).pow(2) + (y - my).pow(2)) as f64).sqrt();
 								(dist < *scale * 25.0).then_some((idx, dist, elem))
 							})
-							.min_by(|(_, xdist, _), (_, ydist, _)| xdist.total_cmp(&ydist))
+							.min_by(|(_, xdist, _), (_, ydist, _)| xdist.total_cmp(ydist))
 							.map(|(idx, _, _)| idx);
 						match (selected, new_selected) {
 							(Some(old_idx), Some(new_idx)) if old_idx == new_idx => {}
@@ -236,9 +236,7 @@ impl OperationsBar {
                 let user_ops = self.user_ops.borrow();
                 self.undo_btn.set_disabled(false);
                 self.redo_btn.set_disabled(last_idx + 1 == user_ops.len());
-                match user_ops[last_idx] {
-                    op => op
-                }
+                user_ops[last_idx]
             }
         )
     }

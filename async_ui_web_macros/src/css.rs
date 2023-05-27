@@ -19,10 +19,7 @@ fn generate(input: String) -> TokenStream {
         let end_idx = start_idx + length;
         output.push_str(&input[last_end_idx..end_idx]);
 
-        assert_eq!(
-            output.as_bytes()[output.len() - length - 1] as char,
-            '.' as char
-        );
+        assert_eq!(output.as_bytes()[output.len() - length - 1] as char, '.');
         names.insert(&input[start_idx..end_idx]);
         output.push('-');
         output.push_str(postfix);
@@ -31,7 +28,7 @@ fn generate(input: String) -> TokenStream {
     output.push_str(&input[last_end_idx..]);
     let classes_declaration = names
         .iter()
-        .map(|c| Ident::new(&c.replace("-", "_"), Span::call_site()))
+        .map(|c| Ident::new(&c.replace('-', "_"), Span::call_site()))
         .collect::<Vec<_>>();
 
     let classes_value = names.iter().map(|c| format!("{c}-{postfix}"));
@@ -83,16 +80,16 @@ mod find_classes {
     };
 
     pub fn find_classes(input: &str) -> Vec<(usize, usize)> {
-        let mut input = ParserInput::new(&input);
+        let mut input = ParserInput::new(input);
         let mut input = Parser::new(&mut input);
         let mut classes = Vec::new();
-        let mut parser = RuleListParser::new_for_stylesheet(
+        let parser = RuleListParser::new_for_stylesheet(
             &mut input,
             OurParser {
                 classes: &mut classes,
             },
         );
-        while let Some(_) = parser.next() {}
+        for _ in parser {}
         classes
     }
     struct OurParser<'d> {
@@ -186,13 +183,13 @@ mod find_classes {
             input: &mut Parser<'i, 't>,
         ) -> Result<Self::AtRule, cssparser::ParseError<'i, Self::Error>> {
             if prelude {
-                let mut parser = RuleListParser::new_for_nested_rule(
+                let parser = RuleListParser::new_for_nested_rule(
                     input,
                     OurParser {
-                        classes: &mut self.classes,
+                        classes: self.classes,
                     },
                 );
-                while let Some(_) = parser.next() {}
+                for _ in parser {}
             }
             drain_input(input)?;
             Ok(())

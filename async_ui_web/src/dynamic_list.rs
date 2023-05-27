@@ -37,12 +37,17 @@ struct Stored<F: Future> {
     end_marker: web_sys::Node,
 }
 
-impl<'c, K: Eq + Hash, F: Future> DynamicListInner<K, F> {
+impl<K: Eq + Hash, F: Future> DynamicListInner<K, F> {
     pub fn get_container(&self) -> &web_sys::Node {
         match &self.containing_node {
             ContainingNode::Real(real) => real,
-            ContainingNode::Fake(fake) => &*fake,
+            ContainingNode::Fake(fake) => fake,
         }
+    }
+}
+impl<'c, K: Eq + Hash, F: Future + 'c> Default for DynamicList<'c, K, F> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
@@ -130,7 +135,8 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             after_key_1.as_ref(),
         );
     }
-    pub fn order<'k>(&self, keys: impl IntoIterator<Item = &'k K>)
+    #[doc(hidden)]
+    pub fn order<'k>(&self, _keys: impl IntoIterator<Item = &'k K>)
     where
         K: 'k,
     {

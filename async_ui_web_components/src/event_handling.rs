@@ -68,14 +68,14 @@ impl<E: JsCast + 'static> Stream for NextEvent<E> {
             if let Some(options) = &this.options {
                 this.target
                     .add_event_listener_with_callback_and_add_event_listener_options(
-                        &*this.event_name,
+                        &this.event_name,
                         listener,
                         options,
                     )
                     .unwrap_throw();
             } else {
                 this.target
-                    .add_event_listener_with_callback(&*this.event_name, listener)
+                    .add_event_listener_with_callback(&this.event_name, listener)
                     .unwrap_throw();
             }
             this.closure = Some(closure);
@@ -103,7 +103,7 @@ impl<E> Drop for NextEvent<E> {
         if let Some(callback) = self.closure.take() {
             self.target
                 .remove_event_listener_with_callback(
-                    &*self.event_name,
+                    &self.event_name,
                     callback.as_ref().unchecked_ref(),
                 )
                 .unwrap_throw();

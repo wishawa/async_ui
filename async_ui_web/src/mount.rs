@@ -2,6 +2,7 @@ use std::future::Future;
 
 use async_executor::Task;
 use async_ui_web_core::{executor::schedule, window::DOCUMENT};
+use wasm_bindgen::UnwrapThrowExt;
 
 use crate::executor::get_executor;
 
@@ -15,7 +16,7 @@ pub fn mount_at<F: Future + 'static>(child_future: F, node: web_sys::Node) -> Ta
 pub fn mount<F: Future + 'static>(child_future: F) {
     mount_at(
         child_future,
-        DOCUMENT.with(|doc| doc.body().expect("no body").to_owned().into()),
+        DOCUMENT.with(|doc| doc.body().unwrap_throw().into()),
     )
     .detach();
 }

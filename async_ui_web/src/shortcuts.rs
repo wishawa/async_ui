@@ -25,7 +25,7 @@ pub trait ShortcutClassList {
 }
 
 fn strs_to_js_array(values: &[&str]) -> Array {
-    values.into_iter().map(|x| JsValue::from_str(x)).collect()
+    values.iter().map(|x| JsValue::from_str(x)).collect()
 }
 
 impl ShortcutClassList for web_sys::Element {

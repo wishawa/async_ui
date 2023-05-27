@@ -3,7 +3,7 @@ use std::future::Future;
 use super::ReactiveCell;
 
 impl<T> ReactiveCell<T> {
-    pub fn until_change<'b>(&'b self) -> UntilChangeFuture<'b, T> {
+    pub fn until_change(&'_ self) -> UntilChangeFuture<'_, T> {
         UntilChangeFuture {
             target: self,
             last_version: 0,

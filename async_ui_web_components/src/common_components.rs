@@ -19,6 +19,11 @@ macro_rules! component_impl {
                 }
             }
         }
+        impl Default for $ty {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
         impl Deref for $ty {
             type Target = $elem_ty;
             fn deref(&self) -> &Self::Target {
@@ -116,13 +121,13 @@ pub struct CustomElement {
 impl CustomElement {
     pub fn new(tag_name: Cow<'static, str>) -> Self {
         Self {
-            element: create_element(&*tag_name),
+            element: create_element(&tag_name),
         }
     }
 }
 
 fn create_element<E: JsCast>(tag_name: &str) -> E {
     DOCUMENT
-        .with(|doc| doc.create_element(&*tag_name).unwrap_throw())
+        .with(|doc| doc.create_element(tag_name).unwrap_throw())
         .unchecked_into()
 }

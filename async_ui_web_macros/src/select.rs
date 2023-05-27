@@ -23,7 +23,7 @@ impl Parse for MacroInput {
             input: syn::parse::ParseStream,
             branch: &mut Branch,
         ) -> syn::Result<()> {
-            branch.pattern = Some(Pat::parse_single(&input)?);
+            branch.pattern = Some(Pat::parse_single(input)?);
             input.parse::<Token![=]>()?;
             branch.future = Some(input.parse()?);
             input.parse::<Token![=>]>()?;

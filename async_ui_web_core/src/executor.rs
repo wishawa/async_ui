@@ -52,11 +52,8 @@ pub fn run_now() {
         if !was_active {
             while exe.scheduled.replace(false) {
                 let mut cx = Context::from_waker(&exe.waker);
-                match exe.future.borrow_mut().as_mut() {
-                    Some(fu) => {
-                        let _ = fu.as_mut().poll(&mut cx);
-                    }
-                    None => {}
+                if let Some(fu) = exe.future.borrow_mut().as_mut() {
+                    let _ = fu.as_mut().poll(&mut cx);
                 }
             }
             exe.active.set(false);
@@ -72,7 +69,7 @@ pub fn schedule() {
         if !exe.scheduled.replace(true) && !exe.active.get() {
             WINDOW.with(|window| {
                 window
-                    .set_timeout_with_callback(&exe.run_closure.as_ref().unchecked_ref())
+                    .set_timeout_with_callback(exe.run_closure.as_ref().unchecked_ref())
                     .expect_throw("failed to schedule task");
             })
         }

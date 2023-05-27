@@ -20,6 +20,12 @@ impl Text {
     }
 }
 
+impl Default for Text {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Deref for Text {
     type Target = web_sys::Text;
 

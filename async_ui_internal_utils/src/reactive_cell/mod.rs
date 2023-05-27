@@ -64,10 +64,10 @@ impl<T> ReactiveCell<T> {
         });
         Self { inner }
     }
-    pub fn borrow<'b>(&'b self) -> std::cell::Ref<'b, T> {
+    pub fn borrow(&'_ self) -> std::cell::Ref<'_, T> {
         std::cell::Ref::map(self.inner.borrow(), |r| &r.data)
     }
-    pub fn borrow_mut<'b>(&'b self) -> ReactiveCellBorrowMut<'b, T> {
+    pub fn borrow_mut(&'_ self) -> ReactiveCellBorrowMut<'_, T> {
         ReactiveCellBorrowMut {
             reference: self.inner.borrow_mut(),
         }

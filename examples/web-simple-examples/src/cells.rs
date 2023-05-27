@@ -34,7 +34,7 @@ impl FromStr for CellIndex {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = s.chars();
         let first = chars.next().ok_or(())?;
-        if first < 'A' || first > 'Z' {
+        if !first.is_ascii_uppercase() {
             return Err(());
         }
         let col = (first as usize) - ('A' as usize);
@@ -63,7 +63,7 @@ pub async fn cells() {
                     let mut headers = vec![Th::new().render("Cells".render())];
                     headers.extend((0..NUM_COLUMNS).map(|col| {
                         Th::new().render(
-                            ((col as u8 + 'A' as u8) as char)
+                            ((col as u8 + b'A') as char)
                                 .encode_utf8(&mut [0; 1])
                                 .render(),
                         )
@@ -161,7 +161,7 @@ impl Formula {
 }
 impl<'a> From<&'a str> for Formula {
     fn from(input: &str) -> Self {
-        if input.starts_with("=SUM(") && input.ends_with(")") {
+        if input.starts_with("=SUM(") && input.ends_with(')') {
             let range = &input[5..(input.len() - 1)];
             if let Some((l, r)) = range.split_once(':') {
                 if let (Ok(l), Ok(r)) = (l.parse(), r.parse()) {
