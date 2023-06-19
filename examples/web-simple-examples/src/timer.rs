@@ -20,8 +20,7 @@ pub async fn timer() {
 
     let elapsed_text = Text::new();
 
-    let slider = Input::new();
-    slider.set_type("range");
+    let slider = Input::new_range();
     slider.set_min("0.01");
     slider.set_max("30.0");
     slider.set_value("15.0");

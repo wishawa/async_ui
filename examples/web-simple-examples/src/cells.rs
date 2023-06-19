@@ -52,13 +52,11 @@ impl<T> Index<CellIndex> for Vec<T> {
 }
 pub async fn cells() {
     let state = State::new();
-    let wrapper = Div::new();
-    wrapper.add_class(style::wrapper);
-    let table = Table::new();
-    table.add_class(style::table);
-    wrapper
+
+    Div::new()
+        .with_class(style::wrapper)
         .render(
-            table.render(join((
+            Table::new().with_class(style::table).render(join((
                 Tr::new().render(join({
                     let mut headers = vec![Th::new().render("Cells".render())];
                     headers.extend((0..NUM_COLUMNS).map(|col| {
@@ -91,14 +89,13 @@ pub async fn cells() {
 }
 
 async fn cell(state: &State, index: CellIndex) {
-    let td = Td::new();
-    td.add_class(style::cell);
-    let input = Input::new();
-    input.set_type("text");
+    let input = Input::new_text();
     let computed = Span::new();
     let mut formula = Formula::Unknown;
     join((
-        td.render(join((input.render(), computed.render(NoChild)))),
+        Td::new()
+            .with_class(style::cell)
+            .render(join((input.render(), computed.render(NoChild)))),
         async {
             loop {
                 let v = formula.compute(state);

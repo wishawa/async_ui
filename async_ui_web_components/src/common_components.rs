@@ -36,6 +36,14 @@ macro_rules! component_impl {
                 &self.element
             }
         }
+        impl<X> AsRef<X> for $ty
+        where
+            $elem_ty: AsRef<X>,
+        {
+            fn as_ref(&self) -> &X {
+                self.element.as_ref()
+            }
+        }
     };
     ($ty:ident, $tag_name:literal, $elem_ty:ty, $link:tt, childed) => {
         component_impl!($ty, $tag_name, $elem_ty, $link);

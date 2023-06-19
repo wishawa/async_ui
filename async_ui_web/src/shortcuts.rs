@@ -51,3 +51,15 @@ impl ShortcutClassList for web_sys::Element {
             .unwrap_throw();
     }
 }
+
+pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
+    fn with_class(&self, c: &str) -> &Self {
+        self.as_ref().add_class(c);
+        self
+    }
+    fn with_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) -> &Self {
+        self.as_ref().add_classes(c.into_iter());
+        self
+    }
+}
+impl<T: AsRef<web_sys::Element>> ShortcutClassListBuilder for T {}

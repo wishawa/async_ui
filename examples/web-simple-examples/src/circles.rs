@@ -155,8 +155,7 @@ async fn context_menu(elem: &Div, initial_size: f64, x: i32, y: i32) -> Option<f
                 },
             ))
             .await;
-            let slider = Input::new();
-            slider.set_type("range");
+            let slider = Input::new_range();
             slider.set_min("0.1");
             slider.set_max("10.0");
             slider.set_step("0.01");

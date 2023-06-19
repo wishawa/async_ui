@@ -34,7 +34,7 @@ pub mod shortcut_traits {
 
     ```
      */
-    pub use super::shortcuts::{ShortcutClassList, ShortcutRenderStr};
+    pub use super::shortcuts::{ShortcutClassList, ShortcutClassListBuilder, ShortcutRenderStr};
 }
 
 pub mod prelude_traits {
@@ -47,7 +47,7 @@ pub mod prelude_traits {
     ```
      */
     pub use super::shortcuts::{
-        ShortcutClassList as _, ShortcutRenderStr as _,
+        ShortcutClassList as _, ShortcutClassListBuilder as _, ShortcutRenderStr as _,
     };
     pub use async_ui_web_components::events::{
         EmitEditEvent as _, EmitElementEvent as _, EmitEvent as _,

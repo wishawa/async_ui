@@ -151,8 +151,7 @@ struct LabeledField {
 }
 impl LabeledField {
     pub fn new(id: &str, text: &str) -> Self {
-        let field = Input::new();
-        field.set_type("text");
+        let field = Input::new_text();
         field.set_id(id);
         let label = Label::new();
         label.set_html_for(id);
