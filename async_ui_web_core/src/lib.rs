@@ -117,14 +117,20 @@ fn remove_children_here(
 ) {
     if position.is_root() {
         tree.values().for_each(|child| {
-            container.remove_child(child).unwrap_throw();
+            // We ignore error in child removal (instead of unwrapping it)
+            // because in applications where element recycling is used
+            // (namely VirtualizedList), the element might have already been
+            // moved elsewhere in the recycling process while the future
+            // rendering it sticks around (due to async_executor dropping
+            // futures lazily).
+            container.remove_child(child).ok();
         });
         tree.clear();
     } else {
         let next = position.next_sibling();
         let range = (&position)..(&next);
         while let Some((key, child)) = tree.range(range.clone()).next_back() {
-            container.remove_child(child).unwrap_throw();
+            container.remove_child(child).ok();
             tree.remove(&key.clone());
         }
     }
