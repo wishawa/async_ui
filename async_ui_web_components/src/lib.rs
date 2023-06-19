@@ -1,6 +1,7 @@
 mod common_components;
 mod common_events;
 mod event_handling;
+mod input_types;
 mod text_node;
 
 pub mod events {
