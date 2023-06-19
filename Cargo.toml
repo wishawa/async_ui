@@ -9,4 +9,5 @@ members = [
 	"x-bow/",
 	"x-bow-macros/",
 	"examples/web-simple-examples/",
+	"examples/web-todomvc/",
 ]
