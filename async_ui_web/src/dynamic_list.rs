@@ -7,9 +7,9 @@ use std::{
     task::Poll,
 };
 
+use crate::utils::MiniScopeGuard;
 use async_executor::{LocalExecutor, Task};
 use async_ui_web_core::{get_containing_node, ContainerNodeFuture, SiblingNodeFuture};
-use js_sys::Object;
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::{Comment, DocumentFragment};
 
@@ -19,6 +19,37 @@ enum ContainingNode {
     Fake(DocumentFragment),
 }
 
+/**
+For rendering many futures, and adding/removing them dynamically.
+
+Futures (and the stuff they render) can be
+inserted, removed, or reordered within the list.
+
+Only use this if you need low level control. [KeyedList][super::KeyedList]
+and [VirtualizedList][super::VirtualizedList] are easier to use and more suitable.
+
+```rust
+# use async_ui_web::components::Button;
+# use async_ui_web::join;
+# use async_ui_web::prelude_traits::*;
+# let _ = async {
+let list = DynamicList::new();
+let add_item = Button::new();
+let mut item_key_counter = 0;
+join((
+    list.render(),
+    add_item.render(),
+    async {
+        loop {
+            add_item.until_click().await;
+            list.insert(item_key_counter, "another item".render(), None);
+            item_key_counter += 1;
+        }
+    }
+)).await;
+# };
+```
+*/
 pub struct DynamicList<'c, K: Eq + Hash, F: Future> {
     inner: RefCell<DynamicListInner<K, F>>,
     executor: LocalExecutor<'c>,
@@ -51,18 +82,40 @@ impl<'c, K: Eq + Hash, F: Future + 'c> Default for DynamicList<'c, K, F> {
     }
 }
 impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
+    /// Create a new list, without anything in it.
     pub fn new() -> Self {
+        let frag = DocumentFragment::new().unwrap_throw();
+        let list_end_marker = Comment::new().unwrap_throw().into();
+        let list_start_marker = Comment::new().unwrap_throw().into();
+        frag.append_child(&list_start_marker).unwrap_throw();
+        frag.append_child(&list_end_marker).unwrap_throw();
         Self {
             inner: RefCell::new(DynamicListInner {
-                containing_node: ContainingNode::Fake(DocumentFragment::new().unwrap_throw()),
+                containing_node: ContainingNode::Fake(frag),
                 items: HashMap::new(),
             }),
             executor: LocalExecutor::new(),
-            list_end_marker: Comment::new().unwrap_throw().into(),
-            list_start_marker: Comment::new().unwrap_throw().into(),
+            list_end_marker,
+            list_start_marker,
         }
     }
-    pub fn insert(&self, key: K, future: F, before: Option<&K>) {
+    /// Insert a future to render in the list.
+    ///
+    /// You supply a key along with the future to render.
+    /// This key can later be used to delete or move this future.
+    ///
+    /// If that key is already taken, the new future replaces the old one and
+    /// the method returns true.
+    ///
+    /// The last argument (`before`) specifies where the future should be added.
+    /// This works similarly to [insertBefore](https://developer.mozilla.org/en-US/docs/Web/API/Node/insertBefore);
+    /// you specify the key of the node *before* which your new future should
+    /// appear, or None if you want to insert at the end.
+    ///
+    /// If the given `before` key doesn't exist, the future is inserted at the end.
+    ///
+    /// Time complexity: O(1) in Rust/JS code.
+    pub fn insert(&self, key: K, future: F, before: Option<&K>) -> bool {
         let mut inner = self.inner.borrow_mut();
         let container = inner.get_container();
         let start_marker: web_sys::Node = Comment::new().unwrap_throw().into();
@@ -85,20 +138,61 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             start_marker,
             end_marker,
         };
-        inner.items.insert(key, stored);
+        if let Some(Stored {
+            task,
+            start_marker,
+            end_marker,
+        }) = inner.items.insert(key, stored)
+        {
+            drop(task);
+            let container = inner.get_container();
+            let _ = container.remove_child(&start_marker).unwrap_throw();
+            let _ = container.remove_child(&end_marker).unwrap_throw();
+            true
+        } else {
+            false
+        }
     }
-    pub fn remove(&self, key: &K) {
+    /// Remove the future inserted with the specified key.
+    /// Returns whether or not the future at that key was in the list
+    /// (i.e. returns true iff something was removed).
+    ///
+    /// Time complexity: O(1) in Rust/JS code.
+    pub fn remove(&self, key: &K) -> bool {
         let mut inner = self.inner.borrow_mut();
-        let Stored {
+        if let Some(Stored {
             start_marker,
             end_marker,
             task,
-        } = inner.items.remove(key).unwrap();
-        drop(task);
-        let container = inner.get_container();
-        let _ = container.remove_child(&start_marker).unwrap_throw();
-        let _ = container.remove_child(&end_marker).unwrap_throw();
+        }) = inner.items.remove(key)
+        {
+            drop(task);
+            let container = inner.get_container();
+            let _ = container.remove_child(&start_marker).unwrap_throw();
+            let _ = container.remove_child(&end_marker).unwrap_throw();
+            true
+        } else {
+            false
+        }
     }
+    /// Check if there is a future associated with the given key.
+    /// Returns true if there is one.
+    ///
+    /// Time complexity: O(1) in Rust/JS code.
+    pub fn contains_key(&self, key: &K) -> bool {
+        self.inner.borrow().items.contains_key(key)
+    }
+    /// Move the future at the key given in the first argument (`to_move`) so that
+    /// it appears just before the future at the key given in the second argument (`before`).
+    ///
+    /// **Panics** if the key in the first argument (`to_move`) is not in the list.
+    ///
+    /// If the key in the second argument (`before`) is None or doesn't exist,
+    /// the future moved to the end of the list.
+    ///
+    /// Time complexity: O(number of HTML nodes moved) in Rust/JS code.
+    /// Unless you're doing something weird like rendering a list as a direct child of a list,
+    /// the number of HTML nodes will likely be O(1).
     pub fn move_before(&self, to_move: &K, before: Option<&K>) {
         let inner = self.inner.borrow();
         let after = before
@@ -113,6 +207,13 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             Some(after),
         );
     }
+    /// Swap the position of two futures.
+    ///
+    /// **Panics** if either of the keys don't exist in the list.
+    ///
+    /// Time complexity: O(number of HTML nodes moved) in Rust/JS code.
+    /// Unless you're doing something weird like rendering a list as a direct child of a list,
+    /// the number of HTML nodes will likely be O(1).
     pub fn swap(&self, key_1: &K, key_2: &K) {
         let inner = self.inner.borrow();
         let item_1 = inner.items.get(key_1).unwrap();
@@ -142,6 +243,10 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     {
         todo!()
     }
+    /// Render the list here.
+    ///
+    /// This future never completes.
+    /// Race it with some other future if you want to drop it eventually.
     pub async fn render(&self) {
         let real_containing_node = get_containing_node();
         let mut list_end_marker_fut = pin!(ContainerNodeFuture::new(
@@ -194,20 +299,13 @@ fn move_nodes_before(
     end_marker: &web_sys::Node,
     after: Option<&web_sys::Node>,
 ) {
-    container.insert_before(start_marker, after).unwrap_throw();
-    let mut node = start_marker.next_sibling().unwrap();
+    let mut node = start_marker.clone();
     loop {
+        let next_node = node.next_sibling();
         container.insert_before(&node, after).unwrap_throw();
-        if Object::is(end_marker.as_ref(), node.as_ref()) {
+        if end_marker.is_same_node(Some(&node)) {
             break;
         }
-        node = node.next_sibling().unwrap();
-    }
-}
-
-struct MiniScopeGuard<F: FnMut()>(F);
-impl<F: FnMut()> Drop for MiniScopeGuard<F> {
-    fn drop(&mut self) {
-        (self.0)();
+        node = next_node.unwrap();
     }
 }

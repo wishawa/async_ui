@@ -27,5 +27,10 @@ wasm-bindgen = "0.2.86"
 [dependencies.web-sys]
 version = "0.3.63"
 features = [
-	'DocumentFragment'
+	'DocumentFragment',
+	'IntersectionObserver',
+	'IntersectionObserverInit',
+	'IntersectionObserverEntry',
+	'DomRect',
+	'console'
 ]
