@@ -6,6 +6,7 @@ members = [
 	"async_ui_web_components/",
 	"async_ui_web_macros/",
 	"async_ui_internal_utils/",
+	"x-bow/",
+	"x-bow-macros/",
 	"examples/web-simple-examples/",
-	"examples/web-todomvc/"
 ]

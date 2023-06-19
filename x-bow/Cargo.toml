@@ -1,0 +1,10 @@
+[package]
+name = "x-bow"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+x-bow-macros = { path = "../x-bow-macros/", version = "0.1.0" }
+futures-core = "0.3.28"
