@@ -11,6 +11,15 @@ use futures_core::Stream;
 use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
 use web_sys::{AddEventListenerOptions, EventTarget};
 
+/// A struct implementing both [Future] and [Stream].
+/// Yields [Event][web_sys::Event] objects.
+///
+/// Use [until_event][crate::events::EmitEvent::until_event] or other until_*
+/// methods to get this struct.
+///
+/// The implementation only keeps the last event it receives.
+/// This means if you use some custom manually-implemented wrapper futures and
+/// fail to poll the stream upon `wake`, you might miss events.
 pub struct EventFutureStream<E> {
     target: EventTarget,
     closure: Option<Closure<dyn Fn(web_sys::Event)>>,
@@ -20,6 +29,8 @@ pub struct EventFutureStream<E> {
 }
 
 impl<E: JsCast> EventFutureStream<E> {
+    /// Prefer to use [until_event][crate::events::EmitEvent::until_event] or other until_*
+    /// methods instead of this.
     pub fn new(target: EventTarget, event_name: Cow<'static, str>) -> Self {
         Self {
             target,
@@ -29,11 +40,29 @@ impl<E: JsCast> EventFutureStream<E> {
             event_name,
         }
     }
+    /// The `capture` option indicates that that events of this type will be
+    /// dispatched to the registered listener before being dispatched to any
+    /// EventTarget beneath it in the DOM tree.
+    /// If not specified, defaults to false.
+    ///
+    /// See [MDN documentation on `addEventListener`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener).
+    ///
+    /// This needs to be set *before* you first poll the stream.
     pub fn set_capture(&mut self, capture: bool) {
         self.options
             .get_or_insert_with(AddEventListenerOptions::new)
             .capture(capture);
     }
+    /// The `passive` option indicates that the function specified by listener
+    /// will never call `preventDefault()`.
+    /// If a passive listener does call `preventDefault()`,
+    /// the user agent will do nothing other than generate a console warning.
+    /// If not specified, defaults to false.
+    ///
+    /// See [MDN documentation on `addEventListener`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener).
+    /// See [Event::prevent_default].
+    ///
+    /// This needs to be set *before* you first poll the stream.
     pub fn set_passive(&mut self, passive: bool) {
         self.options
             .get_or_insert_with(AddEventListenerOptions::new)
@@ -102,7 +131,17 @@ impl<E: JsCast + 'static> Stream for EventFutureStream<E> {
     }
 }
 
+/// Implemented for [EventTarget].
+/// ```
+/// # let _ = async {
+/// # let event_target = EventTarget::new().unwrap();
+/// event_target.until_event("eventname").await;
+/// // do something after event
+/// # };
+/// ```
 pub trait EmitEvent {
+    /// Wait until an event with the specified name is fired.
+    /// The return type is both a [Future] and a [Stream] that yields the event object.
     fn until_event<E: JsCast + 'static>(&self, name: Cow<'static, str>) -> EventFutureStream<E>;
 }
 

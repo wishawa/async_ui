@@ -18,28 +18,28 @@ impl ShortcutRenderStr for str {
 
 pub trait ShortcutClassList {
     fn add_class(&self, c: &str);
-    fn add_classes(&self, c: &[&str]);
+    fn add_classes<'a>(&self, c: impl Iterator<Item = &'a str>);
     fn del_class(&self, c: &str);
-    fn del_classes(&self, c: &[&str]);
+    fn del_classes<'a>(&self, c: impl Iterator<Item = &'a str>);
     fn set_class(&self, c: &str, included: bool);
 }
 
-fn strs_to_js_array(values: &[&str]) -> Array {
-    values.iter().map(|x| JsValue::from_str(x)).collect()
+fn strs_to_js_array<'a>(values: impl Iterator<Item = &'a str>) -> Array {
+    values.into_iter().map(|x| JsValue::from_str(x)).collect()
 }
 
 impl ShortcutClassList for web_sys::Element {
     fn add_class(&self, c: &str) {
         self.class_list().add_1(c).unwrap();
     }
-    fn add_classes(&self, c: &[&str]) {
+    fn add_classes<'a>(&self, c: impl Iterator<Item = &'a str>) {
         self.class_list().add(&strs_to_js_array(c)).unwrap_throw();
     }
 
     fn del_class(&self, c: &str) {
         self.class_list().remove_1(c).unwrap();
     }
-    fn del_classes(&self, c: &[&str]) {
+    fn del_classes<'a>(&self, c: impl Iterator<Item = &'a str>) {
         self.class_list()
             .remove(&strs_to_js_array(c))
             .unwrap_throw();

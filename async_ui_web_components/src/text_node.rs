@@ -5,6 +5,7 @@ use std::{
 
 use async_ui_web_core::{window::DOCUMENT, ContainerNodeFuture};
 
+/// An HTML text node.
 pub struct Text {
     node: web_sys::Text,
 }
