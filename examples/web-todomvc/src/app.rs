@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     collections::HashMap,
-    future::{pending, Future},
+    future::{poll_fn, Future},
     rc::Rc,
 };
 
@@ -61,8 +61,7 @@ async fn app_main() {
     let main;
     let foot_part;
 
-    let toggle_all = Input::new();
-    toggle_all.set_type("checkbox");
+    let toggle_all = Input::new_checkbox();
     const TOGGLE_ALL_ID: &str = "toggle-all";
     toggle_all.set_id(TOGGLE_ALL_ID);
     toggle_all.add_class(style::toggle_all);
@@ -170,6 +169,7 @@ impl HeadPart {
         let input = Input::new();
         input.add_class(style::new_todo);
         input.set_placeholder("What needs to be done?");
+        input.set_autofocus(true);
         Self { input }
     }
     async fn render(&self) {
@@ -321,8 +321,7 @@ impl<'a> TodoItem<'a> {
                     }
                     .render(join((
                         {
-                            checkbox = Input::new();
-                            checkbox.set_type("checkbox");
+                            checkbox = Input::new_checkbox();
                             checkbox.add_class(style::toggle);
                             &checkbox
                         }
@@ -347,11 +346,11 @@ impl<'a> TodoItem<'a> {
                             editor.add_class(style::edit);
                             editor.set_value(&self.text.borrow());
                             race((
-                                map_to_nothing(editor.render()),
-                                async {
+                                editor.render(),
+                                poll_fn(|_| {
                                     editor.focus().unwrap_throw();
-                                    pending().await
-                                },
+                                    std::task::Poll::Pending
+                                }),
                                 map_to_nothing(editor.until_blur()),
                                 map_to_nothing(editor.until_change()),
                             ))
