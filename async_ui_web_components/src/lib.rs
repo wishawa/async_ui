@@ -9,9 +9,10 @@ pub mod events {
     For listening to HTML events.
 
     ```
-    # use crate::components::Button;
+    # use async_ui_web_components::components::{Button, Text};
     # use async_ui_web_core::combinators::join;
     # let _ = async {
+    use async_ui_web_components::events::EmitElementEvent;
     let button = Button::new();
     let text = Text::new();
     let mut count = 0;
@@ -37,10 +38,11 @@ pub mod components {
     For creating HTML elements.
 
     ```rust
+    # use async_ui_web_components::components::Input;
     # let _ = async {
     let my_input = Input::new();
     my_input.render().await;
-    # }
+    # };
     ```
 
     Most types here are named after the HTML tag they represent, for example

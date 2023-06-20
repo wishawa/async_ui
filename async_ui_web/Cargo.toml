@@ -21,16 +21,14 @@ async_ui_internal_utils = { path = "../async_ui_internal_utils/" }
 async-executor = "1.5.0"
 futures-lite = "1.12.0"
 
-js-sys = "0.3.63"
+js-sys = "0.3.64"
 wasm-bindgen = "0.2.86"
 
 [dependencies.web-sys]
-version = "0.3.63"
+version = "0.3.64"
 features = [
 	'DocumentFragment',
-	'IntersectionObserver',
-	'IntersectionObserverInit',
-	'IntersectionObserverEntry',
 	'DomRect',
+	'ResizeObserver',
 	'console'
 ]
