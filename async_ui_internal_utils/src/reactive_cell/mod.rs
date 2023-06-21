@@ -43,17 +43,18 @@ impl<T: Clone> Clone for ReactiveCell<T> {
     }
 }
 
+impl<T: Default> Default for ReactiveCell<T> {
+    fn default() -> Self {
+        Self::new(T::default())
+    }
+}
+
 struct Inner<T> {
     data: T,
     listeners: SmallVec<[Waker; 2]>,
     version: u64,
 }
 
-impl<T: Default> Default for ReactiveCell<T> {
-    fn default() -> Self {
-        Self::new(T::default())
-    }
-}
 
 impl<T> ReactiveCell<T> {
     pub fn new(data: T) -> Self {
