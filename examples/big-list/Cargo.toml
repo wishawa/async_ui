@@ -13,3 +13,5 @@ async_ui_web = { path = "../../async_ui_web/" }
 wasm-bindgen = "0.2.82"
 futures-lite = "1.12.0"
 console_error_panic_hook = "0.1.6"
+
+scopeguard = "1.1.0"
