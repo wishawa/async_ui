@@ -1,6 +1,6 @@
 use crate::{
     context::{DomContext, DOM_CONTEXT},
-    dropping::UnsetIsDropping,
+    dropping::DetachmentBlocker,
     position::ChildPosition,
 };
 
@@ -73,7 +73,7 @@ where
     awake_list_buffer: [usize; N],
     #[pin]
     futures: [Fut; N],
-    is_dropping: UnsetIsDropping,
+    detachment_blocker: DetachmentBlocker,
 }
 
 impl<Fut, B, const N: usize> CombinatorArray<Fut, B, N>
@@ -92,7 +92,7 @@ where
             // TODO: this is a temporary buffer so it can be MaybeUninit.
             awake_list_buffer: [0; N],
             futures,
-            is_dropping: UnsetIsDropping,
+            detachment_blocker: DetachmentBlocker,
         }
     }
 }
@@ -212,7 +212,7 @@ where
     fn drop(self: Pin<&mut Self>) {
         let this = self.project();
 
-        if !this.is_dropping.set_here() {
+        if !this.detachment_blocker.block_until_drop() {
             DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
         }
 

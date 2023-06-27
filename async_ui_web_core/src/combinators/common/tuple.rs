@@ -1,7 +1,7 @@
 use super::super::utils::WakerArray;
 use crate::{
     context::{DomContext, DOM_CONTEXT},
-    dropping::UnsetIsDropping,
+    dropping::DetachmentBlocker,
     position::ChildPosition,
 };
 
@@ -74,7 +74,7 @@ macro_rules! impl_common_tuple {
             awake_list_buffer: [usize; $mod_name::LEN],
             #[pin]
             futures: $mod_name::Futures<$($F,)+>,
-            is_dropping: UnsetIsDropping,
+            detachment_blocker: DetachmentBlocker,
         }
 
         impl<B, O, $($F),+> Debug for $StructName<B, O, $($F),+>
@@ -114,7 +114,7 @@ macro_rules! impl_common_tuple {
                     pending: $mod_name::LEN,
                     awake_list_buffer: [0; $mod_name::LEN],
                     futures: $mod_name::Futures {$($F: self.0.$idx,)+},
-                    is_dropping: UnsetIsDropping
+                    detachment_blocker: DetachmentBlocker
                 }
 			}
 		}
@@ -230,7 +230,7 @@ macro_rules! impl_common_tuple {
             fn drop(self: Pin<&mut Self>) {
                 let this = self.project();
 
-                if !this.is_dropping.set_here() {
+                if !this.detachment_blocker.block_until_drop() {
                     DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
                 }
 

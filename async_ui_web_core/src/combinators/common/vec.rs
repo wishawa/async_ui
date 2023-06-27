@@ -1,7 +1,7 @@
 use super::super::utils::{self, WakerVec};
 use crate::{
     context::{DomContext, DOM_CONTEXT},
-    dropping::UnsetIsDropping,
+    dropping::DetachmentBlocker,
     position::ChildPosition,
 };
 
@@ -45,7 +45,7 @@ where
     awake_list_buffer: Vec<usize>,
     #[pin]
     futures: Vec<Fut>,
-    is_dropping: UnsetIsDropping,
+    detachment_blocker: DetachmentBlocker,
 }
 
 impl<Fut, B> CombinatorVec<Fut, B>
@@ -64,7 +64,7 @@ where
             filled: BitVec::repeat(false, len),
             awake_list_buffer: Vec::new(),
             futures,
-            is_dropping: UnsetIsDropping,
+            detachment_blocker: DetachmentBlocker,
         }
     }
 }
@@ -165,7 +165,7 @@ where
     fn drop(self: Pin<&mut Self>) {
         let this = self.project();
 
-        if !this.is_dropping.set_here() {
+        if !this.detachment_blocker.block_until_drop() {
             DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
         }
 

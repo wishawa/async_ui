@@ -8,7 +8,7 @@ use pin_project::{pin_project, pinned_drop};
 
 use crate::{
     context::{DomContext, NodeGroup, DOM_CONTEXT},
-    dropping::UnsetIsDropping,
+    dropping::DetachmentBlocker,
     position::ChildPosition,
 };
 
@@ -22,7 +22,7 @@ pub struct SiblingNodeFuture<C> {
     child_future: C,
     group: NodeGroup,
     reference: web_sys::Node,
-    drop: UnsetIsDropping,
+    drop: DetachmentBlocker,
 }
 
 impl<C: Future> SiblingNodeFuture<C> {
@@ -31,7 +31,7 @@ impl<C: Future> SiblingNodeFuture<C> {
             child_future,
             group: Default::default(),
             reference: sibling,
-            drop: UnsetIsDropping,
+            drop: DetachmentBlocker,
         }
     }
 }
@@ -55,7 +55,7 @@ impl<C: Future> Future for SiblingNodeFuture<C> {
 impl<C> PinnedDrop for SiblingNodeFuture<C> {
     fn drop(self: Pin<&mut Self>) {
         let this = self.project();
-        if !this.drop.set_here() {
+        if !this.drop.block_until_drop() {
             DOM_CONTEXT.with(|parent: &DomContext| {
                 (DomContext::Sibling {
                     group: this.group,

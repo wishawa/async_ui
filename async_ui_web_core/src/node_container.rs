@@ -8,7 +8,7 @@ use pin_project::{pin_project, pinned_drop};
 
 use crate::{
     context::{DomContext, NodeGroup, DOM_CONTEXT},
-    dropping::UnsetIsDropping,
+    dropping::DetachmentBlocker,
     position::ChildPosition,
 };
 
@@ -21,7 +21,7 @@ pub struct ContainerNodeFuture<C> {
     group: NodeGroup,
     container: web_sys::Node,
     add_self: AddSelfMode,
-    drop: UnsetIsDropping,
+    drop: DetachmentBlocker,
 }
 
 enum AddSelfMode {
@@ -40,7 +40,7 @@ impl<C: Future> ContainerNodeFuture<C> {
             group: Default::default(),
             container: node,
             add_self: AddSelfMode::ShouldAdd,
-            drop: UnsetIsDropping,
+            drop: DetachmentBlocker,
         }
     }
     /// Like `new` but `node` won't be added to the parent (do that manually).
@@ -50,7 +50,7 @@ impl<C: Future> ContainerNodeFuture<C> {
             group: Default::default(),
             container: node,
             add_self: AddSelfMode::ShouldNotAdd,
-            drop: UnsetIsDropping,
+            drop: DetachmentBlocker,
         }
     }
 }
@@ -77,7 +77,7 @@ impl<C: Future> Future for ContainerNodeFuture<C> {
 impl<C> PinnedDrop for ContainerNodeFuture<C> {
     fn drop(self: Pin<&mut Self>) {
         if matches!(self.add_self, AddSelfMode::Added) {
-            if !self.drop.set_here() {
+            if !self.drop.block_until_drop() {
                 DOM_CONTEXT.with(|ctx| {
                     ctx.remove_child(ChildPosition::default());
                 })
