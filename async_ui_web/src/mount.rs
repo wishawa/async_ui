@@ -6,6 +6,16 @@ use wasm_bindgen::UnwrapThrowExt;
 
 use crate::executor::get_executor;
 
+/// Start running the given future, letting it render into the given node.
+///
+/// ```
+/// # let my_app = std::future::pending::<()>();
+/// let mounted_task = mount_at(my_app(), web_sys::window().unwrap().document().unwrap().into());
+/// mounted_task.detach();
+/// ```
+///
+/// The return value is a [Task]. When dropped, it will unmount your app.
+/// To prevent unmounting, call [detach][Task::detach] first.
 #[must_use = "When the returned `Task` is dropped your app unmounts. Call `.detach()` to avoid this."]
 pub fn mount_at<F: Future + 'static>(child_future: F, node: web_sys::Node) -> Task<F::Output> {
     let fut = async_ui_web_core::ContainerNodeFuture::new_root(child_future, node);
@@ -13,6 +23,14 @@ pub fn mount_at<F: Future + 'static>(child_future: F, node: web_sys::Node) -> Ta
     schedule();
     task
 }
+/// Start running the given future, letting it render into the `<body>` of the document.
+///
+/// ```
+/// # let my_app = std::future::pending::<()>();
+/// mount(my_app());
+/// ```
+///
+/// The [mount_at] function provides more options, if you need.
 pub fn mount<F: Future + 'static>(child_future: F) {
     mount_at(
         child_future,

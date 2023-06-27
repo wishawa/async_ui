@@ -1,3 +1,15 @@
+/// A future that does nothing, pending forever.
+///
+/// This is for rendering things without children, for example
+/// ```
+/// # use crate::components::Span;
+/// let _ = async {
+///     let span = Span::new();
+///     span.render(NoChild).await;
+/// };
+/// ```
+///
+/// Functionally, this is no different from what [std::future::pending] provides.
 pub struct NoChild;
 impl std::future::Future for NoChild {
     type Output = ();

@@ -21,6 +21,10 @@ pub use no_child::NoChild;
 pub use virtualized_list::VirtualizedList;
 
 pub mod event_handling {
+    /*!
+    Types used in event handling mechanism.
+    You shouldn't need to interact with this module directly often.
+    */
     pub use async_ui_web_components::events::EventFutureStream;
 }
 
