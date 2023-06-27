@@ -43,7 +43,7 @@ fn strs_to_js_array<'a>(values: impl Iterator<Item = &'a str>) -> Array {
 
 impl ShortcutClassList for web_sys::Element {
     fn add_class(&self, c: &str) {
-        self.class_list().add_1(c).unwrap();
+        self.class_list().add_1(c).unwrap_throw();
     }
     fn add_classes<'a>(&self, c: impl Iterator<Item = &'a str>) {
         self.class_list().add(&strs_to_js_array(c)).unwrap_throw();
