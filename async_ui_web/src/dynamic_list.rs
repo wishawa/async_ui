@@ -1,9 +1,10 @@
 use std::{
+    borrow::Borrow,
     cell::RefCell,
     collections::HashMap,
     future::{pending, poll_fn, Future},
     hash::Hash,
-    pin::pin,
+    pin::Pin,
     task::Poll,
 };
 
@@ -179,7 +180,11 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Returns true if there is one.
     ///
     /// Time complexity: O(1) in Rust/JS code.
-    pub fn contains_key(&self, key: &K) -> bool {
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         self.inner.borrow().items.contains_key(key)
     }
     /// Move the future at the key given in the first argument (`to_move`) so that
@@ -249,18 +254,20 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Race it with some other future if you want to drop it eventually.
     pub async fn render(&self) {
         let real_containing_node = get_containing_node();
-        let mut list_end_marker_fut = pin!(ContainerNodeFuture::new(
-            pending::<()>(),
-            self.list_end_marker.clone()
-        ));
         poll_fn(|cx| {
-            let _ = list_end_marker_fut.as_mut().poll(cx);
+            let mut insert_marker_fut =
+                ContainerNodeFuture::new(pending::<()>(), self.list_start_marker.clone());
+            let _ = Pin::new(&mut insert_marker_fut).poll(cx);
+            real_containing_node
+                .insert_before(&self.list_end_marker, Some(&self.list_start_marker))
+                .unwrap_throw();
+            drop(insert_marker_fut);
+            real_containing_node
+                .insert_before(&self.list_start_marker, Some(&self.list_end_marker))
+                .unwrap_throw();
             Poll::Ready(())
         })
         .await;
-        real_containing_node
-            .insert_before(&self.list_start_marker, Some(&self.list_end_marker))
-            .unwrap_throw();
         let stored_fragment;
         {
             let mut inner = self.inner.borrow_mut();
@@ -277,7 +284,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
                 }
             }
         }
-        let guard = MiniScopeGuard(|| {
+        let _guard = MiniScopeGuard(|| {
             let mut inner = self.inner.borrow_mut();
             let fragment = stored_fragment.clone();
             move_nodes_before(
@@ -288,8 +295,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             );
             inner.containing_node = ContainingNode::Fake(fragment);
         });
-        self.executor.run(list_end_marker_fut).await;
-        let _ = guard;
+        self.executor.run(pending()).await
     }
 }
 
