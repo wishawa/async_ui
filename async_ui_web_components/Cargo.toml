@@ -9,13 +9,13 @@ edition = "2021"
 async_ui_web_core = { path = "../async_ui_web_core/" }
 async_ui_internal_utils = { version = "0.0.1", path = "../async_ui_internal_utils/" }
 
-wasm-bindgen = "0.2.86"
+wasm-bindgen = "0.2.87"
 js-sys = "0.3.64"
 
 smallvec = { version = "1", features = ["union", "const_generics"] }
 
 pin-project = "1.0"
-futures-core = "0.3.25"
+futures-core = "0.3.28"
 futures-lite = "1.12.0"
 
 async-executor = "1.5.0"

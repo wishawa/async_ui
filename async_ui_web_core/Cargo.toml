@@ -12,7 +12,7 @@ scoped-tls-hkt = "0.1.2"
 smallvec = { version = "1", features = ["union", "const_generics"] }
 bitvec = { version = "1.0.1", default-features = false, features = ["alloc"] }
 
-wasm-bindgen = "0.2.86"
+wasm-bindgen = "0.2.87"
 js-sys = "0.3.64"
 parking_lot = { version = "0.11", features = ["wasm-bindgen"] }
 
