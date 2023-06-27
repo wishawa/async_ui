@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashSet, future::Future, hash::Hash};
+use std::{borrow::Borrow, cell::RefCell, collections::HashSet, future::Future, hash::Hash};
 
 use crate::DynamicList;
 
@@ -59,5 +59,12 @@ where
             self.dl.remove(key);
         }
         inner.prev_keys_list = new_keys;
+    }
+    pub fn contains_key<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.dl.contains_key(key)
     }
 }
