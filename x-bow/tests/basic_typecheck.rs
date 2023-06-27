@@ -127,3 +127,8 @@ fn guarantee() {
     store.borrow();
     // store.Var3_0.field.borrow();
 }
+
+#[test]
+fn tuple() {
+    let store = create_store((3,));
+}
