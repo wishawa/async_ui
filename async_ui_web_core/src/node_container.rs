@@ -7,7 +7,9 @@ use std::{
 use pin_project::{pin_project, pinned_drop};
 
 use crate::{
-    dropping::UnsetIsDropping, position::ChildPosition, DomContext, NodeGroup, DOM_CONTEXT,
+    context::{DomContext, NodeGroup, DOM_CONTEXT},
+    dropping::UnsetIsDropping,
+    position::ChildPosition,
 };
 
 /// Future wrapper where anything rendered in its child will appear as child of the node.

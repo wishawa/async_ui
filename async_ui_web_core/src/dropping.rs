@@ -24,7 +24,7 @@ thread_local! (
 /// Rust's drop glue drops struct fields in order of declaration,
 /// so as the last field, we put a struct that will unset the thread local
 /// when dropped.
-pub(crate) struct UnsetIsDropping;
+pub struct UnsetIsDropping;
 
 impl UnsetIsDropping {
     /// Set the thread local to a non-null value if not already set.

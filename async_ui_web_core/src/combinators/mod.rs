@@ -21,7 +21,6 @@ pub fn race_ok<F: race_ok::RaceOk>(f: F) -> F::Future {
 
 #[cfg(test)]
 fn block_for_testing<F: core::future::Future>(f: F) -> F::Output {
-    crate::DOM_CONTEXT.set(&crate::DomContext::Null, || {
-        futures_lite::future::block_on(f)
-    })
+    use crate::context::{DomContext, DOM_CONTEXT};
+    DOM_CONTEXT.set(&DomContext::Null, || futures_lite::future::block_on(f))
 }

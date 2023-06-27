@@ -1,5 +1,9 @@
 use super::super::utils::WakerArray;
-use crate::{dropping::UnsetIsDropping, position::ChildPosition, DomContext, DOM_CONTEXT};
+use crate::{
+    context::{DomContext, DOM_CONTEXT},
+    dropping::UnsetIsDropping,
+    position::ChildPosition,
+};
 
 use core::fmt::{self, Debug};
 use core::future::Future;
