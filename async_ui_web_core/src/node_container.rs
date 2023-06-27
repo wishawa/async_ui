@@ -74,10 +74,19 @@ impl<C: Future> Future for ContainerNodeFuture<C> {
 #[pinned_drop]
 impl<C> PinnedDrop for ContainerNodeFuture<C> {
     fn drop(self: Pin<&mut Self>) {
-        if !self.drop.set_here() {
-            DOM_CONTEXT.with(|ctx| {
-                ctx.remove_child(ChildPosition::default());
-            })
+        if matches!(self.add_self, AddSelfMode::Added) {
+            if !self.drop.set_here() {
+                DOM_CONTEXT.with(|ctx| {
+                    ctx.remove_child(ChildPosition::default());
+                })
+            }
+        } else {
+            let this = self.project();
+            DomContext::Container {
+                group: this.group,
+                container: this.container,
+            }
+            .remove_child(ChildPosition::default());
         }
     }
 }
