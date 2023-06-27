@@ -9,7 +9,9 @@ use std::{
 };
 
 use async_executor::{LocalExecutor, Task};
-use async_ui_web_core::{get_containing_node, ContainerNodeFuture, SiblingNodeFuture};
+use async_ui_web_core::{
+    get_containing_node, ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture,
+};
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::{Comment, DocumentFragment};
 
@@ -51,11 +53,12 @@ join((
 # };
 ```
 */
-pub struct DynamicList<'c, K: Eq + Hash, F: Future> {
+pub struct DynamicList<'c, K: Eq + Hash, F: Future + 'c> {
     inner: RefCell<DynamicListInner<K, F>>,
     executor: LocalExecutor<'c>,
     list_end_marker: web_sys::Node,
     list_start_marker: web_sys::Node,
+    detachment_blocker: DetachmentBlocker,
 }
 
 struct DynamicListInner<K: Eq + Hash, F: Future> {
@@ -98,6 +101,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             executor: LocalExecutor::new(),
             list_end_marker,
             list_start_marker,
+            detachment_blocker: DetachmentBlocker,
         }
     }
     /// Insert a future to render in the list.
@@ -311,6 +315,11 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     }
 }
 
+impl<'c, K: Eq + Hash, F: Future> Drop for DynamicList<'c, K, F> {
+    fn drop(&mut self) {
+        self.detachment_blocker.block_until_drop();
+    }
+}
 /// Move `start_marker`, `end_marker`, and eveything between them
 /// into `container` at location before `after`.
 fn move_nodes_before(
