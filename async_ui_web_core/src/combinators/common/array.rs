@@ -208,14 +208,15 @@ where
     fn drop(self: Pin<&mut Self>) {
         let this = self.project();
 
+        if !this.is_dropping.set_here() {
+            DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
+        }
+
         for (&filled, output) in this.filled.iter().zip(this.items.iter_mut()) {
             if filled {
                 // SAFETY: filled is only set to true for initialized items.
                 unsafe { output.assume_init_drop() };
             }
-        }
-        if !this.is_dropping.set_here() {
-            DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
         }
     }
 }

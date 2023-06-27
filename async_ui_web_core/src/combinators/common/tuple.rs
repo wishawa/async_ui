@@ -225,6 +225,11 @@ macro_rules! impl_common_tuple {
         {
             fn drop(self: Pin<&mut Self>) {
                 let this = self.project();
+
+                if !this.is_dropping.set_here() {
+                    DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
+                }
+
                 $(
                     if this.filled[$idx] {
                         // SAFETY: we've just filtered down to *only* the initialized values.
@@ -232,9 +237,6 @@ macro_rules! impl_common_tuple {
                         unsafe { this.items.$idx.assume_init_drop() };
                     }
                 )+
-                if !this.is_dropping.set_here() {
-                    DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
-                }
             }
         }
 	};
