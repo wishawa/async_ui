@@ -29,6 +29,8 @@ version = "0.3.64"
 features = [
 	'DocumentFragment',
 	'DomRect',
-	'ResizeObserver',
+	'IntersectionObserver',
+	'IntersectionObserverInit',
+	'IntersectionObserverEntry',
 	'console'
 ]
