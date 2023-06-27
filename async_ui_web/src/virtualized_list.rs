@@ -12,7 +12,7 @@ use futures_lite::{Future, StreamExt};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue, UnwrapThrowExt};
 use web_sys::{Element, HtmlElement, IntersectionObserver, IntersectionObserverInit};
 
-use crate::{utils::MiniScopeGuard, DynamicList};
+use crate::DynamicList;
 
 pub struct VirtualizedList<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> {
     list: DynamicList<'c, usize, Fut>,
@@ -78,7 +78,7 @@ impl<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> VirtualizedList<'c, Fut
 
         let [spf_render, spb_render] = [spf, spb]
             .map(|spacer| ContainerNodeFuture::new(pending::<()>(), spacer.clone().into()));
-        let guard = MiniScopeGuard(|| {
+        let _guard = scopeguard::guard((), |_| {
             self.root
                 .remove_event_listener_with_callback(
                     "scroll",
@@ -106,7 +106,6 @@ impl<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> VirtualizedList<'c, Fut
             }
         }))
         .await;
-        let _ = guard;
     }
     fn update_visible(&self) {
         fn top_bottom(rect: &web_sys::DomRect) -> (f64, f64) {

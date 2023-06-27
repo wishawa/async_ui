@@ -8,7 +8,6 @@ use std::{
     task::Poll,
 };
 
-use crate::utils::MiniScopeGuard;
 use async_executor::{LocalExecutor, Task};
 use async_ui_web_core::{get_containing_node, ContainerNodeFuture, SiblingNodeFuture};
 use wasm_bindgen::UnwrapThrowExt;
@@ -284,7 +283,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
                 }
             }
         }
-        let _guard = MiniScopeGuard(|| {
+        let _guard = scopeguard::guard((), |_| {
             let mut inner = self.inner.borrow_mut();
             let fragment = stored_fragment.clone();
             move_nodes_before(
