@@ -14,9 +14,37 @@ use web_sys::{Element, HtmlElement, IntersectionObserver, IntersectionObserverIn
 
 use crate::DynamicList;
 
-pub struct VirtualizedList<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> {
+/**
+For displaying large lists.
+
+Instead of rendering all items at once, this list renders only the part
+that is visible on the screen. This allows very large lists to be displayed.
+
+```
+# use async_ui_web::{components::Div, prelude_traits::*, VirtualizedList};
+# async fn app() {
+let root = Div::new();
+let list = VirtualizedList::new(
+    &root.element,
+    Div::new().element.into(),
+    Div::new().element.into(),
+    |index| Div::new().render(index.to_string().render()).await
+);
+list.set_num_items(100000);
+root.render(list.render()).await;
+# }
+```
+
+Implementation is still quite incomplete.
+* Only fixed-height items are supported currently.
+* Lots of configuration options are missing.
+* LTR/RTL?
+* Let me know what else is missing. Create a GitHub issue.
+
+*/
+pub struct VirtualizedList<'c, Fut: Future + 'c, Renderer: FnMut(usize) -> Fut> {
     list: DynamicList<'c, usize, Fut>,
-    state: RefCell<State<Updater>>,
+    state: RefCell<State<Renderer>>,
     spacers: (HtmlElement, HtmlElement),
     direction: Direction,
     root: &'c HtmlElement,
@@ -25,7 +53,7 @@ pub struct VirtualizedList<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> {
 }
 
 struct State<Updater> {
-    updater: Updater,
+    renderer: Updater,
     range: Range<usize>,
     num_items: usize,
 }
@@ -36,15 +64,43 @@ pub enum Direction {
     Horizontal,
 }
 
-impl<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> VirtualizedList<'c, Fut, Updater> {
+impl<'c, Fut: Future + 'c, Renderer: FnMut(usize) -> Fut> VirtualizedList<'c, Fut, Renderer> {
+    /**
+    Create a new list.
+
+    Arguments:
+    *   `root`: the element in which this list will be scrolling
+        (the element where the scrollbar appears; for page scrolling, this is the `<html>`).
+        [HtmlElement]s are is usually obtained from accessing the `element` field
+        in elements created by Async UI. For example, [Div][async_ui_web::components::Div]
+        exposes its [HtmlElement] in the `element` field of the `Div` struct.
+
+        You are the one responsible for rendering the root, and rendering
+        this VirtualizedList inside the root.
+
+    *   `spacer_front`: an element to render as the top or left scroll spacer.
+        The scroll spacer is what is displayed in place of items that are
+        off the viewport (and thus not rendered). Usually, you will simply use
+        `<div>`s. However, if you're rendering a table, you might want to use
+        `<tr>`.
+
+        You should *not* render the spacers in addition to the list.
+        Give the spacers to the list, the list will render them for you.
+
+    *   `spacer_back`: like `spacer_front`, but for bottom or right.
+
+    *   `renderer`: this is where you actually render things. This argument
+        must be a function/closure that takes a `usize` index, and return
+        the future that should appear at that position in the list.
+    */
     pub fn new(
         root: &'c HtmlElement,
         spacer_front: HtmlElement,
         spacer_back: HtmlElement,
-        updater: Updater,
+        renderer: Renderer,
     ) -> Self {
         let state = State {
-            updater,
+            renderer,
             range: 0..0,
             num_items: 0,
         };
@@ -63,9 +119,13 @@ impl<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> VirtualizedList<'c, Fut
             }),
         }
     }
+    /// Should the list be for vertical or horizontal scrolling?
+    ///
+    /// Default is vertical.
     pub fn set_direction(&mut self, direction: Direction) {
         self.direction = direction;
     }
+    /// How many items does the list have?
     pub fn set_num_items(&self, num: usize) {
         self.state.borrow_mut().num_items = num;
         self.update_visible();
@@ -108,15 +168,18 @@ impl<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> VirtualizedList<'c, Fut
         .await;
     }
     fn update_visible(&self) {
-        fn top_bottom(rect: &web_sys::DomRect) -> (f64, f64) {
-            (rect.top(), rect.bottom())
+        fn top_bottom(rect: &web_sys::DomRect, direction: Direction) -> (f64, f64) {
+            match direction {
+                Direction::Vertical => (rect.top(), rect.bottom()),
+                Direction::Horizontal => (rect.left(), rect.right()),
+            }
         }
         let mut state = self.state.borrow_mut();
 
         let (spf, spb) = &self.spacers;
-        let rect_f = top_bottom(&spf.get_bounding_client_rect());
-        let rect_b = top_bottom(&spb.get_bounding_client_rect());
-        let rect_root = top_bottom(&self.root.get_bounding_client_rect());
+        let rect_f = top_bottom(&spf.get_bounding_client_rect(), self.direction);
+        let rect_b = top_bottom(&spb.get_bounding_client_rect(), self.direction);
+        let rect_root = top_bottom(&self.root.get_bounding_client_rect(), self.direction);
         let root_size = rect_root.1 - rect_root.0;
         let tres_size = root_size * 1.25;
         let pad_size = root_size * 2.0;
@@ -156,10 +219,10 @@ impl<'c, Fut: Future + 'c, Updater: FnMut(usize) -> Fut> VirtualizedList<'c, Fut
             .then_some(state.range.start);
         for to_add in new_start..new_end.min(state.range.start) {
             self.list
-                .insert(to_add, (state.updater)(to_add), remaining.as_ref());
+                .insert(to_add, (state.renderer)(to_add), remaining.as_ref());
         }
         for to_add in new_start.max(state.range.end)..new_end {
-            self.list.insert(to_add, (state.updater)(to_add), None);
+            self.list.insert(to_add, (state.renderer)(to_add), None);
         }
         state.range = new_start..new_end;
     }

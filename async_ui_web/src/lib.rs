@@ -34,14 +34,10 @@ pub mod event_traits {
     */
     pub use async_ui_web_components::events::{EmitEditEvent, EmitElementEvent, EmitEvent};
 }
+
 pub mod shortcut_traits {
     /*!
-    Convenience traits.
-    ```
-    # use super::components::Button;
-    let b = Button::new();
-
-    ```
+    Convenience traits. Includes traits for manipulating element classes and rendering str.
      */
     pub use super::shortcuts::{ShortcutClassList, ShortcutClassListBuilder, ShortcutRenderStr};
 }
@@ -51,7 +47,6 @@ pub mod prelude_traits {
     Includes traits from [event_traits][super::event_traits]
     and [shortcut_traits][super::shortcut_traits].
     ```
-    # use crate as async_ui_web;
     use async_ui_web::prelude_traits::*;
     ```
      */

@@ -1,14 +1,20 @@
 //! For handling unmounting HTML elements.
 //!
 //! When a [ContainerNodeFuture][crate::ContainerNodeFuture] is dropped,
-//! it removes its HTML element from its parent HTML element.
-//! But then the drop glue drops its descendant futures.
-//! The nodes in these descendants are no longer in the HTML document
+//! it removes its HTML node from the parent HTML node.
+//! If we let things happen naturally, the drop glue would then call the drop
+//! impl of the descendant futures, causing them to detach their HTML nodes.
+//! However, the HTML nodes in these descendants are no longer in the HTML document
 //! (because their ancestor has been removed), so we want to just ignore them.
+//! The mechanism in this module let futures know whether or not their ancestor
+//! have been removed.
+//!
+//! Keep in mind that this whole mechanism is just an optimization;
+//! things would still work perfectly fine without it.
 
 use std::cell::Cell;
 
-// To acheive the above, we have a thread local that takes a non-null value when
+// We have a thread local that takes a non-null value when
 // some dropping is going on and the ancestor has already been removed.
 thread_local! (
     static IS_DROPPING: Cell<*const UnsetIsDropping> = Cell::new(std::ptr::null())

@@ -25,10 +25,11 @@ For rendering many futures, and adding/removing them dynamically.
 Futures (and the stuff they render) can be
 inserted, removed, or reordered within the list.
 
-Only use this if you need low level control. [KeyedList][super::KeyedList]
+Only use this if you need low level control. [DiffedList][super::DiffedList]
 and [VirtualizedList][super::VirtualizedList] are easier to use and more suitable.
 
 ```rust
+# use async_ui_web::DynamicList;
 # use async_ui_web::components::Button;
 # use async_ui_web::join;
 # use async_ui_web::prelude_traits::*;
@@ -38,7 +39,7 @@ let add_item = Button::new();
 let mut item_key_counter = 0;
 join((
     list.render(),
-    add_item.render(),
+    add_item.render("add an item".render()),
     async {
         loop {
             add_item.until_click().await;
@@ -158,7 +159,11 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// (i.e. returns true iff something was removed).
     ///
     /// Time complexity: O(1) in Rust/JS code.
-    pub fn remove(&self, key: &K) -> bool {
+    pub fn remove<Q>(&self, key: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let mut inner = self.inner.borrow_mut();
         if let Some(Stored {
             start_marker,
@@ -197,7 +202,11 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Time complexity: O(number of HTML nodes moved) in Rust/JS code.
     /// Unless you're doing something weird like rendering a list as a direct child of a list,
     /// the number of HTML nodes will likely be O(1).
-    pub fn move_before(&self, to_move: &K, before: Option<&K>) {
+    pub fn move_before<Q>(&self, to_move: &Q, before: Option<&Q>)
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let inner = self.inner.borrow();
         let after = before
             .map(|k| &inner.items.get(k).unwrap().start_marker)
@@ -218,7 +227,11 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Time complexity: O(number of HTML nodes moved) in Rust/JS code.
     /// Unless you're doing something weird like rendering a list as a direct child of a list,
     /// the number of HTML nodes will likely be O(1).
-    pub fn swap(&self, key_1: &K, key_2: &K) {
+    pub fn swap<Q>(&self, key_1: &Q, key_2: &Q)
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         let inner = self.inner.borrow();
         let item_1 = inner.items.get(key_1).unwrap();
         let item_2 = inner.items.get(key_2).unwrap();
@@ -241,9 +254,9 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
         );
     }
     #[doc(hidden)]
-    pub fn order<'k>(&self, _keys: impl IntoIterator<Item = &'k K>)
+    pub fn order<'t>(&self, _keys: impl IntoIterator<Item = &'t K>)
     where
-        K: 'k,
+        K: 't,
     {
         todo!()
     }
@@ -298,6 +311,8 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     }
 }
 
+/// Move `start_marker`, `end_marker`, and eveything between them
+/// into `container` at location before `after`.
 fn move_nodes_before(
     container: &web_sys::Node,
     start_marker: &web_sys::Node,

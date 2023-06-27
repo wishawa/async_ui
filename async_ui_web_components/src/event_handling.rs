@@ -60,7 +60,7 @@ impl<E: JsCast> EventFutureStream<E> {
     /// If not specified, defaults to false.
     ///
     /// See [MDN documentation on `addEventListener`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener).
-    /// See [Event::prevent_default].
+    /// See [prevent_default][web_sys::Event::prevent_default].
     ///
     /// This needs to be set *before* you first poll the stream.
     pub fn set_passive(&mut self, passive: bool) {

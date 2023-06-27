@@ -7,6 +7,8 @@ thread_local! {
     static EXECUTOR: Cell<Option<&'static LocalExecutor<'static>>> = Cell::new(None);
 }
 
+/// Get the executor that is driving the framework.
+/// Use this executor to spawn your own tasks if you want.
 pub fn get_executor() -> &'static LocalExecutor<'static> {
     EXECUTOR.with(|cell| {
         if let Some(exe) = cell.get() {

@@ -9,9 +9,12 @@ use crate::executor::get_executor;
 /// Start running the given future, letting it render into the given node.
 ///
 /// ```
-/// # let my_app = std::future::pending::<()>();
+/// # use async_ui_web::mount_at;
+/// # let my_app = || std::future::pending::<()>();
+/// # let _ = || {
 /// let mounted_task = mount_at(my_app(), web_sys::window().unwrap().document().unwrap().into());
 /// mounted_task.detach();
+/// # };
 /// ```
 ///
 /// The return value is a [Task]. When dropped, it will unmount your app.
@@ -26,8 +29,11 @@ pub fn mount_at<F: Future + 'static>(child_future: F, node: web_sys::Node) -> Ta
 /// Start running the given future, letting it render into the `<body>` of the document.
 ///
 /// ```
-/// # let my_app = std::future::pending::<()>();
+/// # use async_ui_web::mount;
+/// # let my_app = || std::future::pending::<()>();
+/// # let _ = || {
 /// mount(my_app());
+/// # };
 /// ```
 ///
 /// The [mount_at] function provides more options, if you need.

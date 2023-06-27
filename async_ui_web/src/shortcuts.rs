@@ -71,10 +71,10 @@ pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
     /// This is for writing the UI "declaratively".
     /// ```
     /// # let _ = async {
-    /// # use crate::components::Div;
+    /// # use async_ui_web::{components::Div, prelude_traits::*};
     /// # let children = std::future::pending::<()>();
     /// Div::new().with_class("my-wrapper").render(children).await;
-    /// # }
+    /// # };
     /// ```
     fn with_class(&self, c: &str) -> &Self {
         self.as_ref().add_class(c);
@@ -85,10 +85,10 @@ pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
     /// This is for writing the UI "declaratively".
     /// ```
     /// # let _ = async {
-    /// # use crate::components::Div;
+    /// # use async_ui_web::{components::Div, prelude_traits::*};
     /// # let children = std::future::pending::<()>();
     /// Div::new().with_classes(["my-wrapper", "flex-vertical"]).render(children).await;
-    /// # }
+    /// # };
     /// ```
     fn with_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) -> &Self {
         self.as_ref().add_classes(c.into_iter());
