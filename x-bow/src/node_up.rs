@@ -39,8 +39,8 @@ impl<'u, M: Mapper> NodeUpTrait for NodeUp<'u, M> {
     type Data = M::Out;
 
     fn invalidate_up(&self) {
-        self.parent.get_listener().down().increment_version();
         self.parent.invalidate_up();
+        self.parent.get_listener().down().increment_version();
     }
 
     fn up_borrow<'b>(&'b self) -> Option<Ref<'b, Self::Data>> {

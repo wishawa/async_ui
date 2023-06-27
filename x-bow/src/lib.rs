@@ -6,6 +6,12 @@ This crate provides a way to track fine-grained change in Rust structs and enums
 ## Quick Example
 
 ```rust
+# use x_bow::{Trackable, Tracked, TrackedGuaranteed, create_store};
+# #[derive(Trackable)]
+# struct MyStruct {
+#   field_1: u32,
+#   field_2: &'static str
+# }
 # let _ = async {
 let data = MyStruct {
     field_1: 15,
@@ -50,7 +56,8 @@ To choose what kind of tracking you want for each field put
 The attribute can also be put on the struct/enum declaration itself.
 In that case it applies to every field by default and can be overridden for each.
 
-```rust
+```
+# use x_bow::{Trackable, Tracked, create_store};
 #[derive(Trackable)]
 struct MyStruct {
     #[track(deep)]
@@ -66,38 +73,33 @@ let store = create_store(MyStruct {
     }
 });
 
+# let _ = async {
 // This works regardless of deep or shallow tracking on `MyStruct`
 store.my_field.until_change().await;
 
 // This requires deep tracking on `MyStruct`
 store.my_field.other_field.until_change().await;
+# };
 ```
 
 ### Projecting into Enums
 
 You can ask to borrow certain variants of an enum. For example,
 ```rust
-#[derive(Trackable)]
-enum MyEnum<T> {
-    Variant1(i32),
-    Variant2 {
-        field_1: String,
-        field_2: T
-    },
-}
-let data = Some(123);
+# use x_bow::{Tracked, TrackedGuaranteed, create_store};
+let data: Option<i32> = Some(123);
 let store = create_store(data);
 if let Some(mut x) = store.Some_0.borrow_opt_mut() {
     *x += 1;
 };
-assert_eq!(*store.borrow_opt(), Some(124));
+assert_eq!(*store.borrow(), Some(124));
 ```
 You have to use `borrow_opt` and `borrow_opt_mut`, which will only return
 `Some` if the enum is in the variant you asked for.
 
 ### Listening for Changes
 
-### *Inside*, *Here*, and *Outside* Changes
+#### *Inside*, *Here*, and *Outside* Changes
 
 Think of your data as a tree; the full data is the root node;
 each field in that struct is a child node, on and on.
@@ -125,12 +127,35 @@ Changes are fired when a mutable borrow is taken at a node in the tree.
 * *Outside* changes are fired for all descendants of the mutably borrowed node.
 * *Inside* changes are fired for all ancestors of the mutably borrowed node.
 
-For example, if `field_1: Vec<Struct2>` in the diagram above was borrowed mutably...
+For example, if `field_1: Vec<Struct2>` in the diagram above was borrowed mutably
+(`store.root.field_1.borrow_mut();`)...
 * *Here* change would fire for `field_1: Vec<Struct2>`.
 * *Inside* change would fire for the ancestors - the `root: Struct1` node.
 * *Outside* change would fire for the descendants
 (`0: Struct2`, `1: Struct2`, `2: Struct2`, `3: Struct2`).
 
+### Reading and Modifying Data
+
+As you've already seen in the past example codes, data can be read and modified
+through the borrow methods
+
+When we can guarantee that the piece of data we want to read/modify exists,
+we use the direct borrow methods
+* [borrow][TrackedGuaranteed::borrow]
+* [borrow_mut][TrackedGuaranteed::borrow_mut]
+These methods require that the data is
+* not inside an enum variant (the enum could be in a different variant!)
+* not inside a Vec (the vector might not have the index we ask for)
+* not inside a HashMap (the data at the key we want might not be in the map)
+
+When the conditions are not satisfied, we need to use the optional methods
+* [borrow_opt][Tracked::borrow_opt]
+* [borrow_opt_mut][Tracked::borrow_opt_mut]
+
+If you want to control the change signals fired from your `borrow_mut` calls,
+use
+* [borrow_mut_custom][Tracked::borrow_mut_custom]
+* [borrow_opt_mut_custom][Tracked::borrow_mut_custom]
 
 
 */

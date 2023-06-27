@@ -20,14 +20,19 @@ pub trait Tracked<'u, T> {
     ) -> Option<RefMut<'b, T>>
     where
         'u: 'b;
-    fn until_change_full<'a>(&'a self, outside: bool, here: bool, inside: bool) -> UntilChange<'a>
+    fn until_change_custom<'a>(
+        &'a self,
+        outside: bool,
+        here: bool,
+        inside: bool,
+    ) -> UntilChange<'a>
     where
         'u: 'a;
     fn until_change<'a>(&'a self) -> UntilChange<'a>
     where
         'u: 'a,
     {
-        self.until_change_full(true, true, false)
+        self.until_change_custom(true, true, false)
     }
 }
 
@@ -98,7 +103,7 @@ where
         b
     }
 
-    fn until_change_full<'a>(&'a self, inside: bool, here: bool, outside: bool) -> UntilChange<'a>
+    fn until_change_custom<'a>(&'a self, inside: bool, here: bool, outside: bool) -> UntilChange<'a>
     where
         'u: 'a,
     {
@@ -112,5 +117,10 @@ where
 {
 }
 
+/// An x-bow store, or a portion of it.
+/// The `'store` lifetime argument is the lifetime of data in the store.
+/// The `Data` type argument is the type of the data itself.
+/// The `GUARANTEED` const boolean argument indicates whether or not the data always exist
+/// (whether or not you need to use `borrow_opt()`/`borrow_opt_mut()`).
 pub type Store<'store, Data, const GUARANTEED: bool> =
     <Data as crate::trackable::Trackable>::NodeDown<'store, GUARANTEED>;
