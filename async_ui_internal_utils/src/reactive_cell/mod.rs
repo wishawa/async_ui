@@ -1,7 +1,11 @@
 mod borrow_mut;
 mod for_each;
 mod until_change;
-use std::{cell::RefCell, fmt::Debug, task::Waker};
+use std::{
+    cell::{BorrowError, BorrowMutError, Ref, RefCell},
+    fmt::Debug,
+    task::Waker,
+};
 
 use smallvec::SmallVec;
 
@@ -55,7 +59,6 @@ struct Inner<T> {
     version: u64,
 }
 
-
 impl<T> ReactiveCell<T> {
     pub fn new(data: T) -> Self {
         let inner = RefCell::new(Inner {
@@ -65,12 +68,20 @@ impl<T> ReactiveCell<T> {
         });
         Self { inner }
     }
-    pub fn borrow(&'_ self) -> std::cell::Ref<'_, T> {
-        std::cell::Ref::map(self.inner.borrow(), |r| &r.data)
+    pub fn borrow(&'_ self) -> Ref<'_, T> {
+        Ref::map(self.inner.borrow(), |r| &r.data)
     }
     pub fn borrow_mut(&'_ self) -> ReactiveCellBorrowMut<'_, T> {
         ReactiveCellBorrowMut {
             reference: self.inner.borrow_mut(),
         }
+    }
+    pub fn try_borrow(&'_ self) -> Result<Ref<'_, T>, BorrowError> {
+        Ok(Ref::map(self.inner.try_borrow()?, |r| &r.data))
+    }
+    pub fn try_borrow_mut(&'_ self) -> Result<ReactiveCellBorrowMut<'_, T>, BorrowMutError> {
+        Ok(ReactiveCellBorrowMut {
+            reference: self.inner.try_borrow_mut()?,
+        })
     }
 }
