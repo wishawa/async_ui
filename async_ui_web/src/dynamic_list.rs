@@ -276,10 +276,10 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
                 ContainerNodeFuture::new(pending::<()>(), self.list_start_marker.clone());
             let _ = Pin::new(&mut insert_marker_fut).poll(&mut context);
             real_containing_node = self.list_start_marker.parent_node().unwrap_throw();
-            drop(insert_marker_fut);
             real_containing_node
                 .insert_before(&self.list_end_marker, Some(&self.list_start_marker))
                 .unwrap_throw();
+            drop(insert_marker_fut);
             real_containing_node
                 .insert_before(&self.list_start_marker, Some(&self.list_end_marker))
                 .unwrap_throw();
