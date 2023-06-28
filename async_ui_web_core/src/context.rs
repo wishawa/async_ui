@@ -28,10 +28,6 @@ scoped_tls_hkt::scoped_thread_local!(
 
 pub(crate) type NodeGroup = RefCell<BTreeMap<ChildPosition, web_sys::Node>>;
 
-pub fn get_containing_node() -> web_sys::Node {
-    DOM_CONTEXT.with(|ctx: &DomContext| ctx.get_containing_node().to_owned())
-}
-
 impl<'p> DomContext<'p> {
     pub fn get_containing_node(&self) -> &web_sys::Node {
         match self {

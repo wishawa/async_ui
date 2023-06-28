@@ -2,16 +2,13 @@ use std::{
     borrow::Borrow,
     cell::RefCell,
     collections::HashMap,
-    future::{pending, poll_fn, Future},
+    future::{pending, Future},
     hash::Hash,
     pin::Pin,
-    task::Poll,
 };
 
 use async_executor::{LocalExecutor, Task};
-use async_ui_web_core::{
-    get_containing_node, ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture,
-};
+use async_ui_web_core::{ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture};
 use wasm_bindgen::UnwrapThrowExt;
 use web_sys::{Comment, DocumentFragment};
 
@@ -269,21 +266,24 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// This future never completes.
     /// Race it with some other future if you want to drop it eventually.
     pub async fn render(&self) {
-        let real_containing_node = get_containing_node();
-        poll_fn(|cx| {
+        let real_containing_node;
+        {
+            use async_ui_internal_utils::dummy_waker::dummy_waker;
+            use std::task::Context;
+            let waker = dummy_waker();
+            let mut context = Context::from_waker(&waker);
             let mut insert_marker_fut =
                 ContainerNodeFuture::new(pending::<()>(), self.list_start_marker.clone());
-            let _ = Pin::new(&mut insert_marker_fut).poll(cx);
+            let _ = Pin::new(&mut insert_marker_fut).poll(&mut context);
+            real_containing_node = self.list_start_marker.parent_node().unwrap_throw();
+            drop(insert_marker_fut);
             real_containing_node
                 .insert_before(&self.list_end_marker, Some(&self.list_start_marker))
                 .unwrap_throw();
-            drop(insert_marker_fut);
             real_containing_node
                 .insert_before(&self.list_start_marker, Some(&self.list_end_marker))
                 .unwrap_throw();
-            Poll::Ready(())
-        })
-        .await;
+        }
         let stored_fragment;
         {
             let mut inner = self.inner.borrow_mut();
