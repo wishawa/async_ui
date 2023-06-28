@@ -28,7 +28,7 @@ let list = VirtualizedList::new(
     &root.element,
     Div::new().element.into(),
     Div::new().element.into(),
-    |index| Div::new().render(index.to_string().render()).await
+    |index| Div::new().render(index.to_string().render())
 );
 list.set_num_items(100000);
 root.render(list.render()).await;
