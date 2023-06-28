@@ -29,6 +29,8 @@ scoped_tls_hkt::scoped_thread_local!(
 pub(crate) type NodeGroup = RefCell<BTreeMap<ChildPosition, web_sys::Node>>;
 
 impl<'p> DomContext<'p> {
+    /// Get the HTML node where the current code would render in.
+    /// This is used by [SiblingNodeFuture][crate::SiblingNodeFuture] to decide where to add children.
     pub fn get_containing_node(&self) -> &web_sys::Node {
         match self {
             DomContext::Container { container, .. } => container,
@@ -39,7 +41,7 @@ impl<'p> DomContext<'p> {
             DomContext::Null => unreachable!(),
         }
     }
-    /// Add a new node `new_child` ordered relative to existing siblings according to `position`.
+    /// Add a new node `new_child` ordered relative to existing siblings according to the given [ChildPosition].
     pub fn add_child(&self, mut position: ChildPosition, new_child: web_sys::Node) {
         match self {
             DomContext::Container { group, container } => {
@@ -75,7 +77,7 @@ impl<'p> DomContext<'p> {
             DomContext::Null => {}
         }
     }
-    /// Remove the child at `position` and all its descendants.
+    /// Remove the child at the given [ChildPosition] and all its descendants.
     pub fn remove_child(&self, mut position: ChildPosition) {
         match self {
             DomContext::Container { group, container } => {

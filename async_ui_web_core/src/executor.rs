@@ -1,6 +1,7 @@
-/*! The executor responsible for schduling and running futures. Not relevant to users.
- *
- */
+//! A mini executor responsible for running the root future.
+//! The `async_ui_web` uses this to drive the actual executor that runs the app.
+//! If you want to spawn tasks, please use the executor from `async_ui_web`.
+
 use std::{
     cell::{Cell, RefCell},
     future::Future,

@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Future wrapper where anything rendered in its child will appear as a sibling of a node.
-/// This is only used for making insertable lists.
+/// This is only used for making the `DynamicList` in `async_ui_web`.
 ///
 /// Everything rendered will appear **before** the reference node.
 #[pin_project(PinnedDrop)]

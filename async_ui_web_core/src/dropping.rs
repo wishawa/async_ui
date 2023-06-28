@@ -11,9 +11,12 @@
 
 use std::cell::Cell;
 
-// We have a thread local that takes a non-null value when
-// some dropping is going on and the ancestor has already been removed.
 thread_local! (
+    /// We have a thread local that takes a non-null value when
+    /// some dropping is going on and the ancestor has already been removed.
+    ///
+    /// The value is the address of the [DetachmentBlocker] that "owns" the blocking.
+    /// That is the blocker whose death will unblock this blocking.
     static IS_DROPPING: Cell<*const DetachmentBlocker> = Cell::new(std::ptr::null())
 );
 

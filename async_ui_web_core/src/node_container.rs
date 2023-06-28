@@ -24,6 +24,7 @@ pub struct ContainerNodeFuture<C> {
     drop: DetachmentBlocker,
 }
 
+/// Should the node be added to the parent?
 enum AddSelfMode {
     ShouldNotAdd,
     ShouldAdd,
@@ -77,12 +78,14 @@ impl<C: Future> Future for ContainerNodeFuture<C> {
 impl<C> PinnedDrop for ContainerNodeFuture<C> {
     fn drop(self: Pin<&mut Self>) {
         if matches!(self.add_self, AddSelfMode::Added) {
+            // we added our node, we should remove it
             if !self.drop.block_until_drop() {
                 DOM_CONTEXT.with(|ctx| {
                     ctx.remove_child(ChildPosition::default());
                 })
             }
         } else {
+            // we didn't add our node
             let this = self.project();
             DomContext::Container {
                 group: this.group,
