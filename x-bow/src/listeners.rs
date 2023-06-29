@@ -30,11 +30,10 @@ impl<'a> ListenerGroup<'a> {
     }
     pub fn add_waker(&mut self, new_waker: &Waker, old_index: Option<usize>) -> usize {
         if let Some(idx) = old_index {
-            if let Some(exisiting_waker) = self.wakers.get_mut(idx) {
-                if !exisiting_waker.will_wake(new_waker) {
-                    *exisiting_waker = new_waker.to_owned();
+            if let Some(exisiting_waker) = self.wakers.get(idx) {
+                if exisiting_waker.will_wake(new_waker) {
+                    return idx;
                 }
-                return idx;
             }
         }
         let len = self.wakers.len();

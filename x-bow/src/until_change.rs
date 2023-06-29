@@ -36,11 +36,12 @@ impl UntilChangeGroup {
         if self.version == u64::MAX {
             return false;
         }
+        let new_version = listener.get_version();
         match self.version {
-            0 => self.version = listener.get_version(),
-            last_version if last_version < listener.get_version() => {
+            0 => self.version = new_version,
+            last_version if last_version < new_version => {
                 done = true;
-                self.version = listener.get_version();
+                self.version = new_version;
             }
             _ => {}
         }
