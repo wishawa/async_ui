@@ -22,13 +22,13 @@ pub trait ShortcutClassList {
     /// This method is equivalent to `elem.class_list().add_1(class_name).unwrap_throw()`.
     fn add_class(&self, c: &str);
     /// Add classnames to this element, ignoring those already present.
-    fn add_classes<'a>(&self, c: impl Iterator<Item = &'a str>);
+    fn add_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>);
     /// Remove a classname from this element, if present.
     ///
     /// This method is equivalent to `elem.class_list().remove_1(class_name).unwrap_throw()`.
     fn del_class(&self, c: &str);
     /// Remove classnames from this element, ignoring those not present.
-    fn del_classes<'a>(&self, c: impl Iterator<Item = &'a str>);
+    fn del_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>);
     /// If the boolean `included` argument is true, add the classname to the element.
     /// If the flag is false, remove the classname from the element.
     ///
@@ -45,16 +45,18 @@ impl ShortcutClassList for web_sys::Element {
     fn add_class(&self, c: &str) {
         self.class_list().add_1(c).unwrap_throw();
     }
-    fn add_classes<'a>(&self, c: impl Iterator<Item = &'a str>) {
-        self.class_list().add(&strs_to_js_array(c)).unwrap_throw();
+    fn add_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
+        self.class_list()
+            .add(&strs_to_js_array(c.into_iter()))
+            .unwrap_throw();
     }
 
     fn del_class(&self, c: &str) {
         self.class_list().remove_1(c).unwrap();
     }
-    fn del_classes<'a>(&self, c: impl Iterator<Item = &'a str>) {
+    fn del_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
         self.class_list()
-            .remove(&strs_to_js_array(c))
+            .remove(&strs_to_js_array(c.into_iter()))
             .unwrap_throw();
     }
 
