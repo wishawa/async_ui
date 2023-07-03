@@ -80,7 +80,7 @@ where
     /// Update the list; reorder, insert, or delete futures as needed.
     ///
     /// Time complexity: O(n) in Rust code.
-    pub fn update(&self, new_keys: Vec<impl Borrow<K>>) {
+    pub fn update(&self, new_keys: Vec<K>) {
         let mut inner = self.inner.borrow_mut();
         let Inner {
             prev_keys_list,
@@ -91,28 +91,21 @@ where
         for key in new_keys.iter() {
             let key = key.borrow();
             if prev_keys_set.remove(key) {
-                let old_key = prev_keys_iter.next().unwrap();
-                if old_key == key {
+                if prev_keys_iter.next_if_eq(&key).is_some() {
                     continue;
                 } else {
-                    self.dl.move_before(old_key, prev_keys_iter.peek().cloned());
+                    self.dl.move_before(key, prev_keys_iter.peek().cloned());
                 }
             } else {
                 let fut = renderer(key);
-                self.dl.insert(key.clone(), fut, None);
+                self.dl
+                    .insert(key.clone(), fut, prev_keys_iter.peek().cloned());
             }
         }
         for key in prev_keys_set.drain() {
             self.dl.remove(key);
         }
-        let mut prev_keys_set = prev_keys_list.drain(..).collect::<HashSet<_>>();
-        inner.prev_keys_list = new_keys
-            .into_iter()
-            .map(|k| {
-                let k = k.borrow();
-                prev_keys_set.take(k).unwrap_or_else(|| k.clone())
-            })
-            .collect();
+        inner.prev_keys_list = new_keys;
     }
     /// Check whether or not the given key is in the list.
     ///

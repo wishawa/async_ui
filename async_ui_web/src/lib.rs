@@ -1,4 +1,5 @@
 mod diffed_list;
+mod dropdown;
 mod dynamic;
 mod dynamic_list;
 pub mod executor;
@@ -14,6 +15,7 @@ pub use async_ui_web_core::combinators::{join, race, race_ok, try_join};
 pub use async_ui_web_macros::css;
 pub use async_ui_web_macros::select;
 pub use diffed_list::DiffedList;
+pub use dropdown::Dropdown;
 pub use dynamic::Dynamic;
 pub use dynamic_list::DynamicList;
 pub use mount::{mount, mount_at};
