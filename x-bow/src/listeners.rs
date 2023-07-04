@@ -1,73 +1,45 @@
 use std::{
-    cell::{Cell, RefCell, RefMut},
+    cell::{Cell, RefCell},
     task::Waker,
 };
 
-use async_ui_internal_utils::wakers_list::WakersList;
+use async_ui_internal_utils::wakers_list::{WakersList, WakersSublist};
 
 /// Listeners associated with an edge.
-pub struct Listener {
-    wakers: RefCell<ListenerWakers>,
-    up_version: Cell<u64>,
-    down_version: Cell<u64>,
-    here_version: Cell<u64>,
-}
-struct ListenerWakers {
-    up_wakers: WakersList,
-    down_wakers: WakersList,
-    here_wakers: WakersList,
+pub struct Listener<'u> {
+    pub(crate) full_list: &'u RefCell<WakersList>,
+    pub(crate) up_here_down: [ListenerGroup; 3],
 }
 
-pub(crate) struct ListenerGroup<'a> {
-    wakers: RefMut<'a, WakersList>,
-    version: &'a Cell<u64>,
+pub(crate) struct ListenerGroup {
+    pub version: Cell<u64>,
+    pub list: WakersSublist,
 }
-impl<'a> ListenerGroup<'a> {
-    pub fn get_version(&mut self) -> u64 {
+impl ListenerGroup {
+    pub fn get_version(&self) -> u64 {
         self.version.get()
     }
-    pub fn increment_version(&mut self) {
+    pub fn increment_version(&self, full_list: &WakersList) {
         self.version.set(self.version.get() + 1);
-        self.wakers.iter().for_each(Waker::wake_by_ref)
-    }
-    pub fn wakers(&mut self) -> &mut WakersList {
-        &mut self.wakers
+        full_list.iter(&self.list).for_each(Waker::wake_by_ref)
     }
 }
 
-impl Listener {
-    pub fn new() -> Self {
-        let inner = RefCell::new(ListenerWakers {
-            down_wakers: WakersList::new(),
-            up_wakers: WakersList::new(),
-            here_wakers: WakersList::new(),
-        });
+impl<'u> Listener<'u> {
+    pub fn new(full_list: &'u RefCell<WakersList>) -> Self {
+        let mut full_list_borrow = full_list.borrow_mut();
         Self {
-            wakers: inner,
-            up_version: Cell::new(1),
-            down_version: Cell::new(1),
-            here_version: Cell::new(1),
+            full_list,
+            up_here_down: std::array::from_fn(|_| ListenerGroup {
+                version: Cell::new(1),
+                list: full_list_borrow.add_sublist(),
+            }),
         }
     }
-    pub(crate) fn up(&self) -> ListenerGroup<'_> {
-        ListenerGroup {
-            wakers: RefMut::map(self.wakers.borrow_mut(), |l| &mut l.up_wakers),
-            version: &self.up_version,
-        }
-    }
-    pub(crate) fn down(&self) -> ListenerGroup<'_> {
-        ListenerGroup {
-            wakers: RefMut::map(self.wakers.borrow_mut(), |l| &mut l.down_wakers),
-            version: &self.down_version,
-        }
-    }
-    pub(crate) fn here(&self) -> ListenerGroup<'_> {
-        ListenerGroup {
-            wakers: RefMut::map(self.wakers.borrow_mut(), |l| &mut l.here_wakers),
-            version: &self.here_version,
-        }
-    }
-    pub fn invalidate_down(&self) {
-        self.up().increment_version();
+    // up version (invalidate downward) = 0
+    // here = 1
+    // down version (invalidate upward) = 2
+    pub fn invalidate<const INDEX: usize>(&self) {
+        self.up_here_down[INDEX].increment_version(&mut *self.full_list.borrow_mut());
     }
 }

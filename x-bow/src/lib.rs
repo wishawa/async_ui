@@ -166,6 +166,7 @@ mod listeners;
 mod mapper;
 mod node_down;
 mod node_up;
+mod shared;
 mod track_api;
 mod track_root;
 mod trackable;
@@ -184,6 +185,8 @@ pub mod __private_macro_only {
     pub use super::mapper::Mapper;
     pub use super::node_down::NodeDownTrait;
     pub use super::node_up::{NodeUp, NodeUpTrait};
+    pub use super::shared::Shared;
     pub use super::trackable::Trackable;
     pub use bool;
+    pub use bumpalo;
 }

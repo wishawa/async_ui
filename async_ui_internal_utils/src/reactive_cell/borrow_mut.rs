@@ -4,7 +4,7 @@ use std::{
     task::Waker,
 };
 
-use super::Inner;
+use super::{Inner, SUBLIST};
 
 pub struct ReactiveCellBorrowMut<'b, T> {
     pub(super) reference: RefMut<'b, Inner<T>>,
@@ -26,6 +26,9 @@ impl<'b, T> Deref for ReactiveCellBorrowMut<'b, T> {
 impl<'b, T> Drop for ReactiveCellBorrowMut<'b, T> {
     fn drop(&mut self) {
         self.reference.version += 1;
-        self.reference.listeners.iter().for_each(Waker::wake_by_ref);
+        self.reference
+            .listeners
+            .iter(&SUBLIST)
+            .for_each(Waker::wake_by_ref);
     }
 }

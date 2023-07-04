@@ -5,8 +5,9 @@ use x_bow::TrackedGuaranteed;
 
 #[test]
 fn just_leaf() {
-    let a: i32 = 5;
-    let store = create_store(a);
+    let mut a: i32 = 5;
+    let store = create_store();
+    let store = store.initialize(&mut a);
     let _ = async {
         store.until_change().await;
     };
@@ -28,7 +29,9 @@ fn struct_project() {
     #[derive(Trackable, Default)]
     struct Struct3(u64, String);
 
-    let store = create_store(Struct1::default());
+    let mut data = Struct1::default();
+    let store = create_store();
+    let store = store.initialize(&mut data);
     {
         let _: &Struct2 = &*store.field_1.borrow();
     }
@@ -77,9 +80,11 @@ fn generic_struct_project() {
         type AssocType = String;
     }
 
-    let store = create_store(MyStructWithAssoc::<i32> {
+    let mut data = MyStructWithAssoc::<i32> {
         field: "hello".into(),
-    });
+    };
+    let store = create_store();
+    let store = store.initialize(&mut data);
     {
         let _: &MyStructWithAssoc<_> = &*store.borrow();
     }
@@ -95,7 +100,9 @@ fn enum_project() {
         Variant1(i16, i32, i64),
         Variant2 { first: i16, second: i32, third: T },
     }
-    let store = create_store(MyEnum::Variant1(1, 2, 3));
+    let mut data = MyEnum::Variant1(1, 2, 3);
+    let store = create_store();
+    let store = store.initialize(&mut data);
     {
         let _: Option<std::cell::Ref<'_, i32>> = store.Variant2_second.borrow_opt();
     }
@@ -115,20 +122,25 @@ fn guarantee() {
     #[track(deep)]
     enum MyEnum {
         Var1(isize),
-        Var2(Option<()>),
-        Var3(MyStruct),
+        _Var2(Option<()>),
+        _Var3(MyStruct),
     }
     #[derive(Trackable)]
     #[track(deep)]
     struct MyStruct {
         field: usize,
     }
-    let store = create_store(MyEnum::Var1(123));
+    let mut data = MyEnum::Var1(123);
+    let store = create_store();
+    let store = store.initialize(&mut data);
     store.borrow();
     // store.Var3_0.field.borrow();
 }
 
 #[test]
 fn tuple() {
-    let store = create_store((3,));
+    let mut data = (3,);
+    let store = create_store();
+    let store = store.initialize(&mut data);
+    let _b = store.borrow();
 }

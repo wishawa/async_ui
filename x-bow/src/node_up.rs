@@ -1,14 +1,24 @@
-use std::{
-    cell::{Ref, RefMut},
-    rc::Rc,
-};
+use std::cell::{Ref, RefMut};
 
-use crate::{listeners::Listener, mapper::Mapper};
+use crate::{listeners::Listener, mapper::Mapper, shared::Shared};
 
 pub trait NodeUpTrait {
     type Data;
     /// Invalidate every ancestor.
-    fn invalidate_up(&self);
+    fn invalidate_upward_recursive(&self);
+
+    /// Invalidate just this node for "here" change listeners.
+    fn invalidate_here(&self) {
+        let listener = self.get_listener();
+        listener.up_here_down[1].increment_version(&mut *listener.full_list.borrow_mut());
+    }
+
+    /// Invalidate just this node for "outside" change listeners.
+    fn invalidate_downward(&self) {
+        let listener = self.get_listener();
+        listener.up_here_down[0].increment_version(&mut *listener.full_list.borrow_mut());
+    }
+
     /// Borrow the data here immutably.
     fn up_borrow<'b>(&'b self) -> Option<Ref<'b, Self::Data>>;
     /// Borrow the data here mutably.
@@ -20,17 +30,21 @@ pub trait NodeUpTrait {
 }
 
 pub struct NodeUp<'u, M: Mapper> {
-    parent: Rc<dyn NodeUpTrait<Data = M::In> + 'u>,
+    parent: &'u (dyn NodeUpTrait<Data = M::In> + 'u),
     mapper: M,
-    listener: Listener,
+    listener: Listener<'u>,
 }
 
 impl<'u, M: Mapper> NodeUp<'u, M> {
-    pub fn new(parent: Rc<dyn NodeUpTrait<Data = M::In> + 'u>, mapper: M) -> Self {
+    pub fn new(
+        shared: &'u Shared,
+        parent: &'u (dyn NodeUpTrait<Data = M::In> + 'u),
+        mapper: M,
+    ) -> Self {
         Self {
             parent,
             mapper,
-            listener: Listener::new(),
+            listener: Listener::new(&shared.wakers_list),
         }
     }
 }
@@ -38,9 +52,10 @@ impl<'u, M: Mapper> NodeUp<'u, M> {
 impl<'u, M: Mapper> NodeUpTrait for NodeUp<'u, M> {
     type Data = M::Out;
 
-    fn invalidate_up(&self) {
-        self.parent.invalidate_up();
-        self.parent.get_listener().down().increment_version();
+    fn invalidate_upward_recursive(&self) {
+        self.parent.invalidate_upward_recursive();
+        let listener = self.parent.get_listener();
+        listener.up_here_down[2].increment_version(&mut *listener.full_list.borrow_mut());
     }
 
     fn up_borrow<'b>(&'b self) -> Option<Ref<'b, Self::Data>> {

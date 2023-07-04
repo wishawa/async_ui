@@ -1,19 +1,20 @@
 use crate::impls::leaf::{NodeDownLeaf, TrackableLeaf};
 use crate::node_up::NodeUpTrait;
+use crate::shared::Shared;
 use crate::trackable::Trackable;
-use std::rc::Rc;
 
 macro_rules! leaf_primitive {
     ($primitive:ty) => {
         impl Trackable for $primitive {
             type NodeDown<'u, const G: bool> = NodeDownLeaf<'u, Self, G> where Self: 'u;
-            fn new_node<'u, const G: bool>(
-                up_node: Rc<dyn NodeUpTrait<Data = Self> + 'u>,
+            fn new_node<'u, Up: NodeUpTrait<Data = Self> + 'u, const G: bool>(
+                shared: &'u Shared,
+                up_node: &'u Up,
             ) -> Self::NodeDown<'u, G>
             where
                 Self: 'u,
             {
-                <Self as TrackableLeaf>::new_node(up_node)
+                <Self as TrackableLeaf>::new_node(shared, up_node)
             }
         }
     };

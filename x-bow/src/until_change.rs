@@ -1,4 +1,4 @@
-use async_ui_internal_utils::wakers_list::WakerSlot;
+use async_ui_internal_utils::wakers_list::{WakerSlot, WakersList};
 use futures_core::Stream;
 
 use crate::listeners::{Listener, ListenerGroup};
@@ -6,10 +6,8 @@ use crate::listeners::{Listener, ListenerGroup};
 /// A future to wait for some tracked data to change.
 /// Use [Tracked::until_change] to get this.
 pub struct UntilChange<'a> {
-    pub(crate) up: UntilChangeGroup,
-    pub(crate) here: UntilChangeGroup,
-    pub(crate) down: UntilChangeGroup,
-    pub(crate) listener: &'a Listener,
+    pub(crate) up_here_down: [UntilChangeGroup; 3],
+    pub(crate) listener: &'a Listener<'a>,
 }
 
 /// A part of [UntilChange]. Handles either one of the 3 types of change
@@ -22,11 +20,11 @@ pub(crate) struct UntilChangeGroup {
 }
 
 impl UntilChangeGroup {
-    pub(crate) fn new(enabled: bool, mut listener: ListenerGroup) -> Self {
-        if enabled {
+    pub(crate) fn new(input: Option<(&mut WakersList, &ListenerGroup)>) -> Self {
+        if let Some((list, group)) = input {
             Self {
                 version: 0,
-                waker_slot: listener.wakers().add(),
+                waker_slot: list.add(&group.list),
             }
         } else {
             Self {
@@ -37,14 +35,15 @@ impl UntilChangeGroup {
     }
     pub(crate) fn poll_is_ready(
         &mut self,
-        mut listener: ListenerGroup<'_>,
         waker: &std::task::Waker,
+        full_list: &mut WakersList,
+        group: &ListenerGroup,
     ) -> bool {
         let mut done = false;
         if self.version == u64::MAX {
             return false;
         }
-        let new_version = listener.get_version();
+        let new_version = group.get_version();
         match self.version {
             0 => self.version = new_version,
             last_version if last_version < new_version => {
@@ -53,12 +52,12 @@ impl UntilChangeGroup {
             }
             _ => {}
         }
-        listener.wakers().update(&self.waker_slot, waker);
+        full_list.update(&self.waker_slot, waker);
         done
     }
-    pub(crate) fn unlisten(&mut self, mut listener: ListenerGroup) {
+    pub(crate) fn unlisten(&mut self, list: &mut WakersList) {
         if self.version != u64::MAX {
-            listener.wakers().remove(&self.waker_slot);
+            list.remove(&self.waker_slot);
         }
     }
 }
@@ -70,10 +69,14 @@ impl<'a> UntilChange<'a> {
         listen_here: bool,
         listen_down: bool,
     ) -> Self {
+        let enabled: [bool; 3] = [listen_down, listen_here, listen_up];
+        let mut full = listener.full_list.borrow_mut();
         Self {
-            up: UntilChangeGroup::new(listen_up, listener.up()),
-            here: UntilChangeGroup::new(listen_here, listener.here()),
-            down: UntilChangeGroup::new(listen_down, listener.down()),
+            up_here_down: std::array::from_fn(|idx| {
+                UntilChangeGroup::new(
+                    enabled[idx].then(|| (&mut *full, &listener.up_here_down[idx])),
+                )
+            }),
             listener,
         }
     }
@@ -88,9 +91,14 @@ impl<'a> futures_core::Stream for UntilChange<'a> {
     ) -> std::task::Poll<Option<Self::Item>> {
         let this = self.get_mut();
         let waker = cx.waker();
-        if this.here.poll_is_ready(this.listener.here(), waker)
-            | this.up.poll_is_ready(this.listener.up(), waker)
-            | this.down.poll_is_ready(this.listener.down(), waker)
+        let mut full_list = this.listener.full_list.borrow_mut();
+        if this
+            .up_here_down
+            .iter_mut()
+            .zip(this.listener.up_here_down.iter())
+            .fold(false, |prev, (uc, group)| {
+                prev | uc.poll_is_ready(waker, &mut *full_list, group)
+            })
         {
             std::task::Poll::Ready(Some(()))
         } else {
@@ -112,8 +120,9 @@ impl<'a> std::future::Future for UntilChange<'a> {
 
 impl<'a> Drop for UntilChange<'a> {
     fn drop(&mut self) {
-        self.up.unlisten(self.listener.up());
-        self.here.unlisten(self.listener.here());
-        self.down.unlisten(self.listener.down());
+        let mut list = self.listener.full_list.borrow_mut();
+        self.up_here_down.iter_mut().for_each(|uc| {
+            uc.unlisten(&mut *list);
+        })
     }
 }

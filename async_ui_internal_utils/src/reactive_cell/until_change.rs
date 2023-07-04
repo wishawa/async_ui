@@ -4,14 +4,14 @@ use futures_core::Stream;
 
 use crate::wakers_list::WakerSlot;
 
-use super::ReactiveCell;
+use super::{ReactiveCell, SUBLIST};
 
 impl<T> ReactiveCell<T> {
     pub fn until_change(&'_ self) -> UntilChangeFuture<'_, T> {
         UntilChangeFuture {
             target: self,
             last_version: 0,
-            waker_slot: self.inner.borrow_mut().listeners.add(),
+            waker_slot: self.inner.borrow_mut().listeners.add(&SUBLIST),
         }
     }
 }

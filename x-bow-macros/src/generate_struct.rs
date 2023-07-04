@@ -224,6 +224,8 @@ pub(crate) fn generate_struct(
     let tracker_name = format_ident!("Tracked_{name}", span = Span::mixed_site());
     let up_node_name = format_ident!("__tracking_internals", span = Span::mixed_site());
     let guaranteed_name = format_ident!("GUARANTEED", span = Span::mixed_site());
+    let shared_name = format_ident!("shared", span = Span::mixed_site());
+    let up_generic_name = format_ident!("Up", span = Span::mixed_site());
     let guaranteed_children: syn::Expr = if is_guaranteed {
         parse_quote!(#guaranteed_name)
     } else {
@@ -239,38 +241,29 @@ pub(crate) fn generate_struct(
                 pub #field_names: <#field_types as #trackable_down_trait> :: NodeDown <#store_lifetime, #guaranteed_children>,
             )*
             #[doc(hidden)]
-            #up_node_name: ::std::rc::Rc<dyn #prefix :: NodeUpTrait<Data = #remote #type_params> + #store_lifetime>
+            #up_node_name: & #store_lifetime (dyn #prefix :: NodeUpTrait<Data = #remote #type_params> + #store_lifetime)
         }
         impl <#store_lifetime, #impl_params_unbracketed const #guaranteed_name: #prefix :: bool> #prefix :: IsGuaranteed<#guaranteed_name> for #tracker_name <#store_lifetime, #type_params_unbracketed #guaranteed_name> #where_clause_for_tracker {}
-        impl <#store_lifetime, #impl_params_unbracketed const #guaranteed_name: #prefix :: bool> ::std::clone::Clone for #tracker_name <#store_lifetime, #type_params_unbracketed #guaranteed_name> #where_clause_for_tracker {
-            fn clone(&self) -> Self {
-                Self {
-                    #(
-                        #field_names: ::std::clone::Clone::clone(&self . #field_names),
-                    )*
-                    #up_node_name: ::std::clone::Clone::clone(&self . #up_node_name)
-                }
-            }
-        }
+
         impl <#store_lifetime, #impl_params_unbracketed const #guaranteed_name: #prefix :: bool> #prefix :: NodeDownTrait<#store_lifetime, #remote #type_params> for #tracker_name <#store_lifetime, #type_params_unbracketed #guaranteed_name> #where_clause_for_tracker {
-            fn invalidate_down(&self) {
+            fn invalidate_downward(&self) {
                 #(
-                    self . #field_names . node_up() . get_listener() . invalidate_down();
-                    self . #field_names . invalidate_down();
+                    self . #field_names . node_up() . invalidate_downward();
+                    self . #field_names . invalidate_downward();
                 )*
             }
-            fn node_up(&self) -> &::std::rc::Rc<dyn #prefix :: NodeUpTrait <Data = #remote #type_params> + #store_lifetime> {
-                &self . #up_node_name
+            fn node_up(&self) -> & #store_lifetime (dyn #prefix :: NodeUpTrait <Data = #remote #type_params> + #store_lifetime) {
+                self . #up_node_name
             }
         }
 
         impl #impl_params #prefix :: Trackable for #remote #type_params #where_clause {
             type NodeDown<#store_lifetime, const #guaranteed_name: #prefix :: bool> = #tracker_name <#store_lifetime, #type_params_unbracketed #guaranteed_name> where Self: #store_lifetime;
 
-            fn new_node<#store_lifetime, const #guaranteed_name: #prefix :: bool>(#up_node_name: ::std::rc::Rc<dyn #prefix :: NodeUpTrait<Data = Self> + #store_lifetime>) -> Self::NodeDown<#store_lifetime, #guaranteed_name> where Self: #store_lifetime {
+            fn new_node<#store_lifetime, #up_generic_name: #prefix :: NodeUpTrait<Data = Self>, const #guaranteed_name: #prefix :: bool>(#shared_name: & #store_lifetime #prefix :: Shared, #up_node_name: & #store_lifetime #up_generic_name) -> Self::NodeDown<#store_lifetime, #guaranteed_name> where Self: #store_lifetime {
                 #tracker_name {
                     #(
-                        #field_names: <#field_types as #trackable_down_trait> :: new_node(::std::rc::Rc::new(#prefix :: NodeUp :: new(#up_node_name.clone(), #mapper_names (::std::marker::PhantomData)))),
+                        #field_names: <#field_types as #trackable_down_trait> :: new_node(#shared_name, #shared_name . allocator . alloc(#prefix :: NodeUp :: new(#shared_name, #up_node_name.clone(), #mapper_names (::std::marker::PhantomData)))),
                     )*
                     #up_node_name,
                 }

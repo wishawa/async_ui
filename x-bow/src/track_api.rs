@@ -91,19 +91,19 @@ where
         let b = node.up_borrow_mut();
         if b.is_some() {
             if wake_outside {
-                node.invalidate_up();
+                node.invalidate_upward_recursive();
             }
             if wake_here {
-                node.get_listener().here().increment_version();
+                node.invalidate_here();
             }
             if wake_inside {
-                self.invalidate_down();
+                self.invalidate_downward();
             }
         }
         b
     }
 
-    fn until_change_custom<'a>(&'a self, inside: bool, here: bool, outside: bool) -> UntilChange<'a>
+    fn until_change_custom<'a>(&'a self, outside: bool, here: bool, inside: bool) -> UntilChange<'a>
     where
         'u: 'a,
     {

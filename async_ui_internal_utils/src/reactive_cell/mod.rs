@@ -6,7 +6,7 @@ use std::{
     fmt::Debug,
 };
 
-use crate::wakers_list::WakersList;
+use crate::wakers_list::{WakersList, WakersSublist};
 
 use self::borrow_mut::ReactiveCellBorrowMut;
 
@@ -58,11 +58,15 @@ struct Inner<T> {
     version: u64,
 }
 
+const SUBLIST: WakersSublist = WakersSublist(1);
+
 impl<T> ReactiveCell<T> {
     pub fn new(data: T) -> Self {
+        let mut listeners = WakersList::new();
+        listeners.add_sublist();
         let inner = RefCell::new(Inner {
             data,
-            listeners: WakersList::new(),
+            listeners,
             version: 1,
         });
         Self { inner }

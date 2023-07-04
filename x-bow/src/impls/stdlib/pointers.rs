@@ -6,9 +6,9 @@ use crate::{
     trackable::Trackable,
 };
 mod r#box {
-    use std::{marker::PhantomData, rc::Rc};
+    use std::marker::PhantomData;
 
-    use crate::is_guaranteed::IsGuaranteed;
+    use crate::{is_guaranteed::IsGuaranteed, shared::Shared};
 
     use super::*;
 
@@ -31,19 +31,7 @@ mod r#box {
         T: Trackable + 'u,
     {
         inside: Store<'u, T, G>,
-        up: Rc<dyn NodeUpTrait<Data = Box<T>> + 'u>,
-    }
-
-    impl<'u, T, const G: bool> Clone for TrackedBox<'u, T, G>
-    where
-        T: Trackable + 'u,
-    {
-        fn clone(&self) -> Self {
-            Self {
-                inside: self.inside.clone(),
-                up: self.up.clone(),
-            }
-        }
+        up: &'u (dyn NodeUpTrait<Data = Box<T>> + 'u),
     }
 
     impl<'u, T, const G: bool> IsGuaranteed<G> for TrackedBox<'u, T, G> where T: Trackable + 'u {}
@@ -52,30 +40,35 @@ mod r#box {
     where
         T: Trackable + 'u,
     {
-        fn invalidate_down(&self) {
-            self.node_up().get_listener().invalidate_down();
-            self.inside.invalidate_down();
+        fn invalidate_downward(&self) {
+            self.node_up().invalidate_downward();
+            self.inside.invalidate_downward();
         }
 
-        fn node_up(&self) -> &Rc<dyn NodeUpTrait<Data = Box<T>> + 'u> {
-            &self.up
+        fn node_up(&self) -> &'u (dyn NodeUpTrait<Data = Box<T>> + 'u) {
+            self.up
         }
     }
 
     impl<T: Trackable> Trackable for Box<T> {
         type NodeDown<'u, const G: bool> = TrackedBox<'u, T, G> where Self : 'u;
 
-        fn new_node<'u, const G: bool>(
-            up_node: std::rc::Rc<dyn NodeUpTrait<Data = Box<T>> + 'u>,
+        fn new_node<'u, Up: NodeUpTrait<Data = Self> + 'u, const G: bool>(
+            shared: &'u Shared,
+            up_node: &'u Up,
         ) -> Self::NodeDown<'u, G>
         where
             Self: 'u,
         {
             TrackedBox {
-                inside: T::new_node(Rc::new(NodeUp::new(
-                    up_node.clone(),
-                    MapperBox(PhantomData),
-                ))),
+                inside: T::new_node(
+                    shared,
+                    shared.allocator.alloc(NodeUp::new(
+                        shared,
+                        up_node.clone(),
+                        MapperBox(PhantomData),
+                    )),
+                ),
                 up: up_node,
             }
         }
