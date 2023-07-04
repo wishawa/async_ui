@@ -1,3 +1,4 @@
+use async_ui_internal_utils::wakers_list::WakerSlot;
 use futures_core::Stream;
 
 use crate::listeners::{Listener, ListenerGroup};
@@ -16,15 +17,22 @@ pub struct UntilChange<'a> {
 /// * here change
 /// * down (`down`) change
 pub(crate) struct UntilChangeGroup {
-    pub(crate) waker_idx: usize,
     pub(crate) version: u64,
+    pub(crate) waker_slot: WakerSlot,
 }
 
 impl UntilChangeGroup {
-    pub(crate) fn new(enabled: bool) -> Self {
-        Self {
-            version: enabled.then_some(0).unwrap_or(u64::MAX),
-            waker_idx: usize::MAX,
+    pub(crate) fn new(enabled: bool, mut listener: ListenerGroup) -> Self {
+        if enabled {
+            Self {
+                version: 0,
+                waker_slot: listener.wakers().add(),
+            }
+        } else {
+            Self {
+                version: u64::MAX,
+                waker_slot: WakerSlot::INVALID,
+            }
         }
     }
     pub(crate) fn poll_is_ready(
@@ -45,9 +53,13 @@ impl UntilChangeGroup {
             }
             _ => {}
         }
-        let waker_idx = &mut self.waker_idx;
-        *waker_idx = listener.add_waker(waker, (*waker_idx != usize::MAX).then_some(*waker_idx));
+        listener.wakers().update(&self.waker_slot, waker);
         done
+    }
+    pub(crate) fn unlisten(&mut self, mut listener: ListenerGroup) {
+        if self.version != u64::MAX {
+            listener.wakers().remove(&self.waker_slot);
+        }
     }
 }
 
@@ -59,9 +71,9 @@ impl<'a> UntilChange<'a> {
         listen_down: bool,
     ) -> Self {
         Self {
-            up: UntilChangeGroup::new(listen_up),
-            here: UntilChangeGroup::new(listen_here),
-            down: UntilChangeGroup::new(listen_down),
+            up: UntilChangeGroup::new(listen_up, listener.up()),
+            here: UntilChangeGroup::new(listen_here, listener.here()),
+            down: UntilChangeGroup::new(listen_down, listener.down()),
             listener,
         }
     }
@@ -95,5 +107,13 @@ impl<'a> std::future::Future for UntilChange<'a> {
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
         self.poll_next(cx).map(|_| ())
+    }
+}
+
+impl<'a> Drop for UntilChange<'a> {
+    fn drop(&mut self) {
+        self.up.unlisten(self.listener.up());
+        self.here.unlisten(self.listener.here());
+        self.down.unlisten(self.listener.down());
     }
 }

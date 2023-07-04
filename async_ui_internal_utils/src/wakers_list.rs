@@ -22,6 +22,9 @@ struct Item {
 }
 
 pub struct WakerSlot(usize);
+impl WakerSlot {
+    pub const INVALID: Self = Self(usize::MAX);
+}
 
 impl WakersList {
     pub fn new() -> Self {

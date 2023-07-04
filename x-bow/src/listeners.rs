@@ -3,6 +3,8 @@ use std::{
     task::Waker,
 };
 
+use async_ui_internal_utils::wakers_list::WakersList;
+
 /// Listeners associated with an edge.
 pub struct Listener {
     wakers: RefCell<ListenerWakers>,
@@ -11,13 +13,13 @@ pub struct Listener {
     here_version: Cell<u64>,
 }
 struct ListenerWakers {
-    up_wakers: Vec<Waker>,
-    down_wakers: Vec<Waker>,
-    here_wakers: Vec<Waker>,
+    up_wakers: WakersList,
+    down_wakers: WakersList,
+    here_wakers: WakersList,
 }
 
 pub(crate) struct ListenerGroup<'a> {
-    wakers: RefMut<'a, Vec<Waker>>,
+    wakers: RefMut<'a, WakersList>,
     version: &'a Cell<u64>,
 }
 impl<'a> ListenerGroup<'a> {
@@ -26,28 +28,19 @@ impl<'a> ListenerGroup<'a> {
     }
     pub fn increment_version(&mut self) {
         self.version.set(self.version.get() + 1);
-        self.wakers.drain(..).for_each(Waker::wake)
+        self.wakers.iter().for_each(Waker::wake_by_ref)
     }
-    pub fn add_waker(&mut self, new_waker: &Waker, old_index: Option<usize>) -> usize {
-        if let Some(idx) = old_index {
-            if let Some(exisiting_waker) = self.wakers.get(idx) {
-                if exisiting_waker.will_wake(new_waker) {
-                    return idx;
-                }
-            }
-        }
-        let len = self.wakers.len();
-        self.wakers.push(new_waker.to_owned());
-        len
+    pub fn wakers(&mut self) -> &mut WakersList {
+        &mut self.wakers
     }
 }
 
 impl Listener {
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         let inner = RefCell::new(ListenerWakers {
-            down_wakers: Vec::new(),
-            up_wakers: Vec::new(),
-            here_wakers: Vec::new(),
+            down_wakers: WakersList::new(),
+            up_wakers: WakersList::new(),
+            here_wakers: WakersList::new(),
         });
         Self {
             wakers: inner,
