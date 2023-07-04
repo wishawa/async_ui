@@ -2,6 +2,8 @@ use std::{future::Future, task::Poll};
 
 use futures_core::Stream;
 
+use crate::wakers_list::WakerSlot;
+
 use super::ReactiveCell;
 
 impl<T> ReactiveCell<T> {
@@ -9,7 +11,7 @@ impl<T> ReactiveCell<T> {
         UntilChangeFuture {
             target: self,
             last_version: 0,
-            waker_idx: usize::MAX,
+            waker_slot: self.inner.borrow_mut().listeners.add(),
         }
     }
 }
@@ -17,7 +19,7 @@ impl<T> ReactiveCell<T> {
 pub struct UntilChangeFuture<'a, T> {
     target: &'a ReactiveCell<T>,
     last_version: u64,
-    waker_idx: usize,
+    waker_slot: WakerSlot,
 }
 
 impl<'a, T> Stream for UntilChangeFuture<'a, T> {
@@ -38,14 +40,7 @@ impl<'a, T> Stream for UntilChangeFuture<'a, T> {
             }
             _ => {}
         }
-        let new = cx.waker();
-        match bm.listeners.get_mut(this.waker_idx) {
-            Some(existing) if existing.will_wake(new) => {}
-            _ => {
-                this.waker_idx = bm.listeners.len();
-                bm.listeners.push(new.to_owned());
-            }
-        }
+        bm.listeners.update(&this.waker_slot, cx.waker());
         res
     }
 }
@@ -57,5 +52,15 @@ impl<'a, T> Future for UntilChangeFuture<'a, T> {
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
         self.poll_next(cx).map(|_| ())
+    }
+}
+
+impl<'a, T> Drop for UntilChangeFuture<'a, T> {
+    fn drop(&mut self) {
+        self.target
+            .inner
+            .borrow_mut()
+            .listeners
+            .remove(&self.waker_slot);
     }
 }

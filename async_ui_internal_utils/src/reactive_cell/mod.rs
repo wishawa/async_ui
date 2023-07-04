@@ -4,10 +4,9 @@ mod until_change;
 use std::{
     cell::{BorrowError, BorrowMutError, Ref, RefCell},
     fmt::Debug,
-    task::Waker,
 };
 
-use smallvec::SmallVec;
+use crate::wakers_list::WakersList;
 
 use self::borrow_mut::ReactiveCellBorrowMut;
 
@@ -40,7 +39,7 @@ impl<T: Clone> Clone for ReactiveCell<T> {
         Self {
             inner: RefCell::new(Inner {
                 data: old_inner.data.clone(),
-                listeners: SmallVec::new(),
+                listeners: WakersList::new(),
                 version: 1,
             }),
         }
@@ -55,7 +54,7 @@ impl<T: Default> Default for ReactiveCell<T> {
 
 struct Inner<T> {
     data: T,
-    listeners: SmallVec<[Waker; 2]>,
+    listeners: WakersList,
     version: u64,
 }
 
@@ -63,7 +62,7 @@ impl<T> ReactiveCell<T> {
     pub fn new(data: T) -> Self {
         let inner = RefCell::new(Inner {
             data,
-            listeners: SmallVec::new(),
+            listeners: WakersList::new(),
             version: 1,
         });
         Self { inner }

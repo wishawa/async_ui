@@ -26,6 +26,6 @@ impl<'b, T> Deref for ReactiveCellBorrowMut<'b, T> {
 impl<'b, T> Drop for ReactiveCellBorrowMut<'b, T> {
     fn drop(&mut self) {
         self.reference.version += 1;
-        self.reference.listeners.drain(..).for_each(Waker::wake);
+        self.reference.listeners.iter().for_each(Waker::wake_by_ref);
     }
 }

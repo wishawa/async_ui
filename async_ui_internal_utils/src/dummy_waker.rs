@@ -7,10 +7,8 @@ pub fn dummy_waker() -> Waker {
         unsafe fn clone(_data: *const ()) -> RawWaker {
             new_raw_waker()
         }
-        RawWaker::new(
-            core::ptr::null() as *const usize as *const (),
-            &RawWakerVTable::new(clone, no_op, no_op, no_op),
-        )
+        static VTABLE: RawWakerVTable = RawWakerVTable::new(clone, no_op, no_op, no_op);
+        RawWaker::new(core::ptr::null(), &VTABLE)
     }
     unsafe { Waker::from_raw(new_raw_waker()) }
 }
