@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ref-cast = "1.0.18"
 async_ui_internal_utils = { path = "../async_ui_internal_utils", version = "0.0.1" }
-x-bow-macros = { path = "../x-bow-macros/", version = "0.1.0" }
+nohash-hasher = "0.2.0"
 futures-core = "0.3.28"
-bumpalo = "3.13"
+x-bow-macros = { path = "../x-bow-macros/" }

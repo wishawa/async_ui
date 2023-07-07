@@ -1,37 +1,35 @@
-use crate::{
-    is_guaranteed::IsGuaranteed, node_down::NodeDownTrait, node_up::NodeUpTrait, shared::Shared,
-};
-pub struct NodeDownLeaf<'u, T: 'u, const G: bool> {
-    up: &'u (dyn NodeUpTrait<Data = T> + 'u),
-}
+use std::ops::Deref;
 
-impl<'u, T, const G: bool> NodeDownTrait<'u, T> for NodeDownLeaf<'u, T, G> {
-    fn invalidate_downward(&self) {
-        // no-op
-    }
-    fn node_up(&self) -> &'u (dyn NodeUpTrait<Data = T> + 'u) {
-        self.up
-    }
-}
-
-impl<'u, T, const G: bool> IsGuaranteed<G> for NodeDownLeaf<'u, T, G> {}
+use crate::{path::Path, trackable::IntoInnerPath};
 
 pub trait TrackableLeaf {
-    type NodeDown<'u, const G: bool>
-    where
-        Self: 'u;
-    fn new_node<'u, Up: NodeUpTrait<Data = Self> + 'u, const G: bool>(
-        shared: &'u Shared,
-        up_node: &'u Up,
-    ) -> Self::NodeDown<'u, G>;
+    type PathBuilder<P: Path<Out = Self>>: IntoInnerPath<P>;
+    fn new_path_builder<P: Path<Out = Self>>(parent: P) -> Self::PathBuilder<P>;
+}
+impl<T> TrackableLeaf for T {
+    type PathBuilder<P: Path<Out = Self>> = LeafPathBuilder<P>;
+
+    fn new_path_builder<P: Path<Out = Self>>(parent: P) -> Self::PathBuilder<P> {
+        LeafPathBuilder::new(parent)
+    }
 }
 
-impl<T> TrackableLeaf for T {
-    type NodeDown<'u, const G: bool> = NodeDownLeaf<'u, T, G> where T: 'u;
-    fn new_node<'u, Up: NodeUpTrait<Data = Self> + 'u, const G: bool>(
-        _shared: &'u Shared,
-        up_node: &'u Up,
-    ) -> Self::NodeDown<'u, G> {
-        NodeDownLeaf { up: up_node }
+#[derive(Clone, Copy, x_bow_macros::IntoInnerPath)]
+#[into_inner_path(prefix = crate::trackable)]
+pub struct LeafPathBuilder<P: Path> {
+    inner_path: P,
+}
+
+impl<P: Path> LeafPathBuilder<P> {
+    pub fn new(parent: P) -> Self {
+        Self { inner_path: parent }
+    }
+}
+
+impl<P: Path> Deref for LeafPathBuilder<P> {
+    type Target = P;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner_path
     }
 }

@@ -114,6 +114,23 @@ impl WakersList {
         self.items[old_used_prev].next = old_used_next;
         self.items[old_used_next].prev = old_used_prev;
     }
+    /// If the sublist is empty (contains only the head node), remove it and return true.
+    pub fn remove_sublist_if_empty(
+        &mut self,
+        &WakersSublist(sublist_head_index): &WakersSublist,
+    ) -> bool {
+        let head = &mut self.items[sublist_head_index];
+        if head.next == sublist_head_index {
+            head.prev = 0;
+            let free_head = &mut self.items[0];
+            let old_next = replace(&mut free_head.next, sublist_head_index);
+            self.items[old_next].prev = sublist_head_index;
+            self.items[sublist_head_index].next = old_next;
+            true
+        } else {
+            false
+        }
+    }
     pub fn update(&mut self, &WakerSlot(slot): &WakerSlot, waker: &Waker) {
         let target = &mut self.items[slot].waker;
         if !target.will_wake(waker) {

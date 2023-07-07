@@ -8,7 +8,7 @@ macro_rules! make_tuple_impl {
 			#[x_bow(module_prefix = crate::__private_macro_only)]
 			#[x_bow(remote_type = Tuple)]
 			#[track(deep)]
-			pub struct Imitator<$($tn),+>($($tn,)+);
+			pub struct Imitator<$($tn),+>($(pub $tn,)+);
 		}
 	};
 }

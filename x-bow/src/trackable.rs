@@ -1,16 +1,11 @@
-use crate::{
-    is_guaranteed::IsGuaranteed, node_down::NodeDownTrait, node_up::NodeUpTrait, shared::Shared,
-};
+use crate::path::Path;
 
 pub trait Trackable {
-    type NodeDown<'u, const G: bool>: NodeDownTrait<'u, Self> + IsGuaranteed<G>
-    where
-        Self: 'u;
+    type PathBuilder<P: Path<Out = Self>>: IntoInnerPath<P>;
     #[doc(hidden)]
-    fn new_node<'u, Up: NodeUpTrait<Data = Self> + 'u, const G: bool>(
-        shared: &'u Shared,
-        up_node: &'u Up,
-    ) -> Self::NodeDown<'u, G>
-    where
-        Self: 'u;
+    fn new_path_builder<P: Path<Out = Self>>(parent: P) -> Self::PathBuilder<P>;
+}
+
+pub trait IntoInnerPath<P> {
+    fn into_inner_path(self) -> P;
 }

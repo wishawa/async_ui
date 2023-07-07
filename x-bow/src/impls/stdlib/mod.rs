@@ -1,5 +1,8 @@
-mod collections;
+mod boxed;
+mod hash_map;
 mod option;
-mod pointers;
 mod primitives;
-mod tuples;
+mod rc;
+mod string;
+mod tuple;
+mod vec;
