@@ -1,9 +1,6 @@
-use std::{cell::Ref, hash::Hasher};
+use std::cell::Ref;
 
-use crate::{
-    borrow_mut_guard::BorrowMutGuard, hash_visitor::HashVisitor, until_change::UntilChange,
-    HasherType, Path, Trackable,
-};
+use crate::{borrow_mut_guard::BorrowMutGuard, until_change::UntilChange, Path, Trackable};
 
 pub trait PathExt: Path {
     /// Borrow the data at the given path immutably.
@@ -21,20 +18,15 @@ pub trait PathExt: Path {
     ///
     /// If there is an existing mutable or immutable borrow anywhere in the
     /// store, this method will panic.
-    fn borrow_opt_mut<'d>(&'d self) -> Option<BorrowMutGuard<'d, <Self as Path>::Out>> {
-        self.path_borrow_mut().map(|inner| {
-            BorrowMutGuard::new(inner, self.store_wakers(), {
-                let mut visitor = HashVisitor {
-                    hasher: HasherType::new(),
-                    behavior: crate::hash_visitor::HashVisitorBehavior::BuildNotifier {},
-                };
-                self.visit_hashes(&mut visitor);
-                visitor.finish()
-            })
-        })
+    fn borrow_opt_mut<'d>(&'d self) -> Option<BorrowMutGuard<'d, Self>> {
+        self.path_borrow_mut()
+            .map(|inner| BorrowMutGuard::new(inner, self.store_wakers(), self))
     }
     fn until_change<'d>(&'d self) -> UntilChange<'d> {
         UntilChange::new(self.store_wakers(), self)
+    }
+    fn until_bubbling_change<'d>(&'d self) -> UntilChange<'d> {
+        UntilChange::new_bubbling(self.store_wakers(), self)
     }
     fn build_path(self) -> <Self::Out as Trackable>::PathBuilder<Self>
     where

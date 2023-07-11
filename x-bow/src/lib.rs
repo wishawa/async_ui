@@ -1,5 +1,6 @@
 mod borrow_mut_guard;
 mod guarantee;
+mod hash;
 mod hash_visitor;
 mod impls;
 mod notifier;
@@ -19,8 +20,6 @@ pub use store::{Store, StoreRoot};
 pub use trackable::{IntoInnerPath, Trackable};
 pub use tracked::Tracked;
 pub use x_bow_macros::Trackable;
-
-type HasherType = std::collections::hash_map::DefaultHasher;
 
 pub mod __private_macro_only {
     pub use super::guarantee::PathExtGuaranteed;

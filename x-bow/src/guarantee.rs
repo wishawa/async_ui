@@ -9,7 +9,7 @@ pub trait PathExtGuaranteed: PathExt {
     {
         self.borrow_opt().unwrap()
     }
-    fn borrow_mut<'d>(&'d self) -> BorrowMutGuard<'d, <Self as Path>::Out>
+    fn borrow_mut<'d>(&'d self) -> BorrowMutGuard<'d, Self>
     where
         Self: 'd,
     {

@@ -5,7 +5,7 @@ use std::{
 
 use async_ui_internal_utils::wakers_list::WakerSlot;
 
-use crate::{wakers::StoreWakers, HasherType};
+use crate::{hash::WakerHashEntry, wakers::StoreWakers};
 
 pub struct HashVisitor<'a> {
     pub(crate) hasher: HasherType,
@@ -13,11 +13,14 @@ pub struct HashVisitor<'a> {
 }
 
 pub(crate) enum HashVisitorBehavior<'a> {
-    BuildListeners {
+    BuildRegularListeners {
         wakers: &'a mut StoreWakers,
-        notifiers_list: &'a mut Vec<(u64, WakerSlot)>,
+        notifiers_list: &'a mut Vec<(WakerHashEntry, WakerSlot)>,
     },
-    BuildNotifier {},
+    GetHash {},
+    WakeListeners {
+        wakers: &'a mut StoreWakers,
+    },
 }
 
 impl<'a> Deref for HashVisitor<'a> {
@@ -37,15 +40,21 @@ impl<'a> DerefMut for HashVisitor<'a> {
 impl<'a> HashVisitor<'a> {
     pub fn finish_one(&mut self) {
         match &mut self.behavior {
-            HashVisitorBehavior::BuildListeners {
+            HashVisitorBehavior::BuildRegularListeners {
                 wakers,
                 notifiers_list,
             } => {
-                let hash = self.hasher.finish();
+                let hash = WakerHashEntry::regular_from(self.hasher.finish());
                 let slot = wakers.get_entry(hash).add_waker_slot();
                 notifiers_list.push((hash, slot));
             }
-            HashVisitorBehavior::BuildNotifier {} => {}
+            HashVisitorBehavior::GetHash {} => {}
+            HashVisitorBehavior::WakeListeners { wakers } => {
+                let hash = WakerHashEntry::bubbling_from(self.hasher.finish());
+                wakers.get_entry(hash).wake();
+            }
         }
     }
 }
+
+pub(crate) type HasherType = std::collections::hash_map::DefaultHasher;

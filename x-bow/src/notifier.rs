@@ -1,20 +1,32 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, hash::Hasher};
 
-use crate::wakers::StoreWakers;
+use crate::{
+    hash::WakerHashEntry,
+    hash_visitor::{HashVisitor, HashVisitorBehavior, HasherType},
+    wakers::StoreWakers,
+    Path,
+};
 
-pub struct Notifier<'b> {
+pub struct Notifier<'b, P: Path + ?Sized> {
     store: &'b RefCell<StoreWakers>,
-    hash: u64,
+    path: &'b P,
 }
 
-impl<'b> Notifier<'b> {
-    pub(crate) fn new(store: &'b RefCell<StoreWakers>, hash: u64) -> Self {
-        Self { store, hash }
+impl<'b, P: Path + ?Sized> Notifier<'b, P> {
+    pub(crate) fn new(store: &'b RefCell<StoreWakers>, path: &'b P) -> Self {
+        Self { store, path }
     }
 }
 
-impl<'b> Drop for Notifier<'b> {
+impl<'b, P: Path + ?Sized> Drop for Notifier<'b, P> {
     fn drop(&mut self) {
-        self.store.borrow_mut().get_entry(self.hash).wake();
+        let wakers = &mut *self.store.borrow_mut();
+        let mut visitor = HashVisitor {
+            hasher: HasherType::new(),
+            behavior: HashVisitorBehavior::WakeListeners { wakers },
+        };
+        self.path.visit_hashes(&mut visitor);
+        let hash = WakerHashEntry::regular_from(visitor.hasher.finish());
+        wakers.get_entry(hash).wake();
     }
 }

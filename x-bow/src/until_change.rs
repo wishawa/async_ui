@@ -1,14 +1,19 @@
-use std::{cell::RefCell, task::Poll};
+use std::{cell::RefCell, hash::Hasher, task::Poll};
 
 use async_ui_internal_utils::wakers_list::WakerSlot;
 use futures_core::Stream;
 
-use crate::{hash_visitor::HashVisitor, path::Path, wakers::StoreWakers, HasherType};
+use crate::{
+    hash::WakerHashEntry,
+    hash_visitor::{HashVisitor, HashVisitorBehavior, HasherType},
+    path::Path,
+    wakers::StoreWakers,
+};
 
 pub struct UntilChange<'a> {
     store: &'a RefCell<StoreWakers>,
     last_version: u64,
-    slots: Vec<(u64, WakerSlot)>,
+    slots: Vec<(WakerHashEntry, WakerSlot)>,
 }
 
 impl<'a> UntilChange<'a> {
@@ -19,13 +24,32 @@ impl<'a> UntilChange<'a> {
                 let mut slots = Vec::new();
                 let mut visitor = HashVisitor {
                     hasher: HasherType::new(),
-                    behavior: crate::hash_visitor::HashVisitorBehavior::BuildListeners {
+                    behavior: HashVisitorBehavior::BuildRegularListeners {
                         wakers: &mut *store,
                         notifiers_list: &mut slots,
                     },
                 };
                 mapper.visit_hashes(&mut visitor);
                 slots
+            },
+            store,
+            last_version: 0,
+        }
+    }
+    pub(crate) fn new_bubbling<M: Path + ?Sized>(
+        store: &'a RefCell<StoreWakers>,
+        mapper: &M,
+    ) -> Self {
+        Self {
+            slots: {
+                let mut visitor = HashVisitor {
+                    hasher: HasherType::new(),
+                    behavior: HashVisitorBehavior::GetHash {},
+                };
+                mapper.visit_hashes(&mut visitor);
+                let hash = WakerHashEntry::bubbling_from(visitor.hasher.finish());
+                let slot = store.borrow_mut().get_entry(hash).add_waker_slot();
+                vec![(hash, slot)]
             },
             store,
             last_version: 0,

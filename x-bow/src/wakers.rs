@@ -4,6 +4,8 @@ use async_ui_internal_utils::wakers_list::{WakerSlot, WakersList, WakersSublist}
 
 use nohash_hasher::IntMap;
 
+use crate::hash::WakerHashEntry;
+
 pub struct StoreWakers {
     all_wakers: WakersList,
     map: IntMap<u64, Entry>,
@@ -51,17 +53,17 @@ impl StoreWakers {
             map: IntMap::default(),
         }
     }
-    pub(crate) fn get_entry(&mut self, hash: u64) -> WakerApi<'_> {
+    pub(crate) fn get_entry(&mut self, hash: WakerHashEntry) -> WakerApi<'_> {
         WakerApi {
             entry: self
                 .map
-                .entry(hash)
+                .entry(hash.value())
                 .or_insert_with(|| Entry::new(&mut self.all_wakers)),
             all: &mut self.all_wakers,
         }
     }
-    pub(crate) fn remove_waker_slot(&mut self, hash: u64, slot: &WakerSlot) {
-        match self.map.entry(hash) {
+    pub(crate) fn remove_waker_slot(&mut self, hash: WakerHashEntry, slot: &WakerSlot) {
+        match self.map.entry(hash.value()) {
             std::collections::hash_map::Entry::Occupied(occ) => {
                 self.all_wakers.remove(slot);
                 let sublist = &occ.get().sublist;
