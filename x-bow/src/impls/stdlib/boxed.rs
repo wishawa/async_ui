@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use crate::{
     impls::{leaf::LeafPathBuilder, transparent::TransparentDerefMapper},
     path::Path,
@@ -16,6 +18,14 @@ impl<T: Trackable + ?Sized> Trackable for Box<T> {
 #[into_inner_path(prefix = crate::trackable)]
 pub struct BoxPathBuilder<T: ?Sized, P: Path<Out = Box<T>>> {
     inner_path: P,
+}
+
+impl<T: ?Sized, P: Path<Out = Box<T>>> Deref for BoxPathBuilder<T, P> {
+    type Target = P;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner_path
+    }
 }
 
 impl<T: ?Sized, P: Path<Out = Box<T>> + Clone> Clone for BoxPathBuilder<T, P> {

@@ -2,6 +2,9 @@ use std::cell::{Ref, RefCell};
 
 use crate::{guarantee::PathExtGuaranteed, path::Path, trackable::Trackable, wakers::StoreWakers};
 
+/// A store is where your "state" data lives. It is in essence a big [RefCell].
+/// There are also supporting mechanisms to enable subscriptions and
+/// mutation notifications.
 pub struct Store<S> {
     data: RefCell<S>,
     wakers: RefCell<StoreWakers>,
@@ -19,12 +22,46 @@ impl<S> Store<S> {
     }
 }
 impl<S: Trackable> Store<S> {
+    /// Use this method to create paths to different pieces of your state.
+    ///
+    /// ```
+    /// # use x_bow::{Trackable, Store, PathExt};
+    ///
+    /// #[derive(Trackable)]
+    /// struct MyStruct<T> {
+    ///     field_1: T,
+    ///     field_2: u64
+    /// }
+    /// let store = Store::new(MyStruct {
+    ///     field_1: MyStruct {
+    ///         field_1: String::new(),
+    ///         field_2: 123
+    ///     },
+    ///     field_2: 456
+    /// });
+    ///
+    /// // path to the root `MyStruct` itself
+    /// let path = store.build_path();
+    ///
+    /// // path to `field_1` in the root `MyStruct`
+    /// let path = store.build_path().field_1();
+    ///
+    /// // path to `field_2` in the root `MyStruct`
+    /// let path = store.build_path().field_2();
+    ///
+    /// // path root -> field_1 -> field_1
+    /// let path = store.build_path().field_1().field_1();
+    ///
+    /// // path root -> field_1 -> field_2
+    /// let path = store.build_path().field_1().field_2();
+    /// ```
     pub fn build_path<'s>(&'s self) -> StoreRoot<'s, S> {
         S::new_path_builder(RootPath { store: self })
     }
 }
 pub type StoreRoot<'s, S> = <S as Trackable>::PathBuilder<RootPath<'s, S>>;
 
+/// The [Path] object to the root of the store.
 pub struct RootPath<'s, S> {
     store: &'s Store<S>,
 }

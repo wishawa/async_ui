@@ -7,6 +7,10 @@ use async_ui_internal_utils::wakers_list::WakerSlot;
 
 use crate::{hash::WakerHashEntry, wakers::StoreWakers};
 
+pub(crate) type HasherType = std::collections::hash_map::DefaultHasher;
+
+/// Used internally to avoid needing to make [visit_hashes][crate::Path::visit_hashes]
+/// a generic method.
 pub struct HashVisitor<'a> {
     pub(crate) hasher: HasherType,
     pub(crate) behavior: HashVisitorBehavior<'a>,
@@ -56,5 +60,3 @@ impl<'a> HashVisitor<'a> {
         }
     }
 }
-
-pub(crate) type HasherType = std::collections::hash_map::DefaultHasher;

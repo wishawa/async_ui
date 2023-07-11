@@ -1,6 +1,7 @@
 use std::{
     cell::{Ref, RefMut},
     hash::Hasher,
+    ops::Deref,
     rc::Rc,
 };
 
@@ -18,6 +19,14 @@ impl<T: Trackable> Trackable for Rc<T> {
 #[into_inner_path(prefix = crate::trackable)]
 pub struct RcPathBuilder<T, P: Path<Out = Rc<T>>> {
     inner_path: P,
+}
+
+impl<T, P: Path<Out = Rc<T>>> Deref for RcPathBuilder<T, P> {
+    type Target = P;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner_path
+    }
 }
 
 impl<T: Trackable, P: Path<Out = Rc<T>>> RcPathBuilder<T, P> {

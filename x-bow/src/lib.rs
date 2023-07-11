@@ -3,7 +3,6 @@ mod guarantee;
 mod hash;
 mod hash_visitor;
 mod impls;
-mod notifier;
 mod path;
 mod path_ext;
 mod path_impl;

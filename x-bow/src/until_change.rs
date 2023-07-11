@@ -10,6 +10,10 @@ use crate::{
     wakers::StoreWakers,
 };
 
+/// A Stream that fires when some data is mutably borrowed.
+///
+/// Get this from [until_change][crate::PathExt::until_change]
+/// or [until_bubbling_change][crate::PathExt::until_bubbling_change].
 pub struct UntilChange<'a> {
     store: &'a RefCell<StoreWakers>,
     last_version: u64,
