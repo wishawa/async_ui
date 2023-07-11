@@ -59,8 +59,11 @@ document.head.appendChild(document.createElement(\"style\")).innerHTML = {style_
             let _ = &*#style_var_name;
         }
     }
-    #(pub const #classes_declaration: &str = #classes_value;)*
-        )
+    #(
+        #[allow(non_upper_case_globals)]
+        pub const #classes_declaration: &str = #classes_value;
+    )*
+    )
 }
 
 fn generate_postfix(input: &str) -> [u8; 8] {
