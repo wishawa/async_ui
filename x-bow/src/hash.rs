@@ -8,6 +8,6 @@ impl WakerHashEntry {
         Self(hash)
     }
     pub fn bubbling_from(hash: u64) -> Self {
-        Self(hash ^ 0b1)
+        Self(hash ^ 0x33b741db0040f7e)
     }
 }
