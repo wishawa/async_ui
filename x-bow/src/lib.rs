@@ -1,3 +1,6 @@
+//! # X-Bow: precise state management
+//!
+
 mod borrow_mut_guard;
 mod guarantee;
 mod hash;
@@ -20,6 +23,7 @@ pub use trackable::{IntoInnerPath, Trackable};
 pub use tracked::Tracked;
 pub use x_bow_macros::Trackable;
 
+#[doc(hidden)]
 pub mod __private_macro_only {
     pub use super::guarantee::PathExtGuaranteed;
     pub use super::hash_visitor::HashVisitor;

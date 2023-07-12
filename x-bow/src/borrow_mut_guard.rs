@@ -49,7 +49,7 @@ impl<'b, P: Path + ?Sized> Drop for BorrowMutGuard<'b, P> {
     }
 }
 
-fn notify<P: Path + ?Sized>(store: &RefCell<StoreWakers>, path: &P) {
+pub(crate) fn notify<P: Path + ?Sized>(store: &RefCell<StoreWakers>, path: &P) {
     let wakers = &mut *store.borrow_mut();
     let mut visitor = HashVisitor {
         hasher: HasherType::new(),

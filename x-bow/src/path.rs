@@ -16,24 +16,30 @@ pub trait Path {
 
     /// Borrow the data at the given path immutably.
     ///
+    /// **Do not use this**. It is considered "internal" API. Use the equivalent
+    /// [borrow_opt_mut][crate::PathExt::borrow_opt_mut] instead.
+    ///
     /// If there is an existing mutable borrow anywhere in the store,
     /// this method will panic.
+    #[doc(hidden)]
     fn path_borrow(&self) -> Option<Ref<'_, Self::Out>>;
 
     /// Borrow the data at the given path mutably.
     ///
-    /// Unlike [borrow_opt_mut][crate::PathExt::borrow_opt_mut], this method
-    /// **does not notify** listeners. This silence can mess up your application
-    /// logic, so be careful.
+    /// **Do not use this**. It is considered "internal" API. Use the equivalent
+    /// [borrow_opt_mut_without_notifying][crate::PathExt::borrow_opt_mut_without_notifying] instead.
     ///
     /// If there is an existing mutable or immutable borrow anywhere in the store,
     /// this method will panic.
+    #[doc(hidden)]
     fn path_borrow_mut(&self) -> Option<RefMut<'_, Self::Out>>;
 
     /// Call the given visitor function on the hash of this path node and every
     /// ancestor node in the path.
+    #[doc(hidden)]
     fn visit_hashes(&self, visitor: &mut HashVisitor);
 
     /// Used internally for subscription and notification system.
+    #[doc(hidden)]
     fn store_wakers(&self) -> &RefCell<StoreWakers>;
 }

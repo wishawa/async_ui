@@ -1,4 +1,4 @@
-use std::cell::Ref;
+use std::cell::{Ref, RefMut};
 
 use crate::{borrow_mut_guard::BorrowMutGuard, until_change::UntilChange, Path, Trackable};
 
@@ -23,6 +23,24 @@ pub trait PathExt: Path {
     ///
     /// See also: [borrow][crate::PathExtGuaranteed::borrow] - like this method,
     /// but for cases where we know None won't be returned.
+    /// ```
+    /// # use x_bow::{Store, PathExt, Trackable};
+    /// #[derive(Trackable)]
+    /// #[track(deep)]
+    /// enum MyEnum {
+    ///     Variant1(i32),
+    ///     Variant2(String)
+    /// }
+    /// let store = Store::new(MyEnum::Variant1(5));
+    ///
+    /// let path_to_var1 = store.build_path().Variant1_0();
+    /// // Borrow the `i32` inside the first enum variant.
+    /// assert_eq!(path_to_var1.borrow_opt().as_deref(), Some(&5));
+    ///
+    /// let path_to_var2 = store.build_path().Variant2_0();
+    /// // Can't borrow the `String`; the enum is in another variant.
+    /// assert_eq!(path_to_var2.borrow_opt(), None);
+    /// ```
     fn borrow_opt(&self) -> Option<Ref<'_, <Self as Path>::Out>> {
         self.path_borrow()
     }
@@ -41,10 +59,50 @@ pub trait PathExt: Path {
     ///
     /// See also: [borrow_mut][crate::PathExtGuaranteed::borrow_mut] -
     /// like this method, but for cases where we know None won't be returned.
+    ///
+    /// ```
+    /// # use x_bow::{Store, PathExt, Trackable};
+    /// #[derive(Trackable)]
+    /// #[track(deep)]
+    /// enum MyEnum {
+    ///     Variant1(i32),
+    ///     Variant2(String)
+    /// }
+    /// let store = Store::new(MyEnum::Variant1(5));
+    ///
+    /// let path_to_var1 = store.build_path().Variant1_0();
+    /// // The enum is in the first variant so we are sure we can borrow
+    /// // and mutate the `i32`.
+    /// path_to_var1.borrow_opt_mut().unwrap() += 1;
+    /// assert_eq!(path_to_var1.borrow_opt().as_deref(), Some(&6));
+    ///
+    /// let path_to_var2 = store.build_path().Variant2_0();
+    /// assert_eq!(path_to_var2.borrow_opt_mut(), None);
+    /// ```
     fn borrow_opt_mut(&self) -> Option<BorrowMutGuard<'_, Self>> {
         self.path_borrow_mut()
             .map(|inner| BorrowMutGuard::new(inner, self.store_wakers(), self))
     }
+
+    /// Borrow the data at this path mutably **without notifying** any listener.
+    ///
+    /// Use this in conjunction with the [notify_changed][PathExt::notify_changed] method.
+    fn borrow_opt_mut_without_notifying(&self) -> Option<RefMut<'_, <Self as Path>::Out>> {
+        self.path_borrow_mut()
+    }
+
+    /// Notify all listeners that the data at this location has changed.
+    ///
+    /// This method is not needed when using [borrow_opt_mut][PathExt::borrow_opt_mut] or
+    /// [borrow_mut][crate::PathExtGuaranteed::borrow_mut]; in those cases
+    /// notifications are sent automatically.
+    ///
+    /// This method is useful in the relatively rare situations when you need
+    /// [borrow_opt_mut_without_notifying][PathExt::borrow_opt_mut_without_notifying].
+    fn notify_changed(&self) {
+        crate::borrow_mut_guard::notify(self.store_wakers(), self);
+    }
+
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
     /// borrow is taken of this or any encompassing piece of data.
     ///
