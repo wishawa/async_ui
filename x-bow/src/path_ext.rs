@@ -71,9 +71,9 @@ pub trait PathExt: Path {
     ///
     /// let stream = path.until_change();
     ///
-    /// path.borrow_opt_mut() // will fire the stream
-    /// path.field_1().borrow_opt_mut() // will fire the stream
-    /// path.field_2().borrow_opt_mut() // won't fire the stream
+    /// path.borrow_opt_mut(); // will fire the stream
+    /// path.field_1().borrow_opt_mut(); // will fire the stream
+    /// path.field_2().borrow_opt_mut(); // won't fire the stream
     /// ```
     fn until_change(&self) -> UntilChange<'_> {
         UntilChange::new(self.store_wakers(), self)
@@ -93,6 +93,7 @@ pub trait PathExt: Path {
     /// # use x_bow::{Trackable, Store, PathExt};
     ///
     /// #[derive(Trackable)]
+    /// #[track(deep)]
     /// struct MyStruct<T> {
     ///     field_1: T,
     ///     field_2: u64
@@ -105,16 +106,18 @@ pub trait PathExt: Path {
     ///     field_2: 456
     /// });
     ///
-    /// // path to `field_1` in the root `MyStruct`
-    /// let path = store.build_path().field_1();
+    /// // path to the root `MyStruct` itself.
+    /// let root = store.build_path();
     ///
-    /// let stream = path.until_bubbling_change();
+    /// // path to the `field_1` in the root `MyStruct`.
+    /// let listening = root.field_1();
+    /// let stream = listening.until_bubbling_change();
     ///
-    /// path.field_1().borrow_opt_mut() // will fire the stream
-    /// path.field_1().field_1().borrow_opt_mut() // will fire the stream
-    /// path.field_1().field_2().borrow_opt_mut() // will fire the stream
-    /// path.borrow_opt_mut() // won't fire the stream
-    /// path.field_2().borrow_opt_mut() // won't fire the stream
+    /// root.field_1().borrow_opt_mut(); // will fire the stream
+    /// root.field_1().field_1().borrow_opt_mut(); // will fire the stream
+    /// root.field_1().field_2().borrow_opt_mut(); // will fire the stream
+    /// root.borrow_opt_mut(); // won't fire the stream
+    /// root.field_2().borrow_opt_mut(); // won't fire the stream
     /// ```
     fn until_bubbling_change(&self) -> UntilChange<'_> {
         UntilChange::new_bubbling(self.store_wakers(), self)

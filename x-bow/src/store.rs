@@ -28,6 +28,7 @@ impl<S: Trackable> Store<S> {
     /// # use x_bow::{Trackable, Store, PathExt};
     ///
     /// #[derive(Trackable)]
+    /// #[track(deep)]
     /// struct MyStruct<T> {
     ///     field_1: T,
     ///     field_2: u64
