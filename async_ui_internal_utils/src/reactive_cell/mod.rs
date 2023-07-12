@@ -6,7 +6,7 @@ use std::{
     fmt::Debug,
 };
 
-use crate::wakers_list::{WakersList, WakersSublist};
+use crate::wakers_arena::{WakersArena, WakersSublist};
 
 use self::borrow_mut::ReactiveCellBorrowMut;
 
@@ -39,7 +39,7 @@ impl<T: Clone> Clone for ReactiveCell<T> {
         Self {
             inner: RefCell::new(Inner {
                 data: old_inner.data.clone(),
-                listeners: WakersList::new(),
+                listeners: WakersArena::new(),
                 version: 1,
             }),
         }
@@ -54,7 +54,7 @@ impl<T: Default> Default for ReactiveCell<T> {
 
 struct Inner<T> {
     data: T,
-    listeners: WakersList,
+    listeners: WakersArena,
     version: u64,
 }
 
@@ -62,7 +62,7 @@ const SUBLIST: WakersSublist = WakersSublist(1);
 
 impl<T> ReactiveCell<T> {
     pub fn new(data: T) -> Self {
-        let mut listeners = WakersList::new();
+        let mut listeners = WakersArena::new();
         listeners.add_sublist();
         let inner = RefCell::new(Inner {
             data,

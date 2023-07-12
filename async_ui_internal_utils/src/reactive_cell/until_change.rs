@@ -2,7 +2,7 @@ use std::{future::Future, task::Poll};
 
 use futures_core::Stream;
 
-use crate::wakers_list::WakerSlot;
+use crate::wakers_arena::WakerSlot;
 
 use super::{ReactiveCell, SUBLIST};
 

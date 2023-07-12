@@ -1,14 +1,10 @@
 use std::{mem::replace, task::Waker};
 
-use smallvec::SmallVec;
-
 use crate::dummy_waker::dummy_waker;
 
-pub struct WakersList {
-    // Two linked lists in an Vec arena.
-    // One is for free slots, other for used slots.
-    // The first two items are the head of each linked list.
-    items: SmallVec<[Item; 2]>,
+/// An arena to contain many doubly-linked lists of wakers.
+pub struct WakersArena {
+    items: Vec<Item>,
 }
 
 #[derive(Debug, Clone)]
@@ -25,23 +21,27 @@ impl WakerSlot {
 
 pub struct WakersSublist(pub(crate) usize);
 
-impl WakersList {
+impl WakersArena {
+    /// Create a new arena with no list in it yet.
     pub fn new() -> Self {
         Self {
-            items: smallvec::smallvec![
+            items: vec![
                 Item {
                     waker: dummy_waker(),
                     next: 1,
-                    prev: 1
+                    prev: 1,
                 },
                 Item {
                     waker: dummy_waker(),
                     prev: 0,
-                    next: 0
-                }
+                    next: 0,
+                },
             ],
         }
     }
+    /// Create an empty doubly-linked list of wakers in the arena.
+    ///
+    /// The returned [WakersSublist] can be used to access this list later.
     pub fn add_sublist(&mut self) -> WakersSublist {
         let free_head = &mut self.items[0];
         // Is the free list empty?
@@ -68,6 +68,10 @@ impl WakersList {
         }
         WakersSublist(index)
     }
+    /// Allocate space in a list for a waker.
+    ///
+    /// The allocated slot will have a dummy no-op waker put in.
+    /// Use [update][WakersArena::update] to set your actual waker.
     pub fn add(&mut self, &WakersSublist(sublist_head_index): &WakersSublist) -> WakerSlot {
         let free_head = &mut self.items[0];
         // Is the free list empty?
@@ -98,6 +102,7 @@ impl WakersList {
         }
         WakerSlot(index)
     }
+    /// Remove a previously added waker.
     pub fn remove(&mut self, handle: &WakerSlot) {
         let &WakerSlot(index) = handle;
         // add to free list
@@ -131,12 +136,18 @@ impl WakersList {
             false
         }
     }
+    /// Set the waker in the slot.
+    ///
+    /// This method checks [Waker::will_wake] first.
     pub fn update(&mut self, &WakerSlot(slot): &WakerSlot, waker: &Waker) {
         let target = &mut self.items[slot].waker;
         if !target.will_wake(waker) {
             *target = waker.to_owned();
         }
     }
+    /// Iterate over all the wakers in the given sublist.
+    ///
+    /// Useful for waking the wakers.
     pub fn iter<'s>(
         &'s self,
         &WakersSublist(sublist_head_index): &WakersSublist,
@@ -169,7 +180,7 @@ impl WakersList {
     }
 }
 
-impl Default for WakersList {
+impl Default for WakersArena {
     fn default() -> Self {
         Self::new()
     }
