@@ -41,6 +41,12 @@ pub struct Dynamic<F: Future + Unpin> {
     next: RefCell<(Waker, Next<F>)>,
 }
 
+impl<F: Future + Unpin> Default for Dynamic<F> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<F: Future + Unpin> Dynamic<F> {
     /// Create a new `Dynamic`, containing no future inside.
     pub fn new() -> Self {

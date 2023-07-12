@@ -29,7 +29,7 @@ impl<'a> UntilChange<'a> {
                 let mut visitor = HashVisitor {
                     hasher: HasherType::new(),
                     behavior: HashVisitorBehavior::BuildRegularListeners {
-                        wakers: &mut *store,
+                        wakers: &mut store,
                         notifiers_list: &mut slots,
                     },
                 };

@@ -63,7 +63,7 @@ impl<T, P: Path<Out = Vec<T>> + Clone> Clone for VecIndexMapper<T, P> {
     fn clone(&self) -> Self {
         Self {
             parent: self.parent.clone(),
-            index: self.index.clone(),
+            index: self.index,
         }
     }
 }
@@ -72,18 +72,12 @@ impl<T, P: Path<Out = Vec<T>> + Copy> Copy for VecIndexMapper<T, P> {}
 impl<T, P: Path<Out = Vec<T>>> Path for VecIndexMapper<T, P> {
     type Out = T;
 
-    fn path_borrow<'d>(&'d self) -> Option<std::cell::Ref<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow(&self) -> Option<std::cell::Ref<'_, Self::Out>> {
         self.parent
             .path_borrow()
             .and_then(|r| Ref::filter_map(r, |s| s.get(self.index)).ok())
     }
-    fn path_borrow_mut<'d>(&'d self) -> Option<std::cell::RefMut<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow_mut(&self) -> Option<std::cell::RefMut<'_, Self::Out>> {
         self.parent
             .path_borrow_mut()
             .and_then(|r| RefMut::filter_map(r, |s| s.get_mut(self.index)).ok())

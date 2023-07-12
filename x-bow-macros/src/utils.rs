@@ -1,12 +1,6 @@
 use proc_macro2::Ident;
 use quote::quote;
-use syn::{AngleBracketedGenericArguments, Member, Token};
-
-use syn;
-
-use syn::punctuated::Punctuated;
-
-use syn::Generics;
+use syn::{punctuated::Punctuated, AngleBracketedGenericArguments, Generics, Member, Token};
 
 pub(crate) fn unbracket_generics(
     generics: &Generics,

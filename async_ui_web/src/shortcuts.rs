@@ -38,7 +38,7 @@ pub trait ShortcutClassList {
 
 /// Convert an iterator of str to a JS array of strings.
 fn strs_to_js_array<'a>(values: impl Iterator<Item = &'a str>) -> Array {
-    values.into_iter().map(|x| JsValue::from_str(x)).collect()
+    values.into_iter().map(JsValue::from_str).collect()
 }
 
 impl ShortcutClassList for web_sys::Element {

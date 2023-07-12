@@ -23,10 +23,7 @@ pub trait PathExt: Path {
     ///
     /// See also: [borrow][crate::PathExtGuaranteed::borrow] - like this method,
     /// but for cases where we know None won't be returned.
-    fn borrow_opt<'d>(&'d self) -> Option<Ref<'d, <Self as Path>::Out>>
-    where
-        Self: 'd,
-    {
+    fn borrow_opt(&self) -> Option<Ref<'_, <Self as Path>::Out>> {
         self.path_borrow()
     }
     /// Borrow the data at this path mutably, notifying all the relevant
@@ -44,7 +41,7 @@ pub trait PathExt: Path {
     ///
     /// See also: [borrow_mut][crate::PathExtGuaranteed::borrow_mut] -
     /// like this method, but for cases where we know None won't be returned.
-    fn borrow_opt_mut<'d>(&'d self) -> Option<BorrowMutGuard<'d, Self>> {
+    fn borrow_opt_mut(&self) -> Option<BorrowMutGuard<'_, Self>> {
         self.path_borrow_mut()
             .map(|inner| BorrowMutGuard::new(inner, self.store_wakers(), self))
     }
@@ -78,7 +75,7 @@ pub trait PathExt: Path {
     /// path.field_1().borrow_opt_mut() // will fire the stream
     /// path.field_2().borrow_opt_mut() // won't fire the stream
     /// ```
-    fn until_change<'d>(&'d self) -> UntilChange<'d> {
+    fn until_change(&self) -> UntilChange<'_> {
         UntilChange::new(self.store_wakers(), self)
     }
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
@@ -119,7 +116,7 @@ pub trait PathExt: Path {
     /// path.borrow_opt_mut() // won't fire the stream
     /// path.field_2().borrow_opt_mut() // won't fire the stream
     /// ```
-    fn until_bubbling_change<'d>(&'d self) -> UntilChange<'d> {
+    fn until_bubbling_change(&self) -> UntilChange<'_> {
         UntilChange::new_bubbling(self.store_wakers(), self)
     }
 

@@ -18,9 +18,7 @@ pub trait Path {
     ///
     /// If there is an existing mutable borrow anywhere in the store,
     /// this method will panic.
-    fn path_borrow<'d>(&'d self) -> Option<Ref<'d, Self::Out>>
-    where
-        Self: 'd;
+    fn path_borrow(&self) -> Option<Ref<'_, Self::Out>>;
 
     /// Borrow the data at the given path mutably.
     ///
@@ -30,9 +28,7 @@ pub trait Path {
     ///
     /// If there is an existing mutable or immutable borrow anywhere in the store,
     /// this method will panic.
-    fn path_borrow_mut<'d>(&'d self) -> Option<RefMut<'d, Self::Out>>
-    where
-        Self: 'd;
+    fn path_borrow_mut(&self) -> Option<RefMut<'_, Self::Out>>;
 
     /// Call the given visitor function on the hash of this path node and every
     /// ancestor node in the path.

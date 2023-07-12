@@ -51,16 +51,10 @@ impl<T: ?Sized, P: Path<Out = Rc<T>> + Clone> Clone for RcMapper<T, P> {
 impl<T: ?Sized, P: Path<Out = Rc<T>>> Path for RcMapper<T, P> {
     type Out = T;
 
-    fn path_borrow<'d>(&'d self) -> Option<std::cell::Ref<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow(&self) -> Option<std::cell::Ref<'_, Self::Out>> {
         self.parent.path_borrow().map(|r| Ref::map(r, |rc| &**rc))
     }
-    fn path_borrow_mut<'d>(&'d self) -> Option<std::cell::RefMut<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow_mut(&self) -> Option<std::cell::RefMut<'_, Self::Out>> {
         self.parent
             .path_borrow_mut()
             .and_then(|r| RefMut::filter_map(r, |rc| Rc::get_mut(rc)).ok())

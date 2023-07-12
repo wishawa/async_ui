@@ -26,17 +26,11 @@ impl<T, P: Path<Out = T> + Clone> Clone for TransparentDerefMapper<T, P> {
 impl<T: Deref + DerefMut, P: Path<Out = T>> Path for TransparentDerefMapper<T, P> {
     type Out = T::Target;
 
-    fn path_borrow<'d>(&'d self) -> Option<std::cell::Ref<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow(&self) -> Option<std::cell::Ref<'_, Self::Out>> {
         self.parent.path_borrow().map(|r| Ref::map(r, |t| &**t))
     }
 
-    fn path_borrow_mut<'d>(&'d self) -> Option<std::cell::RefMut<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow_mut(&self) -> Option<std::cell::RefMut<'_, Self::Out>> {
         self.parent
             .path_borrow_mut()
             .map(|r| RefMut::map(r, |t| &mut **t))

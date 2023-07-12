@@ -85,19 +85,13 @@ impl<K: Eq + Clone + Hash + Copy, V, P: Path<Out = HashMap<K, V>> + Copy> Copy
 impl<K: Eq + Clone + Hash, V, P: Path<Out = HashMap<K, V>>> Path for HashMapKeyMapper<K, V, P> {
     type Out = V;
 
-    fn path_borrow<'d>(&'d self) -> Option<Ref<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow(&self) -> Option<Ref<'_, Self::Out>> {
         self.parent
             .path_borrow()
             .and_then(|r| Ref::filter_map(r, |hm| hm.get(&self.key)).ok())
     }
 
-    fn path_borrow_mut<'d>(&'d self) -> Option<RefMut<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow_mut(&self) -> Option<RefMut<'_, Self::Out>> {
         self.parent
             .path_borrow_mut()
             .and_then(|r| RefMut::filter_map(r, |hm| hm.get_mut(&self.key)).ok())

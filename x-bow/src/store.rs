@@ -1,4 +1,4 @@
-use std::cell::{Ref, RefCell};
+use std::cell::{Ref, RefCell, RefMut};
 
 use crate::{guarantee::PathExtGuaranteed, path::Path, trackable::Trackable, wakers::StoreWakers};
 
@@ -55,7 +55,7 @@ impl<S: Trackable> Store<S> {
     /// // path root -> field_1 -> field_2
     /// let path = store.build_path().field_1().field_2();
     /// ```
-    pub fn build_path<'s>(&'s self) -> StoreRoot<'s, S> {
+    pub fn build_path(&self) -> StoreRoot<'_, S> {
         S::new_path_builder(RootPath { store: self })
     }
 }
@@ -68,9 +68,7 @@ pub struct RootPath<'s, S> {
 
 impl<'s, S> Clone for RootPath<'s, S> {
     fn clone(&self) -> Self {
-        Self {
-            store: self.store.clone(),
-        }
+        Self { store: self.store }
     }
 }
 impl<'s, S> Copy for RootPath<'s, S> {}
@@ -78,17 +76,11 @@ impl<'s, S> Copy for RootPath<'s, S> {}
 impl<'s, S> Path for RootPath<'s, S> {
     type Out = S;
 
-    fn path_borrow<'d>(&'d self) -> Option<Ref<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow(&self) -> Option<Ref<'_, Self::Out>> {
         Some(self.store.data.borrow())
     }
 
-    fn path_borrow_mut<'d>(&'d self) -> Option<std::cell::RefMut<'d, Self::Out>>
-    where
-        Self: 'd,
-    {
+    fn path_borrow_mut(&self) -> Option<RefMut<'_, Self::Out>> {
         Some(self.store.data.borrow_mut())
     }
 

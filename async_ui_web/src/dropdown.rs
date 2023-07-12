@@ -21,6 +21,12 @@ pub struct Dropdown<K: Eq + Hash + Clone> {
     inner: RefCell<Inner<K>>,
 }
 
+impl<K: Eq + Hash + Clone> Default for Dropdown<K> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<K: Eq + Hash + Clone> Deref for Dropdown<K> {
     type Target = Select;
     fn deref(&self) -> &Self::Target {
@@ -79,11 +85,7 @@ impl<K: Eq + Hash + Clone> Dropdown<K> {
         let mut new_opts_list = Vec::new();
         for (opt, text) in new_opts {
             let should_put = if prev_opts_set.remove(&opt) {
-                if prev_opts_iter.next_if_eq(&&opt).is_some() {
-                    false
-                } else {
-                    true
-                }
+                prev_opts_iter.next_if_eq(&&opt).is_none()
             } else {
                 let elem = OptElem::new();
                 map.insert(opt.clone(), elem);
@@ -95,8 +97,7 @@ impl<K: Eq + Hash + Clone> Dropdown<K> {
                         map.get(&opt).unwrap(),
                         prev_opts_iter
                             .peek()
-                            .map(|next| map.get(next).unwrap().as_ref())
-                            .as_deref(),
+                            .map(|next| map.get(next).unwrap().as_ref()),
                     )
                     .unwrap_throw();
             }

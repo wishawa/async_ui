@@ -1,6 +1,6 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{parse_quote, DeriveInput, Field, Lifetime, Path, Token, Variant};
+use syn::{parse_quote, DeriveInput, Field, Path, Token, Variant};
 
 use crate::{
     attributes::TrackMode,
@@ -131,7 +131,7 @@ pub(crate) fn generate(
     });
     let (impl_params_unbracketed, type_params_unbracketed) = unbracket_generics(generics);
 
-    let default_mode = TrackMode::from_attributes(&*attrs, &TrackMode::Shallow)?;
+    let default_mode = TrackMode::from_attributes(attrs, &TrackMode::Shallow)?;
     let remote_name = &remote.segments.last().unwrap().ident;
 
     let is_struct;
@@ -156,7 +156,7 @@ pub(crate) fn generate(
             is_struct = false;
             for variant in data.variants.iter() {
                 for (index, field) in variant.fields.iter().enumerate() {
-                    match TrackMode::from_attributes(&*field.attrs, &default_mode)? {
+                    match TrackMode::from_attributes(&field.attrs, &default_mode)? {
                         x @ TrackMode::Deep | x @ TrackMode::Shallow => {
                             filtered_fields.push(ToGenField::Enum {
                                 variant,
@@ -172,7 +172,7 @@ pub(crate) fn generate(
         }
         syn::Data::Union(data) => {
             return Err(syn::Error::new_spanned(
-                &data.union_token,
+                data.union_token,
                 "union not supported",
             ));
         }
@@ -183,7 +183,6 @@ pub(crate) fn generate(
     let parent_generic_param = Ident::new("TrackParent", Span::mixed_site());
     let parent_value_name = Ident::new("parent", Span::mixed_site());
     let inner_path_name = format_ident!("inner_path", span = Span::mixed_site());
-    let data_lt = Lifetime::new("'xbow", Span::mixed_site());
 
     for (field_index, field) in filtered_fields.iter().enumerate() {
         let field_name = field.to_name();
@@ -233,17 +232,13 @@ pub(crate) fn generate(
             impl <#impl_params_unbracketed #parent_generic_param: #prefix::Path<Out = #remote_name #type_params>> #prefix::Path for #mapper_name <#type_params_unbracketed #parent_generic_param> #where_clause {
                 type Out = #field_type;
 
-                fn path_borrow<#data_lt>(&#data_lt self) -> ::core::option::Option<::std::cell::Ref<#data_lt, Self::Out>>
-                where
-                    Self: #data_lt,
+                fn path_borrow(&self) -> ::core::option::Option<::std::cell::Ref<'_, Self::Out>>
                 {
                     let #input_ident = #prefix::Path::path_borrow(&self.#parent_value_name);
                     #access
                 }
 
-                fn path_borrow_mut<#data_lt>(&#data_lt self) -> ::core::option::Option<::std::cell::RefMut<#data_lt, Self::Out>>
-                where
-                    Self: #data_lt,
+                fn path_borrow_mut(&self) -> ::core::option::Option<::std::cell::RefMut<'_, Self::Out>>
                 {
                     let #input_ident = #prefix::Path::path_borrow_mut(&self.#parent_value_name);
                     #access_mut

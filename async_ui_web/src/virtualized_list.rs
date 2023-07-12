@@ -148,7 +148,7 @@ impl<'c, Fut: Future + 'c, Renderer: FnMut(usize) -> Fut> VirtualizedList<'c, Fu
         });
         join((spf_render, self.list.render(), spb_render, async {
             let _observer = Observer::new(
-                &self.root,
+                self.root,
                 &[spf, spb],
                 self.wake_closure.as_ref().unchecked_ref(),
             );
