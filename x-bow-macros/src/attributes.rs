@@ -2,7 +2,6 @@ use proc_macro2::Ident;
 use syn::Attribute;
 
 pub(crate) const ATTRIBUTE_PATH: &str = "x_bow";
-pub(crate) const ATTRIBUTE_TRACK_ALL: &str = "track_all";
 pub(crate) const ATTRIBUTE_TRACK: &str = "track";
 pub(crate) const ATTRIBUTE_TRACK_DEEP: &str = "deep";
 pub(crate) const ATTRIBUTE_TRACK_SHALLOW: &str = "shallow";

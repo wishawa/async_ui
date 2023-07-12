@@ -3,9 +3,7 @@ mod generate;
 mod helpers;
 mod utils;
 
-use attributes::{
-    ATTRIBUTE_MODULE_PREFIX, ATTRIBUTE_PATH, ATTRIBUTE_REMOTE_TYPE, ATTRIBUTE_TRACK_ALL,
-};
+use attributes::{ATTRIBUTE_MODULE_PREFIX, ATTRIBUTE_PATH, ATTRIBUTE_REMOTE_TYPE};
 use proc_macro2::TokenStream;
 use syn::{parse_macro_input, parse_quote, DeriveInput, Expr, Path};
 
@@ -36,7 +34,7 @@ pub fn derive_into_inner_path(input: proc_macro::TokenStream) -> proc_macro::Tok
     .into()
 }
 
-#[proc_macro_derive(Trackable, attributes(x_bow, track_all, track))]
+#[proc_macro_derive(Trackable, attributes(x_bow, track))]
 pub fn derive_trackable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match derive(input) {
@@ -48,7 +46,6 @@ pub fn derive_trackable(input: proc_macro::TokenStream) -> proc_macro::TokenStre
 fn derive(ast: DeriveInput) -> syn::Result<TokenStream> {
     let mut remote_path = None;
     let mut prefix_path = None;
-    let mut track_all = false;
     ast.attrs.iter().for_each(|attr| {
         if attr.path().is_ident(ATTRIBUTE_PATH) {
             if let Ok(syn::ExprAssign { left, right, .. }) = attr.parse_args() {
@@ -62,7 +59,6 @@ fn derive(ast: DeriveInput) -> syn::Result<TokenStream> {
                 }
             }
         }
-        track_all |= attr.path().is_ident(ATTRIBUTE_TRACK_ALL);
     });
     let remote_path = remote_path.unwrap_or_else(|| Path::from(ast.ident.clone()));
     let prefix_path = prefix_path.unwrap_or_else(|| parse_quote!(::x_bow::__private_macro_only));

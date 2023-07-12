@@ -1,6 +1,6 @@
 use std::{cell::RefCell, hash::Hasher, task::Poll};
 
-use async_ui_internal_utils::wakers_list::WakerSlot;
+use async_ui_internal_utils::wakers_arena::WakerSlot;
 use futures_core::Stream;
 
 use crate::{

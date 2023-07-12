@@ -60,6 +60,10 @@ impl<S: Trackable> Store<S> {
         S::new_path_builder(RootPath { store: self })
     }
 }
+
+/// The PathBuilder pointing to the root data type in the store itself.
+///
+/// This is obtained by [Store::build_path].
 pub type StoreRoot<'s, S> = <S as Trackable>::PathBuilder<RootPath<'s, S>>;
 
 /// The [Path] object to the root of the store.

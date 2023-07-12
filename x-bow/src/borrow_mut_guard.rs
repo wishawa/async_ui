@@ -15,6 +15,7 @@ use crate::{
 ///
 /// Obtain this guard through the [borrow_mut][crate::PathExtGuaranteed::borrow_mut]
 /// or [borrow_opt_mut][crate::PathExt::borrow_opt_mut] method.
+// TODO: add `must_not_suspend` lint.
 pub struct BorrowMutGuard<'b, P: Path + ?Sized> {
     inner: RefMut<'b, P::Out>,
     store: &'b RefCell<StoreWakers>,

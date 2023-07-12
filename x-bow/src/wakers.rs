@@ -1,13 +1,13 @@
 use std::task::Waker;
 
-use async_ui_internal_utils::wakers_list::{WakerSlot, WakersList, WakersSublist};
+use async_ui_internal_utils::wakers_arena::{WakerSlot, WakersArena, WakersSublist};
 
 use nohash_hasher::IntMap;
 
 use crate::hash::WakerHashEntry;
 
 pub struct StoreWakers {
-    all_wakers: WakersList,
+    all_wakers: WakersArena,
     map: IntMap<u64, Entry>,
 }
 
@@ -16,7 +16,7 @@ struct Entry {
     version: u64,
 }
 impl Entry {
-    fn new(all_wakers: &mut WakersList) -> Self {
+    fn new(all_wakers: &mut WakersArena) -> Self {
         Self {
             sublist: all_wakers.add_sublist(),
             version: 1,
@@ -26,7 +26,7 @@ impl Entry {
 
 pub(crate) struct WakerApi<'a> {
     entry: &'a mut Entry,
-    all: &'a mut WakersList,
+    all: &'a mut WakersArena,
 }
 impl<'a> WakerApi<'a> {
     pub fn add_waker_slot(&mut self) -> WakerSlot {
@@ -43,7 +43,7 @@ impl<'a> WakerApi<'a> {
 impl StoreWakers {
     pub(crate) fn new() -> Self {
         Self {
-            all_wakers: WakersList::new(),
+            all_wakers: WakersArena::new(),
             map: IntMap::default(),
         }
     }

@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use async_ui_internal_utils::wakers_list::WakerSlot;
+use async_ui_internal_utils::wakers_arena::WakerSlot;
 
 use crate::{hash::WakerHashEntry, wakers::StoreWakers};
 

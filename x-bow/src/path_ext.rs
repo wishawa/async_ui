@@ -39,11 +39,15 @@ pub trait PathExt: Path {
     ///
     /// let path_to_var2 = store.build_path().Variant2_0();
     /// // Can't borrow the `String`; the enum is in another variant.
-    /// assert_eq!(path_to_var2.borrow_opt(), None);
+    /// assert!(path_to_var2.borrow_opt().is_none());
     /// ```
+    ///
+    /// #### Time Complexity
+    /// O(L) where L is the length of this path
     fn borrow_opt(&self) -> Option<Ref<'_, <Self as Path>::Out>> {
         self.path_borrow()
     }
+
     /// Borrow the data at this path mutably, notifying all the relevant
     /// change listeners when the returned borrow guard is dropped.
     ///
@@ -73,12 +77,19 @@ pub trait PathExt: Path {
     /// let path_to_var1 = store.build_path().Variant1_0();
     /// // The enum is in the first variant so we are sure we can borrow
     /// // and mutate the `i32`.
-    /// path_to_var1.borrow_opt_mut().unwrap() += 1;
+    /// *path_to_var1.borrow_opt_mut().unwrap() += 1;
     /// assert_eq!(path_to_var1.borrow_opt().as_deref(), Some(&6));
     ///
     /// let path_to_var2 = store.build_path().Variant2_0();
-    /// assert_eq!(path_to_var2.borrow_opt_mut(), None);
+    /// assert!(path_to_var2.borrow_opt_mut().is_none());
     /// ```
+    ///
+    /// #### Time Complexity
+    /// O(L + D_1 + D_2 + ... + D_N)
+    /// where L is the length of this path
+    /// and D_i is the length of the path of the ith subscriber
+    /// (N is the number of subscribers that will be woken by the mutation,
+    /// **not** the total number of subscribers in the store)
     fn borrow_opt_mut(&self) -> Option<BorrowMutGuard<'_, Self>> {
         self.path_borrow_mut()
             .map(|inner| BorrowMutGuard::new(inner, self.store_wakers(), self))
@@ -99,8 +110,36 @@ pub trait PathExt: Path {
     ///
     /// This method is useful in the relatively rare situations when you need
     /// [borrow_opt_mut_without_notifying][PathExt::borrow_opt_mut_without_notifying].
+    ///
+    /// #### Time Complexity
+    /// Same as [borrow_opt_mut][PathExt::borrow_opt_mut].
     fn notify_changed(&self) {
         crate::borrow_mut_guard::notify(self.store_wakers(), self);
+    }
+
+    /// Clone the data identified by this path.
+    ///
+    /// Equivalent to `path.borrow_opt().as_deref().map(Clone::clone)`.
+    fn get_cloned(&self) -> Option<Self::Out>
+    where
+        Self::Out: Clone,
+    {
+        self.borrow_opt().as_deref().map(Clone::clone)
+    }
+
+    /// Set the data identified by this path, notifying listeners.
+    ///
+    /// Returns whether or not the data was set.
+    ///
+    /// Equivalent to `self.borrow_opt_mut().as_deref_mut().map(|s| *s = data).is_some()`.
+    fn set(&self, data: Self::Out) -> bool
+    where
+        Self::Out: Sized,
+    {
+        self.borrow_opt_mut()
+            .as_deref_mut()
+            .map(|s| *s = data)
+            .is_some()
     }
 
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
@@ -112,11 +151,9 @@ pub trait PathExt: Path {
     /// prefix of this one, the stream will fire.
     ///
     /// **The stream may fire spuriously**.
-    /// Although the chance of this happening is extremely low.
-    ///
+    /// Although the chance of this happening is [extremely low](crate#hash-collision).
     /// ```
     /// # use x_bow::{Trackable, Store, PathExt};
-    ///
     /// #[derive(Default, Trackable)]
     /// struct MyStruct {
     ///     field_1: i32,
@@ -133,11 +170,17 @@ pub trait PathExt: Path {
     /// path.field_1().borrow_opt_mut(); // will fire the stream
     /// path.field_2().borrow_opt_mut(); // won't fire the stream
     /// ```
+    ///
+    /// #### Time Complexity
+    /// On creation and each [poll][futures_core::stream::Stream::poll_next]:
+    /// O(L) where L is the length of this path
+    #[must_use = "the returned Stream is lazy; poll it or use StreamExt on it"]
     fn until_change(&self) -> UntilChange<'_> {
         UntilChange::new(self.store_wakers(), self)
     }
+
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
-    /// borrow is taken of this or any encompassing piece of data.
+    /// borrow is taken of this piece of data or anything inside it.
     ///
     /// In other words, whenever someone call [borrow_opt_mut][Self::borrow_opt_mut]
     /// or [borrow_mut][crate::PathExtGuaranteed::borrow_mut] on this path
@@ -145,11 +188,10 @@ pub trait PathExt: Path {
     /// path is a prefix of, the stream will fire.
     ///
     /// **The stream may fire spuriously**.
-    /// Although the chance of this happening is extremely low.
+    /// Although the chance of this happening is [extremely low](crate#hash-collision).
     ///
     /// ```
     /// # use x_bow::{Trackable, Store, PathExt};
-    ///
     /// #[derive(Trackable)]
     /// #[track(deep)]
     /// struct MyStruct<T> {
@@ -177,6 +219,13 @@ pub trait PathExt: Path {
     /// root.borrow_opt_mut(); // won't fire the stream
     /// root.field_2().borrow_opt_mut(); // won't fire the stream
     /// ```
+    /// #### Time Complexity
+    /// On creation:
+    /// O(L) where L is the length of this path
+    ///
+    /// On each poll:
+    /// O(1)
+    #[must_use = "the returned Stream is lazy; poll it or use StreamExt on it"]
     fn until_bubbling_change(&self) -> UntilChange<'_> {
         UntilChange::new_bubbling(self.store_wakers(), self)
     }
