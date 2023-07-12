@@ -57,5 +57,5 @@ fn notify<P: Path + ?Sized>(store: &RefCell<StoreWakers>, path: &P) {
     };
     path.visit_hashes(&mut visitor);
     let hash = WakerHashEntry::regular_from(visitor.hasher.finish());
-    wakers.get_entry(hash).wake();
+    wakers.wake_entry(hash);
 }

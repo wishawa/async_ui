@@ -55,7 +55,7 @@ impl<'a> HashVisitor<'a> {
             HashVisitorBehavior::GetHash {} => {}
             HashVisitorBehavior::WakeListeners { wakers } => {
                 let hash = WakerHashEntry::bubbling_from(self.hasher.finish());
-                wakers.get_entry(hash).wake();
+                wakers.wake_entry(hash);
             }
         }
     }

@@ -29,12 +29,6 @@ pub(crate) struct WakerApi<'a> {
     all: &'a mut WakersList,
 }
 impl<'a> WakerApi<'a> {
-    pub fn wake(&mut self) {
-        self.entry.version += 1;
-        self.all
-            .iter(&self.entry.sublist)
-            .for_each(Waker::wake_by_ref)
-    }
     pub fn add_waker_slot(&mut self) -> WakerSlot {
         self.all.add(&self.entry.sublist)
     }
@@ -60,6 +54,14 @@ impl StoreWakers {
                 .entry(hash.value())
                 .or_insert_with(|| Entry::new(&mut self.all_wakers)),
             all: &mut self.all_wakers,
+        }
+    }
+    pub(crate) fn wake_entry(&mut self, hash: WakerHashEntry) {
+        if let Some(entry) = self.map.get_mut(&hash.value()) {
+            entry.version += 1;
+            self.all_wakers
+                .iter(&entry.sublist)
+                .for_each(Waker::wake_by_ref);
         }
     }
     pub(crate) fn remove_waker_slot(&mut self, hash: WakerHashEntry, slot: &WakerSlot) {
