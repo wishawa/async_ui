@@ -3,7 +3,7 @@ members = [
 	"async_ui/",
 	"async_ui_web/",
 	"async_ui_web_core/",
-	"async_ui_web_components/",
+	"async_ui_web_html/",
 	"async_ui_web_macros/",
 	"async_ui_internal_utils/",
 	"x-bow/",

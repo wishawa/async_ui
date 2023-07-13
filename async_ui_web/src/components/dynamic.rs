@@ -27,6 +27,8 @@ join((
     btn.render("increment".render()),
     async {
         loop {
+            // set the future in the slot
+            // to be a future that renders the `count` text
             slot.set_future(count.to_string().render());
             btn.until_click().await;
             count += 1;

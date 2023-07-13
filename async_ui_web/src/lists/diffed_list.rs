@@ -5,7 +5,7 @@ use super::DynamicList;
 /**
 An easy to use list for rendering [Vec] data.
 
-This is less efficient than [ModeledList][crate::ModeledList], but easier
+This is less efficient than [ModeledList][crate::lists::ModeledList], but easier
 to use.
 
 ```

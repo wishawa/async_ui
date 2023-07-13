@@ -72,7 +72,7 @@ impl<'c, Fut: Future + 'c, Renderer: FnMut(usize) -> Fut> VirtualizedList<'c, Fu
     *   `root`: the element in which this list will be scrolling
         (the element where the scrollbar appears; for page scrolling, this is the `<html>`).
         [HtmlElement]s are is usually obtained from accessing the `element` field
-        in elements created by Async UI. For example, [Div][async_ui_web::html::Div]
+        in elements created by Async UI. For example, [Div][crate::html::Div]
         exposes its [HtmlElement] in the `element` field of the `Div` struct.
 
         You are the one responsible for rendering the root, and rendering

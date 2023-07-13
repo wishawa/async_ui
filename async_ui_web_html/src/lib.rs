@@ -46,7 +46,7 @@ pub mod nodes {
     ```
 
     Most types here are named after the HTML tag they represent, for example
-    [Input] corresponds to HTML `<input>`. Their are some exceptions such as
+    [Input] corresponds to HTML `<input>`. There are some exceptions such as
     [Anchor] corresponding to `<a>` and [Bold] corresponding to `<b>`.
     */
     pub use super::common_components::*;

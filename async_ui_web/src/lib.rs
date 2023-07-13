@@ -1,3 +1,8 @@
+/*!
+# Async UI Web: Web UI with Async Rust
+
+*/
+
 pub mod components;
 pub mod executor;
 pub mod lists;

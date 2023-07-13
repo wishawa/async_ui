@@ -29,8 +29,10 @@ pub fn mount_at<F: Future + 'static>(child_future: F, node: web_sys::Node) -> Ta
 /// Start running the given future, letting it render into the `<body>` of the document.
 ///
 /// ```
-/// # use async_ui_web::mount;
-/// # let my_app = || std::future::pending::<()>();
+/// # use async_ui_web::{mount, prelude_traits::*};
+/// async fn my_app() {
+///     "Hello World".render().await;
+/// }
 /// # let _ = || {
 /// mount(my_app());
 /// # };

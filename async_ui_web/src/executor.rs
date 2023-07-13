@@ -14,6 +14,15 @@ thread_local! {
 
 /// Get the executor that is driving the framework.
 /// Use this executor to spawn your own tasks if you want.
+///
+/// ```
+/// # use async_ui_web::executor::get_executor;
+/// # async fn some_async_function() {}
+/// # fn example() {
+/// let exe = get_executor();
+/// let task = exe.spawn(some_async_function());
+/// # }
+/// ```
 pub fn get_executor() -> &'static LocalExecutor<'static> {
     EXECUTOR.with(|cell| {
         *cell.get_or_init(|| {
