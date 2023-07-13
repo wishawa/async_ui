@@ -3,10 +3,10 @@ use std::{borrow::Borrow, cell::RefCell, collections::HashSet, future::Future, h
 use crate::DynamicList;
 
 /**
-An easy to use list.
+An easy to use list for rendering [Vec] data.
 
-This is less efficient than [DynamicList][crate::DynamicList], but for use cases
-with ~1000 items it should be fine.
+This is less efficient than [ModeledList][crate::ModeledList], but easier
+to use.
 
 ```
 # use async_ui_web::prelude_traits::*;

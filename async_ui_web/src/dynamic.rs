@@ -35,7 +35,6 @@ join((
 )).await;
 # };
 ```
-
  */
 pub struct Dynamic<F: Future + Unpin> {
     next: RefCell<(Waker, Next<F>)>,

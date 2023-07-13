@@ -24,8 +24,8 @@ For rendering many futures, and adding/removing them dynamically.
 Futures (and the stuff they render) can be
 inserted, removed, or reordered within the list.
 
-Only use this if you need low level control. [DiffedList][super::DiffedList]
-and [VirtualizedList][super::VirtualizedList] are easier to use and more suitable.
+Only use this if you need low level control.
+Often, [ModeledList][super::ModeledList] is easier to use.
 
 ```rust
 # use async_ui_web::DynamicList;
@@ -69,14 +69,15 @@ struct Stored<F: Future> {
     end_marker: web_sys::Node,
 }
 
-impl<K: Eq + Hash, F: Future> DynamicListInner<K, F> {
-    pub fn get_container(&self) -> &web_sys::Node {
-        match &self.containing_node {
+impl ContainingNode {
+    fn get(&self) -> &web_sys::Node {
+        match self {
             ContainingNode::Real(real) => real,
             ContainingNode::Fake(fake) => fake,
         }
     }
 }
+
 impl<'c, K: Eq + Hash, F: Future + 'c> Default for DynamicList<'c, K, F> {
     fn default() -> Self {
         Self::new()
@@ -119,7 +120,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Time complexity: O(1) in Rust/JS code.
     pub fn insert(&self, key: K, future: F, before: Option<&K>) -> bool {
         let mut inner = self.inner.borrow_mut();
-        let container = inner.get_container();
+        let container = inner.containing_node.get();
         let start_marker: web_sys::Node = Comment::new().unwrap_throw().into();
         let end_marker: web_sys::Node = Comment::new().unwrap_throw().into();
         let after = before
@@ -147,7 +148,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
         }) = inner.items.insert(key, stored)
         {
             drop(task);
-            let container = inner.get_container();
+            let container = inner.containing_node.get();
             let _ = container.remove_child(&start_marker).unwrap_throw();
             let _ = container.remove_child(&end_marker).unwrap_throw();
             true
@@ -173,7 +174,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
         }) = inner.items.remove(key)
         {
             drop(task);
-            let container = inner.get_container();
+            let container = inner.containing_node.get();
             let _ = container.remove_child(&start_marker).unwrap_throw();
             let _ = container.remove_child(&end_marker).unwrap_throw();
             true
@@ -213,7 +214,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             .map(|k| &inner.items.get(k).unwrap().start_marker)
             .unwrap_or(&self.list_end_marker);
         let to_move = inner.items.get(to_move).unwrap();
-        let container = inner.get_container();
+        let container = inner.containing_node.get();
         move_nodes_before(
             container,
             &to_move.start_marker,
@@ -240,7 +241,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             return;
         }
         let after_key_1 = item_1.end_marker.next_sibling();
-        let container = inner.get_container();
+        let container = inner.containing_node.get();
         move_nodes_before(
             container,
             &item_1.start_marker,
@@ -260,6 +261,25 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
         K: 't,
     {
         todo!()
+    }
+    /// Retain only the items satisfying the predicate.
+    ///
+    /// Items for which `func` returns `false` will be removed.
+    pub fn retain(&self, mut func: impl FnMut(&K) -> bool) {
+        let inner = &mut *self.inner.borrow_mut();
+        let DynamicListInner {
+            items,
+            containing_node,
+        } = inner;
+        let container = containing_node.get();
+        items.retain(|key, value| {
+            let keep = func(key);
+            if !keep {
+                container.remove_child(&value.start_marker).unwrap_throw();
+                container.remove_child(&value.end_marker).unwrap_throw();
+            }
+            keep
+        });
     }
     /// Render the list here.
     ///

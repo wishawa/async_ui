@@ -70,7 +70,7 @@ impl<K: Eq + Hash + Clone> Dropdown<K> {
         }
         self.select.set_value("");
     }
-    pub fn set_options<'t>(&'t self, new_opts: impl Iterator<Item = (K, &'t str)>) {
+    pub fn set_options<'t>(&'t self, new_opts: impl IntoIterator<Item = (K, &'t str)>) {
         let current_value = self.value();
         let mut bm = self.inner.borrow_mut();
         let Inner {

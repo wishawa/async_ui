@@ -1,3 +1,8 @@
+//! Exposes a [LocalExecutor] for general use.
+//!
+//! Async UI Web creates an app-wide executor
+//! Use the [get_executor] function to access the executor.
+
 use std::{cell::Cell, future::pending};
 
 use async_executor::LocalExecutor;

@@ -6,6 +6,14 @@ use js_sys::Array;
 use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
 pub trait ShortcutRenderStr {
+    /// Render the [str] as an HTML text node with that content.
+    ///
+    /// ```
+    /// # use async_ui_web::shortcut_traits::ShortcutRenderStr;
+    /// # let _ = async {
+    /// "hello world".render().await;
+    /// # };
+    /// ```
     fn render(&self) -> ContainerNodeFuture<Pending<()>>;
 }
 impl ShortcutRenderStr for str {
