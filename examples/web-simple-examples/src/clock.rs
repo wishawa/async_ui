@@ -2,7 +2,7 @@ use std::{f32::consts::FRAC_PI_6, time::Duration};
 use time::Time;
 
 use async_ui_web::{
-    components::{Div, Text},
+    html::{Div, Text},
     join,
     prelude_traits::*,
     NoChild,

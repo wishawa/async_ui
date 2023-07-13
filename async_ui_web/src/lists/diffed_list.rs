@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, cell::RefCell, collections::HashSet, future::Future, hash::Hash};
 
-use crate::DynamicList;
+use super::DynamicList;
 
 /**
 An easy to use list for rendering [Vec] data.
@@ -10,9 +10,9 @@ to use.
 
 ```
 # use async_ui_web::prelude_traits::*;
-# use async_ui_web::components::Button;
+# use async_ui_web::html::Button;
 # use async_ui_web::join;
-# use async_ui_web::DiffedList;
+# use async_ui_web::lists::DiffedList;
 # let _ = async {
 let list = DiffedList::new(|key: &i32| key.to_string().render());
 let mut fibo = vec![1, 1];

@@ -12,7 +12,7 @@ use futures_lite::{Future, StreamExt};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue, UnwrapThrowExt};
 use web_sys::{Element, HtmlElement, IntersectionObserver, IntersectionObserverInit};
 
-use crate::DynamicList;
+use super::DynamicList;
 
 /**
 For displaying large lists.
@@ -21,7 +21,7 @@ Instead of rendering all items at once, this list renders only the part
 that is visible on the screen. This allows very large lists to be displayed.
 
 ```
-# use async_ui_web::{components::Div, prelude_traits::*, VirtualizedList};
+# use async_ui_web::{html::Div, prelude_traits::*, lists::VirtualizedList};
 # async fn app() {
 let root = Div::new();
 let list = VirtualizedList::new(
@@ -72,7 +72,7 @@ impl<'c, Fut: Future + 'c, Renderer: FnMut(usize) -> Fut> VirtualizedList<'c, Fu
     *   `root`: the element in which this list will be scrolling
         (the element where the scrollbar appears; for page scrolling, this is the `<html>`).
         [HtmlElement]s are is usually obtained from accessing the `element` field
-        in elements created by Async UI. For example, [Div][async_ui_web::components::Div]
+        in elements created by Async UI. For example, [Div][async_ui_web::html::Div]
         exposes its [HtmlElement] in the `element` field of the `Div` struct.
 
         You are the one responsible for rendering the root, and rendering

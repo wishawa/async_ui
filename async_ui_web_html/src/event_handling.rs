@@ -133,7 +133,7 @@ impl<E: JsCast + 'static> Stream for EventFutureStream<E> {
 
 /// Implemented for [EventTarget].
 /// ```
-/// # use async_ui_web_components::events::EmitEvent;
+/// # use async_ui_web_html::events::EmitEvent;
 /// # let _ = async {
 /// # let event_target = web_sys::EventTarget::new().unwrap();
 /// let _ev = event_target.until_event::<web_sys::Event>("eventname".into()).await;

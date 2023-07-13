@@ -1,5 +1,5 @@
 use async_ui_web::{
-    components::{Button, Text},
+    html::{Button, Text},
     join,
     prelude_traits::*,
     select,

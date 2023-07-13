@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 
-use async_ui_web::{components::Div, shortcut_traits::ShortcutClassList, NoChild, VirtualizedList};
+use async_ui_web::{
+    html::Div, lists::VirtualizedList, shortcut_traits::ShortcutClassList, NoChild,
+};
 
 pub async fn app() {
     let root = Div::new();

@@ -9,10 +9,10 @@ pub mod events {
     For listening to HTML events.
 
     ```
-    # use async_ui_web_components::components::{Button, Text};
+    # use async_ui_web_html::nodes::{Button, Text};
     # use async_ui_web_core::combinators::join;
     # let _ = async {
-    use async_ui_web_components::events::EmitElementEvent;
+    use async_ui_web_html::events::EmitElementEvent;
     let button = Button::new();
     let text = Text::new();
     let mut count = 0;
@@ -33,12 +33,12 @@ pub mod events {
     pub use super::common_events::{EmitEditEvent, EmitElementEvent};
     pub use super::event_handling::{EmitEvent, EventFutureStream};
 }
-pub mod components {
+pub mod nodes {
     /*!
     For creating HTML elements.
 
     ```rust
-    # use async_ui_web_components::components::Input;
+    # use async_ui_web_html::nodes::Input;
     # let _ = async {
     let my_input = Input::new();
     my_input.render().await;

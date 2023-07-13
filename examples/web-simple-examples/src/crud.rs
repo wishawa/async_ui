@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use async_ui_web::{
-    components::{Button, Div, Input, Label, Select},
+    html::{Button, Div, Input, Label, Select},
     join,
+    lists::DynamicList,
     prelude_traits::*,
-    select, DynamicList, NoChild,
+    select, NoChild,
 };
 
 pub async fn crud() {
@@ -102,7 +103,7 @@ pub async fn crud() {
                             name_input.field.value(),
                         );
                         id_counter += 1;
-                        let opt = async_ui_web::components::Option::new();
+                        let opt = async_ui_web::html::Option::new();
                         opt.set_value(&id_counter.to_string());
                         opt.set_inner_text(&name);
                         person_select_children.insert(id_counter, opt.render(NoChild), None);

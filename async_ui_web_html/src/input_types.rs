@@ -1,4 +1,4 @@
-impl super::components::Input {
+impl super::nodes::Input {
     pub fn new_with_type(ty: &str) -> Self {
         let input = Self::new();
         input.set_type(ty);
@@ -8,7 +8,7 @@ impl super::components::Input {
 
 macro_rules! make_input_types {
     ($fn_name:ident, $text:literal) => {
-        impl super::components::Input {
+        impl super::nodes::Input {
             pub fn $fn_name() -> Self {
                 Self::new_with_type($text)
             }

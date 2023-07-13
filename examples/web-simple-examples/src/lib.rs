@@ -1,5 +1,5 @@
 use async_ui_web::{
-    components::{Anchor, Div},
+    html::{Anchor, Div},
     join, mount,
     prelude_traits::*,
 };

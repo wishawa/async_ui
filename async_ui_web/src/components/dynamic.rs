@@ -17,7 +17,7 @@ enum Next<F> {
 A "slot" that renders a future which you can change dynamically.
 
 ```
-# use async_ui_web::{Dynamic, join, components::Button, prelude_traits::*};
+# use async_ui_web::{components::Dynamic, join, html::Button, prelude_traits::*};
 # let _ = async {
 let slot = Dynamic::new();
 let btn = Button::new();

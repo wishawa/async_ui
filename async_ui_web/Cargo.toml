@@ -14,7 +14,7 @@ doctest = false
 
 [dependencies]
 async_ui_web_core = { path = "../async_ui_web_core/" }
-async_ui_web_components = { path = "../async_ui_web_components/" }
+async_ui_web_html = { path = "../async_ui_web_html/" }
 async_ui_web_macros = { path = "../async_ui_web_macros/" }
 async_ui_internal_utils = { path = "../async_ui_internal_utils/" }
 

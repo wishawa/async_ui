@@ -7,9 +7,9 @@ use std::{
     ops::Deref,
 };
 
-use async_ui_web_components::{
-    components::{Option as OptElem, Select},
+use async_ui_web_html::{
     events::EmitEditEvent,
+    nodes::{Option as OptElem, Select},
 };
 use futures_lite::Stream;
 use wasm_bindgen::UnwrapThrowExt;

@@ -4,7 +4,7 @@ use std::{
 };
 
 use async_ui_web::{
-    components::{Div, Input, Span, Table, Td, Th, Tr},
+    html::{Div, Input, Span, Table, Td, Th, Tr},
     join,
     prelude_traits::*,
     race, select, NoChild, ReactiveCell,

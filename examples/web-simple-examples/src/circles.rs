@@ -1,10 +1,11 @@
 use std::cell::{Cell, RefCell};
 
 use async_ui_web::{
-    components::{Button, Div, Input},
+    html::{Button, Div, Input},
     join,
+    lists::DynamicList,
     prelude_traits::*,
-    race, select, DynamicList, NoChild,
+    race, select, NoChild,
 };
 use futures_lite::StreamExt;
 use wasm_bindgen::UnwrapThrowExt;

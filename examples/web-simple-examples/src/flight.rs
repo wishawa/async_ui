@@ -1,5 +1,5 @@
 use async_ui_web::{
-    components::{self, Button, Input, Select},
+    html::{self, Button, Input, Select},
     join,
     prelude_traits::*,
     race,
@@ -21,12 +21,12 @@ pub async fn flight() {
         // The UI
         type_chooser.render(join((
             {
-                let x = components::Option::new();
+                let x = html::Option::new();
                 x.set_value("one-way");
                 x.render("One-Way Flight".render())
             },
             {
-                let x = components::Option::new();
+                let x = html::Option::new();
                 x.set_value("two-way");
                 x.render("Return Flight".render())
             },

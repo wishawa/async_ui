@@ -3,7 +3,7 @@ A future that does nothing, pending forever.
 
 This is for rendering things without children, for example
 ```
-# use async_ui_web::components::Span;
+# use async_ui_web::html::Span;
 # use async_ui_web::NoChild;
 # let _ = async {
     let span = Span::new();

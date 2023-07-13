@@ -1,7 +1,7 @@
 use std::future::Pending;
 
-use async_ui_web_components::components::Text;
 use async_ui_web_core::ContainerNodeFuture;
+use async_ui_web_html::nodes::Text;
 use js_sys::Array;
 use wasm_bindgen::{JsValue, UnwrapThrowExt};
 
@@ -81,7 +81,7 @@ pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
     /// This is for writing the UI "declaratively".
     /// ```
     /// # let _ = async {
-    /// # use async_ui_web::{components::Div, prelude_traits::*};
+    /// # use async_ui_web::{html::Div, prelude_traits::*};
     /// # let children = std::future::pending::<()>();
     /// Div::new().with_class("my-wrapper").render(children).await;
     /// # };
@@ -95,7 +95,7 @@ pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
     /// This is for writing the UI "declaratively".
     /// ```
     /// # let _ = async {
-    /// # use async_ui_web::{components::Div, prelude_traits::*};
+    /// # use async_ui_web::{html::Div, prelude_traits::*};
     /// # let children = std::future::pending::<()>();
     /// Div::new().with_classes(["my-wrapper", "flex-vertical"]).render(children).await;
     /// # };

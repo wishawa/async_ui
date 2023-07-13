@@ -6,11 +6,13 @@ use std::{
 };
 
 use async_ui_web::{
-    components::{Anchor, Button, Div, Input, Label, Li, Paragraph, Span, Ul, H1},
     event_traits::{EmitEditEvent, EmitElementEvent},
-    join, race, select,
+    html::{Anchor, Button, Div, Input, Label, Li, Paragraph, Span, Ul, H1},
+    join,
+    lists::DynamicList,
+    race, select,
     shortcut_traits::{ShortcutClassList, ShortcutRenderStr},
-    DynamicList, NoChild, ReactiveCell,
+    NoChild, ReactiveCell,
 };
 use futures_lite::FutureExt;
 use wasm_bindgen::UnwrapThrowExt;

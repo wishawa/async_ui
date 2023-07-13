@@ -28,8 +28,8 @@ Only use this if you need low level control.
 Often, [ModeledList][super::ModeledList] is easier to use.
 
 ```rust
-# use async_ui_web::DynamicList;
-# use async_ui_web::components::Button;
+# use async_ui_web::lists::DynamicList;
+# use async_ui_web::html::Button;
 # use async_ui_web::join;
 # use async_ui_web::prelude_traits::*;
 # let _ = async {

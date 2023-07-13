@@ -7,7 +7,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::DynamicList;
+use super::DynamicList;
 
 type Version = u64;
 
@@ -183,9 +183,9 @@ impl<K> FromIterator<K> for ListModel<K> {
 ///
 /// ```
 /// # use async_ui_web::prelude_traits::*;
-/// # use async_ui_web::components::Button;
+/// # use async_ui_web::html::Button;
 /// # use async_ui_web::join;
-/// # use async_ui_web::{ModeledList, ListModel};
+/// # use async_ui_web::lists::{ModeledList, ListModel};
 /// # let _ = async {
 /// let list = ModeledList::new(|key: &i32| key.to_string().render());
 /// let mut fibo = ListModel::from(vec![1, 1]);

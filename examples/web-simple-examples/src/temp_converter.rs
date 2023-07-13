@@ -1,4 +1,4 @@
-use async_ui_web::{components::Input, join, prelude_traits::*};
+use async_ui_web::{html::Input, join, prelude_traits::*};
 
 pub async fn converter() {
     let input_c = Input::new();

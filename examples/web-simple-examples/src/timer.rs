@@ -1,5 +1,5 @@
 use async_ui_web::{
-    components::{Button, Input, Meter, Text},
+    html::{Button, Input, Meter, Text},
     join,
     prelude_traits::*,
     race, NoChild, ReactiveCell,
