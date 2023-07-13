@@ -128,10 +128,10 @@ impl<K: Clone> ListModel<K> {
         let low = from.min(to);
         let high = from.max(to);
         let slice = &mut self.vec[low..=high];
-        if from < to {
-            slice.rotate_left(1);
-        } else if to < from {
-            slice.rotate_right(1);
+        match from.cmp(&to) {
+            std::cmp::Ordering::Less => slice.rotate_left(1),
+            std::cmp::Ordering::Greater => slice.rotate_right(1),
+            _ => {}
         }
         self.add_change(Change::Move {
             to_move: self.vec[to].clone(),
