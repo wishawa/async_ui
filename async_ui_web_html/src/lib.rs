@@ -30,7 +30,7 @@ pub mod events {
     ```
     */
 
-    pub use super::common_events::{EmitEditEvent, EmitElementEvent};
+    pub use super::common_events::{EmitElementEvent, EmitHtmlElementEvent};
     pub use super::event_handling::{EmitEvent, EventFutureStream};
 }
 pub mod nodes {

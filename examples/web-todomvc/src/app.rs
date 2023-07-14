@@ -6,7 +6,7 @@ use std::{
 };
 
 use async_ui_web::{
-    event_traits::{EmitEditEvent, EmitElementEvent},
+    event_traits::{EmitElementEvent, EmitHtmlElementEvent},
     html::{Anchor, Button, Div, Input, Label, Li, Paragraph, Span, Ul, H1},
     join,
     lists::DynamicList,

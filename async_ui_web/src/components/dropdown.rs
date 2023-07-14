@@ -8,7 +8,7 @@ use std::{
 };
 
 use async_ui_web_html::{
-    events::EmitEditEvent,
+    events::EmitHtmlElementEvent,
     nodes::{Option as OptElem, Select},
 };
 use futures_lite::Stream;

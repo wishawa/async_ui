@@ -1,5 +1,5 @@
 use crate::events::{EmitEvent, EventFutureStream};
-use web_sys::{HtmlElement, HtmlInputElement, HtmlSelectElement, HtmlTextAreaElement};
+use web_sys::{Element, HtmlElement};
 
 macro_rules! make_event_impl {
     ($ev_name:literal, $func_name:ident, $ty:ty, $link:tt) => {
@@ -18,7 +18,7 @@ macro_rules! make_event_impl {
 
 /// Subscribe to common events emitted by HTML elements such as `click` or `scroll`.
 #[rustfmt::skip]
-pub trait EmitElementEvent: AsRef<HtmlElement> {
+pub trait EmitElementEvent: AsRef<Element> {
     make_event_impl!("cancel", until_cancel, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event)");
     make_event_impl!("error", until_error, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/error_event)");
     make_event_impl!("scroll", until_scroll, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/scroll_event)");
@@ -61,16 +61,25 @@ pub trait EmitElementEvent: AsRef<HtmlElement> {
     // make_event_impl!("copy", event_copy, web_sys::ClipboardEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/copy_event)");
     // make_event_impl!("cut", event_cut, web_sys::ClipboardEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/cut_event)");
     // make_event_impl!("paste", event_paste, web_sys::ClipboardEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event)");
+
 }
 
-impl EmitElementEvent for HtmlElement {}
+impl EmitElementEvent for Element {}
 
-/// Subscribe to the `input` and `change` events emitted by HTML "editing" elements.
-pub trait EmitEditEvent: AsRef<HtmlElement> {
+#[rustfmt::skip]
+pub trait EmitHtmlElementEvent: AsRef<HtmlElement> {
     make_event_impl!("input", until_input, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/input_event)");
     make_event_impl!("change", until_change, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/change_event)");
+
+    make_event_impl!("drag", until_drag, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drag_event)");
+    make_event_impl!("dragend", until_dragend, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragend_event)");
+    make_event_impl!("dragenter", until_dragenter, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragenter_event)");
+    make_event_impl!("dragleave", until_dragleave, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragleave_event)");
+    make_event_impl!("dragover", until_dragover, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragover_event)");
+    make_event_impl!("dragstart", until_dragstart, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragstart_event)");
+    make_event_impl!("drop", until_drop, web_sys::DragEvent, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drop_event)");
+
+    make_event_impl!("load", until_load, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event)");
 }
 
-impl EmitEditEvent for HtmlInputElement {}
-impl EmitEditEvent for HtmlTextAreaElement {}
-impl EmitEditEvent for HtmlSelectElement {}
+impl EmitHtmlElementEvent for HtmlElement {}

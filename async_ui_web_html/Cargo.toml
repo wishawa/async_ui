@@ -106,6 +106,8 @@ features = [
 	'MouseEvent',
 	'TouchEvent',
 	'WheelEvent',
+	'DragEvent',
+	# 'ClipboardEvent',
 	'Comment',
 	'DomTokenList',
 	'CssStyleDeclaration',

@@ -30,7 +30,7 @@ pub mod event_traits {
     /*!
     Traits for event handling.
     */
-    pub use async_ui_web_html::events::{EmitEditEvent, EmitElementEvent, EmitEvent};
+    pub use async_ui_web_html::events::{EmitElementEvent, EmitEvent, EmitHtmlElementEvent};
 }
 
 pub mod shortcut_traits {
@@ -52,6 +52,6 @@ pub mod prelude_traits {
         ShortcutClassList as _, ShortcutClassListBuilder as _, ShortcutRenderStr as _,
     };
     pub use async_ui_web_html::events::{
-        EmitEditEvent as _, EmitElementEvent as _, EmitEvent as _,
+        EmitElementEvent as _, EmitEvent as _, EmitHtmlElementEvent as _,
     };
 }
