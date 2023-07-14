@@ -51,7 +51,7 @@ impl<K> Default for ListModelLog<K> {
     fn default() -> Self {
         Self {
             changes: VecDeque::new(),
-            version: 0,
+            version: 1,
             unique: Rc::new(()),
         }
     }
@@ -246,12 +246,17 @@ impl<'c, K: Eq + Hash + Clone, F: Future, R: Fn(&K) -> F> ModeledList<'c, K, F, 
     pub fn update(&self, model: &ListModel<K>) {
         let new_ver = model.log.version;
         let unique = self.unique.take();
-        let old_ver = if unique.is_some_and(|rc| Rc::ptr_eq(&rc, &model.log.unique)) {
+        let old_ver = if unique
+            .as_ref()
+            .is_some_and(|rc| Rc::ptr_eq(rc, &model.log.unique))
+        {
+            self.unique.set(unique);
             // same instance of `ListModel` as last time
             Some(self.version.replace(new_ver))
         } else {
             // a different `ListModel` instance
             self.unique.set(Some(model.log.unique.clone()));
+            self.version.set(new_ver);
             None
         };
         let log_start_ver = new_ver - model.log.changes.len() as u64;
