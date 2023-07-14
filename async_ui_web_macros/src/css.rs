@@ -41,17 +41,18 @@ fn generate(input: String) -> TokenStream {
         "
 export const {style_var_name} = `{output}`;
 document.head.appendChild(document.createElement(\"style\")).innerHTML = {style_var_name};
-"
+        "
     );
 
     quote!(
     #[doc(hidden)]
     mod #inner_mod_name {
+        use ::async_ui_web::__private_macro_only::wasm_bindgen;
         // pub const STYLE_RAW_TEXT: &str = #input;
         // pub const STYLE_POSTFIXED_TEXT: &str = #output;
-        #[::wasm_bindgen::prelude::wasm_bindgen(inline_js = #js_content)]
+        #[wasm_bindgen::prelude::wasm_bindgen(inline_js = #js_content)]
         extern "C" {
-            static #style_var_name: ::wasm_bindgen::JsValue;
+            static #style_var_name: wasm_bindgen::JsValue;
         }
         #[doc(hidden)]
         #[wasm_bindgen::prelude::wasm_bindgen]

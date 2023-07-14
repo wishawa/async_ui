@@ -18,6 +18,10 @@ pub use async_ui_web_macros::select;
 pub use mount::{mount, mount_at};
 pub use no_child::NoChild;
 
+pub mod __private_macro_only {
+    pub use wasm_bindgen;
+}
+
 pub mod event_handling {
     /*!
     Types used in event handling mechanism.
