@@ -1,6 +1,8 @@
 use std::cell::{Ref, RefMut};
 
-use crate::{borrow_mut_guard::BorrowMutGuard, until_change::UntilChange, Path, Trackable};
+use crate::{
+    borrow_mut_guard::BorrowMutGuard, until_change::UntilChange, Path, ReferencePath, Trackable,
+};
 
 /// An extension trait with methods for [Path].
 ///
@@ -242,6 +244,40 @@ pub trait PathExt: Path {
         Self::Out: Trackable,
     {
         <Self::Out as Trackable>::new_path_builder(self)
+    }
+
+    /// Create a new Path from borrowing this path.
+    ///
+    /// Usually, paths are owned and live for as long as the store itself.
+    /// ```
+    /// # use x_bow::{Trackable, Store, PathExt};
+    /// # #[derive(Default, Trackable)]
+    /// # struct MyStruct {
+    /// #     field_1: i32,
+    /// #     field_2: u64
+    /// # }
+    /// let store = Store::new(MyStruct::default());
+    ///
+    /// // `path_a` lives for as long as the store.
+    /// let path_a = store.build_path();
+    ///
+    /// // `path_b` composes `path_a`.
+    /// // `path_b` lives for as long as the store.
+    /// let path_b = path_a.field_1();
+    ///
+    /// // `path_c` borrows `path_a`.
+    /// // if you drop `path_a`, `path_c` will no longer be usable.
+    /// let path_c = path_a.as_ref_path().field_1();
+    /// ```
+    ///
+    /// Note that the new path will only live for as long as the borrow.
+    /// This means it won't be useful for use cases requiring long-lived path
+    /// (such as implementing an undo-redo log).
+    fn as_ref_path(&self) -> <Self::Out as Trackable>::PathBuilder<ReferencePath<'_, Self>>
+    where
+        Self::Out: Trackable,
+    {
+        <Self::Out as Trackable>::new_path_builder(ReferencePath::new(self))
     }
 }
 

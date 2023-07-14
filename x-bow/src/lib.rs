@@ -122,6 +122,7 @@ mod wakers;
 pub use guarantee::PathExtGuaranteed;
 pub use path::Path;
 pub use path_ext::PathExt;
+pub use path_impl::ReferencePath;
 pub use store::{Store, StoreRoot};
 pub use trackable::Trackable;
 pub use tracked::Tracked;
