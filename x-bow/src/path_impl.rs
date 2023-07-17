@@ -41,6 +41,9 @@ impl<'t, T> Path for Box<dyn Path<Out = T> + 't> {
     }
 }
 
+/// A [Path] that is made from borrowing an owned path.
+/// 
+/// See [as_ref_path][crate::PathExt::as_ref_path].
 pub struct ReferencePath<'r, P: Path + ?Sized>(&'r P);
 
 impl<'r, P: Path + ?Sized> ReferencePath<'r, P> {
