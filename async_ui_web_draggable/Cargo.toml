@@ -8,4 +8,12 @@ edition = "2021"
 [dependencies]
 async_ui_web = { path = "../async_ui_web/" }
 futures-lite = "1.12.0"
-web-sys = "0.3"
+async_ui_internal_utils = { version = "0.0.1", path = "../async_ui_internal_utils/" }
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+	'DomRect',
+	'Element',
+	'DataTransfer',
+]

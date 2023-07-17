@@ -10,5 +10,6 @@ members = [
 	"x-bow-macros/",
 	"examples/web-simple-examples/",
 	"examples/web-todomvc/",
-	"examples/big-list/"
+	"examples/big-list/",
+	"async_ui_web_draggable/",
 ]
