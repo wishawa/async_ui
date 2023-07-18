@@ -31,6 +31,7 @@ where
     }
 }
 
+/// Like [Tracked], but for paths known to be [guaranteed][crate::PathExtGuaranteed].
 pub trait TrackedGuaranteed<T: Trackable + ?Sized>:
     Tracked<T, Path = Self::PathGuaranteed> + Deref<Target = Self::PathGuaranteed>
 {
