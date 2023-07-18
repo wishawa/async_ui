@@ -125,7 +125,7 @@ pub use path_ext::PathExt;
 pub use path_impl::ReferencePath;
 pub use store::{Store, StoreRoot};
 pub use trackable::Trackable;
-pub use tracked::Tracked;
+pub use tracked::{Tracked, TrackedGuaranteed};
 
 /// Macro to allows building paths to fields inside a struct/enum.
 ///
