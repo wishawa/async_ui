@@ -37,13 +37,12 @@ impl<Id: Clone + PartialEq> Dragger<Id> {
             after: Cell::new(false),
         }
     }
-    pub async fn wrap_item<F: Future>(&self, id: Id, future: F) {
+    pub async fn wrap_item<F: Future>(&self, id: Id, future: F, wrapper: &Div) {
         let paddings = if self.horizontal {
             &PADDINGS_HORIZONTAL
         } else {
             &PADDINGS_VERTICAL
         };
-        let wrapper = Div::new();
         wrapper.add_class(style::drag_wrapper);
         wrapper.set_draggable(true);
         let target = &wrapper.element;
