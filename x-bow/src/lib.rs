@@ -99,11 +99,16 @@
 //! If two paths end up with the same hash, wake notification to one would wake
 //! listeners to the other too. Thus, the `until_change` stream may fire spuriously.
 //!
-//! That said, the probability of `u64` hash collision is extremely low.
-//! With 10,000 distinct paths in a store, collision probability can
+//! Keep in mind that the probability of `u64` hash collision is extremely low;
+//! with 10,000 distinct paths in a store, collision probability can
 //! [be calculated](https://en.wikipedia.org/wiki/Birthday_problem#Probability_of_a_shared_birthday_(collision))
-//! to be less than 1E-11 (0.0000000000001%).
+//! to be less than 1E-11 (0.000000001%).
 //!
+//! To further minimize the impact of hash collisions, X-Bow saves the length
+//! of paths along with their hashes. This increases collision probability, but
+//! it ensures that paths of different lengths never collide; modifying some
+//! data deep in the state tree would never result in the entire tree being
+//! woken.
 
 mod borrow_mut_guard;
 mod guarantee;

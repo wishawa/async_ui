@@ -1,12 +1,10 @@
 use std::{
     cell::{RefCell, RefMut},
-    hash::Hasher,
     ops::{Deref, DerefMut},
 };
 
 use crate::{
-    hash::WakerHashEntry,
-    hash_visitor::{HashVisitor, HashVisitorBehavior, HasherType},
+    hash_visitor::{HashVisitor, HashVisitorBehavior},
     wakers::StoreWakers,
     Path,
 };
@@ -52,11 +50,8 @@ impl<'b, P: Path + ?Sized> Drop for BorrowMutGuard<'b, P> {
 
 pub(crate) fn notify<P: Path + ?Sized>(store: &RefCell<StoreWakers>, path: &P) {
     let wakers = &mut *store.borrow_mut();
-    let mut visitor = HashVisitor {
-        hasher: HasherType::new(),
-        behavior: HashVisitorBehavior::WakeListeners { wakers },
-    };
+    let mut visitor = HashVisitor::new(HashVisitorBehavior::WakeBubblingListeners { wakers });
     path.visit_hashes(&mut visitor);
-    let hash = WakerHashEntry::regular_from(visitor.hasher.finish());
+    let hash = visitor.to_regular_key();
     wakers.wake_entry(hash);
 }
