@@ -1,4 +1,10 @@
+pub mod bind_for_each;
+pub mod for_each;
+pub mod signal_stream;
+
 use std::cell::{Ref, RefMut};
+
+use futures_core::Stream;
 
 use crate::{
     borrow_mut_guard::BorrowMutGuard, until_change::UntilChange, Path, ReferencePath, Trackable,
@@ -181,6 +187,137 @@ pub trait PathExt: Path {
         UntilChange::new(self.store_wakers(), self)
     }
 
+    /// Get a [Stream][futures_core::Stream] that fires **once now** and once
+    /// every time the data changes, yielding [Ref]s to the data.
+    ///
+    /// The stream ends when the data cannot be borrowed (when [borrow_opt][Self::borrow_opt]
+    /// returns None).
+    ///
+    /// This stream is useful for linking the data to some side-effect.
+    /// For example, you can sync a UI widget content with the data...
+    /// ```
+    /// use futures_lite::StreamExt;
+    /// # use x_bow::{Path, PathExt};
+    /// # use std::cell::Ref;
+    /// # async fn example(path: &impl Path<Out = String>) {
+    /// # struct ui_element;
+    /// # impl ui_element {
+    /// #   fn set_text(&self, t: &str) {}
+    /// # }
+    /// // set the text with the current data
+    /// // and update the text whenever the data change
+    /// path.signal_stream().for_each(|data: Ref<'_, String>| {
+    ///     let s: &str = &**data;
+    ///     ui_element.set_text(s);
+    /// }).await;
+    /// # }
+    /// ```
+    /// **Note** that if this is all you need, use [for_each][PathExt::for_each]
+    /// instead.
+    ///
+    /// ### Panic Opportunity
+    /// This method returns a [Ref]. It is ‼️**extremely important**‼️ that you
+    /// use the Ref and drop it as soon as possible. While the Ref is held,
+    /// any attempt to mutably borrow any data in the store will **panic**.
+    /// Holding the Ref for a long time (especially across a `await` points)
+    /// is thus a very bad idea.
+    ///
+    /// ### Equivalent Behavior with Streams
+    /// This method is merely for convenience. You can achieve the same
+    /// functionality yourself like so...
+    /// ```
+    /// # use futures_lite::StreamExt;
+    /// # use x_bow::{Path, PathExt};
+    /// # use std::cell::Ref;
+    /// # async fn example(path: &impl Path) {
+    /// let stream = path.signal_stream();
+    /// // is equivalent to
+    /// let stream = futures_lite::stream::once(()) // fire once in the beginning...
+    ///     .chain(path.until_change()) // and after every change
+    ///     .map(|_| path.borrow_opt()) // borrow the data into a Ref
+    ///     .take_while(Option::is_some) // end the stream if the data is unavailable
+    ///     .map(Option::unwrap); // we've already checked that the data isn't none
+    /// # }
+    /// ```
+    #[must_use = "the returned Stream is lazy; poll it or use StreamExt on it"]
+    fn signal_stream(&self) -> signal_stream::SignalStream<'_, Self> {
+        signal_stream::SignalStream::new(self, self.until_change())
+    }
+
+    /// Execute the given function with the data as argument. Repeat every time
+    /// the data changes.
+    ///
+    /// The return future finishes when the data couldn't be accessed
+    /// (when [borrow_opt][PathExt::borrow_opt] returns None).
+    ///
+    /// ```
+    /// # use x_bow::{Path, PathExt};
+    /// # async fn example(path: &impl Path<Out = String>) {
+    /// # struct ui_element;
+    /// # impl ui_element {
+    /// #   fn set_text(&self, t: &str) {}
+    /// # }
+    /// // set the text with the current data
+    /// // and update the text whenever the data change
+    /// path.for_each(|s: &String| {
+    ///     ui_element.set_text(s);
+    /// }).await;
+    /// # }
+    /// ```
+    ///
+    /// This is a less powerful (and less panic-inducing) alternative to the
+    /// [signal_stream][PathExt::signal_stream] method.
+    #[must_use = "the returned Future is lazy; await it to make it do work"]
+    fn for_each<C: FnMut(&Self::Out)>(&self, closure: C) -> for_each::ForEach<'_, Self, C> {
+        for_each::ForEach::new(self, self.until_change(), closure)
+    }
+
+    /// For making a two-way binding.
+    ///
+    /// The given `on_change` function is called once in the beginning and
+    /// whenever the data changes (just like with [for_each][PathExt::for_each]).
+    ///
+    /// Whenever the given `incoming_changes` [Stream] yield a value,
+    /// the data will be updated to that value. The `on_change` function
+    /// won't be called for changes that come in this way.
+    ///
+    /// The future finishes when either
+    /// *   the `incoming_changes` stream yield None
+    /// *   the data couldn't be accessed
+    ///     ([borrow_opt][PathExt::borrow_opt] returns None)
+    ///
+    /// ```
+    /// # use x_bow::{Path, PathExt};
+    /// # use futures_lite::stream::{Stream, StreamExt, once};
+    /// # async fn example(path: &impl Path<Out = String>) {
+    /// # struct text_field_widget;
+    /// # impl text_field_widget {
+    /// #   fn set_text(&self, t: &str) {}
+    /// #   fn until_change(&self) -> impl Stream<Item = ()> {once(())}
+    /// #   fn get_text(&self) -> String {todo!()}
+    /// # }
+    /// path.bind_for_each(
+    ///     // set the text with the current data
+    ///     // and update the text whenever the data change
+    ///     |s: &String| {
+    ///         text_field_widget.set_text(s);
+    ///     },
+    ///     // whenever the user type into the field, update the data
+    ///     text_field_widget
+    ///         .until_change()
+    ///         .map(|_| text_field_widget.get_text())
+    /// ).await;
+    /// # }
+    /// ```
+    #[must_use = "the returned Future is lazy; await it to make it do work"]
+    fn bind_for_each<C: FnMut(&Self::Out), I: Stream<Item = Self::Out>>(
+        &self,
+        on_change: C,
+        incoming_changes: I,
+    ) -> bind_for_each::BindForEach<'_, Self, C, I> {
+        bind_for_each::BindForEach::new(self, self.until_change(), on_change, incoming_changes)
+    }
+
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
     /// borrow is taken of this piece of data or anything inside it.
     ///
@@ -282,4 +419,4 @@ pub trait PathExt: Path {
 }
 
 /// Extension trait is blanket-implemented.
-impl<P: Path> PathExt for P {}
+impl<P: Path + ?Sized> PathExt for P {}

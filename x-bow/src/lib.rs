@@ -127,6 +127,12 @@ pub use store::{Store, StoreRoot};
 pub use trackable::Trackable;
 pub use tracked::{Tracked, TrackedGuaranteed};
 
+pub mod path_ext_wrappers {
+    pub use super::path_ext::{
+        bind_for_each::BindForEach, for_each::ForEach, signal_stream::SignalStream,
+    };
+}
+
 /// Macro to allows building paths to fields inside a struct/enum.
 ///
 /// ```

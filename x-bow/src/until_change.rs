@@ -59,6 +59,9 @@ impl<'a> UntilChange<'a> {
             last_version: 0,
         }
     }
+    pub(crate) fn has_been_polled(&self) -> bool {
+        self.last_version > 0
+    }
 }
 
 impl<'a> Stream for UntilChange<'a> {
