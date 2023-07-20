@@ -17,6 +17,8 @@ impl<Fut, const N: usize> CombinatorBehaviorArray<Fut, N> for JoinBehavior
 where
     Fut: Future,
 {
+    const PEND_IF_EMPTY: bool = false;
+
     type Output = [Fut::Output; N];
 
     type StoredItem = Fut::Output;

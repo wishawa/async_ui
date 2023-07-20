@@ -18,6 +18,8 @@ impl<T, E, Fut> CombinatorBehaviorVec<Fut> for TryJoinBehavior
 where
     Fut: Future<Output = Result<T, E>>,
 {
+    const PEND_IF_EMPTY: bool = false;
+
     type Output = Result<Vec<T>, E>;
 
     type StoredItem = T;

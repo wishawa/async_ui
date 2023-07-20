@@ -17,6 +17,8 @@ impl<Fut, const N: usize> CombinatorBehaviorArray<Fut, N> for RaceBehavior
 where
     Fut: Future,
 {
+    const PEND_IF_EMPTY: bool = true;
+
     type Output = Fut::Output;
 
     type StoredItem = core::convert::Infallible;
@@ -30,7 +32,7 @@ where
     }
 
     fn when_completed(_arr: [Self::StoredItem; N]) -> Self::Output {
-        panic!("race only works on non-empty arrays");
+        unreachable!()
     }
 }
 

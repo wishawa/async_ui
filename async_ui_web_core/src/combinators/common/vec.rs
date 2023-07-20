@@ -24,6 +24,7 @@ pub trait CombinatorBehaviorVec<Fut>
 where
     Fut: Future,
 {
+    const PEND_IF_EMPTY: bool;
     type Output;
     type StoredItem;
     fn maybe_return(idx: usize, res: Fut::Output) -> ControlFlow<Self::Output, Self::StoredItem>;
@@ -89,10 +90,15 @@ where
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self.project();
 
-        assert!(
-            *this.pending > 0 || this.items.is_empty(),
-            "Futures must not be polled after completing"
-        );
+        if *this.pending == 0 {
+            assert!(
+                this.items.is_empty(),
+                "Futures must not be polled after completing"
+            );
+            if B::PEND_IF_EMPTY {
+                return Poll::Pending;
+            }
+        }
 
         {
             let mut readiness = this.wakers.readiness();

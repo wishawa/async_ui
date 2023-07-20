@@ -22,6 +22,9 @@ pub trait CombinatorBehaviorArray<Fut, const N: usize>
 where
     Fut: Future,
 {
+    /// Hack to allow racing empty arrays to pend forever.
+    const PEND_IF_EMPTY: bool;
+
     /// The output type of the future.
     ///
     /// Example:
@@ -117,6 +120,10 @@ where
     #[inline]
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let mut this = self.project();
+
+        if N == 0 && B::PEND_IF_EMPTY {
+            return Poll::Pending;
+        }
 
         // If this.pending == 0, the future is done.
         assert!(

@@ -17,6 +17,8 @@ impl<T, E, Fut, const N: usize> CombinatorBehaviorArray<Fut, N> for RaceOkBehavi
 where
     Fut: Future<Output = Result<T, E>>,
 {
+    const PEND_IF_EMPTY: bool = false;
+
     type Output = Result<T, [E; N]>;
 
     type StoredItem = E;

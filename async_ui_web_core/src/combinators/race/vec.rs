@@ -17,6 +17,8 @@ impl<Fut> CombinatorBehaviorVec<Fut> for RaceBehavior
 where
     Fut: Future,
 {
+    const PEND_IF_EMPTY: bool = true;
+
     type Output = Fut::Output;
 
     type StoredItem = core::convert::Infallible;
@@ -29,7 +31,7 @@ where
     }
 
     fn when_completed(_vec: Vec<Self::StoredItem>) -> Self::Output {
-        panic!("race only works on non-empty arrays");
+        unreachable!()
     }
 }
 

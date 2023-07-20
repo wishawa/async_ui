@@ -17,6 +17,8 @@ impl<Fut> CombinatorBehaviorVec<Fut> for JoinBehavior
 where
     Fut: Future,
 {
+    const PEND_IF_EMPTY: bool = false;
+
     type Output = Vec<Fut::Output>;
 
     type StoredItem = Fut::Output;
