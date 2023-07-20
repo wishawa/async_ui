@@ -127,7 +127,7 @@ impl<Id: Clone + PartialEq> Dragger<Id> {
                 if ev.target().as_ref() == Some(target.as_ref()) {
                     spacer.set(SpacerType::None);
                     paddings.iter().for_each(|name| {
-                        let _ = style.set_property(*name, ZERO_PX);
+                        let _ = style.set_property(name, ZERO_PX);
                     });
                 }
             }),
@@ -144,7 +144,7 @@ impl<Id: Clone + PartialEq> Dragger<Id> {
 
                 spacer.set(SpacerType::None);
                 paddings.iter().for_each(|name| {
-                    let _ = style.set_property(*name, ZERO_PX);
+                    let _ = style.set_property(name, ZERO_PX);
                 });
                 ev.prevent_default();
             }),
@@ -156,9 +156,8 @@ impl<Id: Clone + PartialEq> Dragger<Id> {
         futures_lite::stream::unfold(uc, move |mut uc| async {
             loop {
                 let dragging_from = loop {
-                    match &*self.inner.borrow() {
-                        Inner::DragStarted { from, .. } => break from.clone(),
-                        _ => {}
+                    if let Inner::DragStarted { from, .. } = &*self.inner.borrow() {
+                        break from.clone();
                     }
                     uc.next().await;
                 };
