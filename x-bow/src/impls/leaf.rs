@@ -1,9 +1,9 @@
 use std::ops::Deref;
 
-use crate::{path::Path, trackable::IntoInnerPath};
+use crate::{path::Path, trackable::IntoPath};
 
 pub trait TrackableLeaf {
-    type PathBuilder<P: Path<Out = Self>>: IntoInnerPath<P>;
+    type PathBuilder<P: Path<Out = Self>>: IntoPath<IntoPath = P>;
     fn new_path_builder<P: Path<Out = Self>>(parent: P) -> Self::PathBuilder<P>;
 }
 impl<T> TrackableLeaf for T {
@@ -14,8 +14,8 @@ impl<T> TrackableLeaf for T {
     }
 }
 
-#[derive(Clone, Copy, x_bow_macros::IntoInnerPath)]
-#[into_inner_path(prefix = crate::trackable)]
+#[derive(Clone, Copy, x_bow_macros::IntoPath)]
+#[into_path(prefix = crate::trackable)]
 pub struct LeafPathBuilder<P: Path> {
     inner_path: P,
 }

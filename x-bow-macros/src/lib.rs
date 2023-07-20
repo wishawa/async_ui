@@ -7,14 +7,14 @@ use attributes::{ATTRIBUTE_MODULE_PREFIX, ATTRIBUTE_PATH, ATTRIBUTE_REMOTE_TYPE}
 use proc_macro2::TokenStream;
 use syn::{parse_macro_input, parse_quote, DeriveInput, Expr, Path};
 
-#[proc_macro_derive(IntoInnerPath, attributes(into_inner_path))]
-pub fn derive_into_inner_path(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(IntoPath, attributes(into_path))]
+pub fn derive_into_path(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     let mut prefix = None;
-    const INTO_INNER_PATH: &str = "into_inner_path";
+    const INTO_PATH: &str = "into_path";
     const PREFIX: &str = "prefix";
     input.attrs.iter().for_each(|attr| {
-        if attr.path().is_ident(INTO_INNER_PATH) {
+        if attr.path().is_ident(INTO_PATH) {
             if let Ok(syn::ExprAssign { left, right, .. }) = attr.parse_args() {
                 if let (Expr::Path(left), Expr::Path(right)) = (&*left, &*right) {
                     if left.path.is_ident(PREFIX) {
@@ -24,7 +24,7 @@ pub fn derive_into_inner_path(input: proc_macro::TokenStream) -> proc_macro::Tok
             }
         }
     });
-    match helpers::into_inner_path(
+    match helpers::into_path(
         input,
         prefix.unwrap_or_else(|| parse_quote!(::x_bow::__private_macro_only)),
     ) {

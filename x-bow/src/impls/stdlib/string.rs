@@ -10,8 +10,8 @@ impl Trackable for String {
     }
 }
 
-#[derive(Clone, Copy, x_bow_macros::IntoInnerPath)]
-#[into_inner_path(prefix = crate::trackable)]
+#[derive(Clone, Copy, x_bow_macros::IntoPath)]
+#[into_path(prefix = crate::trackable)]
 pub struct StringPathBuilder<P: Path<Out = String>> {
     inner_path: P,
 }

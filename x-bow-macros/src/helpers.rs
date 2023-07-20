@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{DeriveInput, Path};
 
-pub fn into_inner_path(input: DeriveInput, prefix: Path) -> syn::Result<TokenStream> {
+pub fn into_path(input: DeriveInput, prefix: Path) -> syn::Result<TokenStream> {
     match &input.data {
         syn::Data::Struct(s) => {
             let name = &input.ident;
@@ -20,8 +20,9 @@ pub fn into_inner_path(input: DeriveInput, prefix: Path) -> syn::Result<TokenStr
 			};
             let last_gnr_type = &last_gnr_type.ident;
             Ok(quote! {
-                impl #impl_gnr #prefix::IntoInnerPath<#last_gnr_type> for #name #type_gnr #where_clause {
-                    fn into_inner_path(self) -> #last_gnr_type {
+                impl #impl_gnr #prefix::IntoPath for #name #type_gnr #where_clause {
+                    type IntoPath = #last_gnr_type;
+                    fn into_path(self) -> Self::IntoPath {
                         self.#first_field_name
                     }
                 }

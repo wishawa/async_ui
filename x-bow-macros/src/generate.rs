@@ -312,8 +312,8 @@ pub(crate) fn generate(
     Ok(quote! {
         #(#mappers)*
 
-        #[derive(#prefix :: IntoInnerPath)]
-        #[into_inner_path(prefix = #prefix)]
+        #[derive(#prefix :: IntoPath)]
+        #[into_path(prefix = #prefix)]
         #vis struct #path_builder_name <#impl_params_unbracketed #parent_generic_param: #prefix::Path<Out = #remote_name #type_params>>
         #where_clause
         {

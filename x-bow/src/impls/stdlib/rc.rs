@@ -15,8 +15,8 @@ impl<T: Trackable> Trackable for Rc<T> {
     }
 }
 
-#[derive(x_bow_macros::IntoInnerPath)]
-#[into_inner_path(prefix = crate::trackable)]
+#[derive(x_bow_macros::IntoPath)]
+#[into_path(prefix = crate::trackable)]
 pub struct RcPathBuilder<T, P: Path<Out = Rc<T>>> {
     inner_path: P,
 }

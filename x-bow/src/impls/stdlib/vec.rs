@@ -6,8 +6,8 @@ use std::{
 
 use crate::{impls::leaf::LeafPathBuilder, path::Path, trackable::Trackable};
 
-#[derive(x_bow_macros::IntoInnerPath)]
-#[into_inner_path(prefix = crate::trackable)]
+#[derive(x_bow_macros::IntoPath)]
+#[into_path(prefix = crate::trackable)]
 pub struct VecPathBuilder<T, P: Path<Out = Vec<T>>> {
     inner_path: P,
 }

@@ -120,7 +120,6 @@ mod path_ext;
 mod path_impl;
 mod store;
 mod trackable;
-mod tracked;
 mod until_change;
 mod wakers;
 
@@ -129,8 +128,7 @@ pub use path::Path;
 pub use path_ext::PathExt;
 pub use path_impl::ReferencePath;
 pub use store::{Store, StoreRoot};
-pub use trackable::Trackable;
-pub use tracked::{Tracked, TrackedGuaranteed};
+pub use trackable::{IntoPath, Trackable};
 
 pub mod path_ext_wrappers {
     pub use super::path_ext::{
@@ -239,14 +237,23 @@ pub mod path_ext_wrappers {
 /// ```
 pub use x_bow_macros::Trackable;
 
+// TODO: figure out how to make Rust-Analyzer stop suggesting items from this module
 #[doc(hidden)]
 pub mod __private_macro_only {
+    #[doc(hidden)]
     pub use super::guarantee::PathExtGuaranteed;
+    #[doc(hidden)]
     pub use super::hash_visitor::HashVisitor;
+    #[doc(hidden)]
     pub use super::impls::leaf::TrackableLeaf;
+    #[doc(hidden)]
     pub use super::path::Path;
-    pub use super::trackable::IntoInnerPath;
+    #[doc(hidden)]
+    pub use super::trackable::IntoPath;
+    #[doc(hidden)]
     pub use super::trackable::Trackable;
+    #[doc(hidden)]
     pub use super::wakers::StoreWakers;
-    pub use x_bow_macros::IntoInnerPath;
+    #[doc(hidden)]
+    pub use x_bow_macros::IntoPath;
 }
