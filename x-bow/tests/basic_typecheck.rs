@@ -71,6 +71,7 @@ fn generic_struct_project() {
     }
     #[derive(Trackable, Clone)]
     #[track(deep)]
+    #[x_bow(bound = "T::AssocType: Trackable")]
     struct MyStructWithAssoc<T: HasAssoc> {
         field: T::AssocType,
     }

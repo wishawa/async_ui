@@ -1,9 +1,11 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{format_ident, quote};
-use syn::{parse_quote, DeriveInput, Field, Path, Token, Variant};
+use syn::{
+    parse::Parser, parse_quote, punctuated::Punctuated, DeriveInput, Field, Path, Token, Variant,
+};
 
 use crate::{
-    attributes::TrackMode,
+    attributes::{TrackMode, ATTRIBUTE_MANUAL_BOUND, ATTRIBUTE_PATH},
     utils::{add_trailing_punct, get_field_member, unbracket_generics},
 };
 
@@ -130,6 +132,40 @@ pub(crate) fn generate(
         predicates: Default::default(),
     });
     let (impl_params_unbracketed, type_params_unbracketed) = unbracket_generics(generics);
+    if let Some(bound) = attrs.iter().find_map(|attr| {
+        if attr.path().is_ident(ATTRIBUTE_PATH) {
+            if let Ok(syn::ExprAssign { left, right, .. }) = attr.parse_args() {
+                if let (
+                    syn::Expr::Path(left),
+                    syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(litstr),
+                        ..
+                    }),
+                ) = (&*left, &*right)
+                {
+                    if left.path.is_ident(ATTRIBUTE_MANUAL_BOUND) {
+                        return Punctuated::<syn::WherePredicate, Token![,]>::parse_terminated
+                            .parse_str(&litstr.value())
+                            .ok();
+                    }
+                }
+            }
+        }
+        None
+    }) {
+        where_clause.predicates.extend(bound.into_iter());
+    } else {
+        for param in type_params_unbracketed.iter() {
+            let ty = match param {
+                syn::GenericArgument::Type(ty) => ty,
+                syn::GenericArgument::AssocType(assoc_ty) => &assoc_ty.ty,
+                _ => continue,
+            };
+            where_clause
+                .predicates
+                .push(parse_quote!(#ty: #prefix :: Trackable));
+        }
+    }
 
     let default_mode = TrackMode::from_attributes(attrs, &TrackMode::Shallow)?;
     let remote_name = &remote.segments.last().unwrap().ident;
@@ -177,6 +213,7 @@ pub(crate) fn generate(
             ));
         }
     }
+
     let mut mappers = Vec::new();
     let mut mapper_build_methods = Vec::new();
 
@@ -189,11 +226,11 @@ pub(crate) fn generate(
         let mapper_name = format_ident!("Mapper_{remote_name}_{field_name}");
         let field_type = &field.field().ty;
         let deep = field.is_deep();
-        if deep {
-            where_clause
-                .predicates
-                .push(parse_quote! (#field_type: #prefix :: Trackable));
-        }
+        // if deep {
+        //     where_clause
+        //         .predicates
+        //         .push(parse_quote! (#field_type: #prefix :: Trackable));
+        // }
         let input_ident = Ident::new("input", Span::mixed_site());
         let access = field.access(&input_ident, None, &parse_quote!(::std::cell::Ref), remote);
         let access_mut = field.access(

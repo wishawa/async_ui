@@ -8,6 +8,7 @@ pub(crate) const ATTRIBUTE_TRACK_SHALLOW: &str = "shallow";
 pub(crate) const ATTRIBUTE_TRACK_SKIP: &str = "skip";
 pub(crate) const ATTRIBUTE_MODULE_PREFIX: &str = "module_prefix";
 pub(crate) const ATTRIBUTE_REMOTE_TYPE: &str = "remote_type";
+pub(crate) const ATTRIBUTE_MANUAL_BOUND: &str = "bound";
 
 #[derive(Clone, Copy)]
 pub(crate) enum TrackMode {
