@@ -158,8 +158,6 @@ pub trait PathExt: Path {
     /// (the same one you're calling `until_change` on) or any path that is a
     /// prefix of this one, the stream will fire.
     ///
-    /// **The stream may fire spuriously**.
-    /// Although the chance of this happening is [extremely low](crate#hash-collision).
     /// ```
     /// # use x_bow::{Trackable, Store, PathExt};
     /// #[derive(Default, Trackable)]
@@ -178,6 +176,19 @@ pub trait PathExt: Path {
     /// path.field_1().borrow_opt_mut(); // will fire the stream
     /// path.field_2().borrow_opt_mut(); // won't fire the stream
     /// ```
+    ///
+    /// ### Stream Behavior
+    /// #### Spurious Fires
+    /// The stream may fire spuriously, although the chance of this happening
+    /// is [extremely low][crate#hash-collision].
+    ///
+    /// #### Batching
+    /// If multiple changes happen in quick succession
+    /// ("quick succession" means in-between calls to [Stream::poll_next], to
+    /// be precise), the stream may only fire once.
+    ///
+    /// This means the stream can be used for detecting changes,
+    /// but **not** for counting how many changes happened.
     ///
     /// #### Time Complexity
     /// On creation and each [poll][futures_core::stream::Stream::poll_next]:
@@ -321,13 +332,10 @@ pub trait PathExt: Path {
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
     /// borrow is taken of this piece of data or anything inside it.
     ///
-    /// In other words, whenever someone call [borrow_opt_mut][Self::borrow_opt_mut]
+    /// In other words, whenever someone call [borrow_opt_mut][PathExt::borrow_opt_mut]
     /// or [borrow_mut][crate::PathExtGuaranteed::borrow_mut] on this path
     /// (the same one you're calling `until_bubbling_change` on) or any path that this
     /// path is a prefix of, the stream will fire.
-    ///
-    /// **The stream may fire spuriously**.
-    /// Although the chance of this happening is [extremely low](crate#hash-collision).
     ///
     /// ```
     /// # use x_bow::{Trackable, Store, PathExt};
@@ -358,6 +366,11 @@ pub trait PathExt: Path {
     /// root.borrow_opt_mut(); // won't fire the stream
     /// root.field_2().borrow_opt_mut(); // won't fire the stream
     /// ```
+    ///
+    /// ### Stream Behavior
+    /// The returned stream may spuriously fire or batch changes.
+    /// See [until_change][PathExt::until_change] documentation.
+    ///
     /// #### Time Complexity
     /// On creation:
     /// O(L) where L is the length of this path

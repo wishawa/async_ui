@@ -34,6 +34,7 @@
 //! let stream = path.until_change();
 //!
 //! // Mutably borrow the `i32` of the path, and increment it.
+//! // This will cause the `stream` we create to fire.
 //! *path.borrow_mut() += 1;
 //! ```
 //!
@@ -59,6 +60,9 @@
 //!
 //! For example: the path builder that wraps a path to `Vec<T>` has an
 //! `index(idx: usize)` method that returns a path to `T`.
+//!
+//! To convert from a PathBuilder to a Path, use [IntoPath::into_path].
+//! To convert from a Path to a PathBuilder, use [PathExt::build_path].
 //!
 //! ### Trackable Types
 //! Types that implements [Trackable] have their corresponding `PathBuilder` type.
