@@ -72,7 +72,7 @@ mod impls {
     component_impl!(Anchor, "a", web_sys::HtmlAnchorElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a)", childed);
     component_impl!(Area, "area", web_sys::HtmlAreaElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/area)", childless);
     component_impl!(Audio, "audio", web_sys::HtmlAudioElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/audio)", childed);
-    component_impl!(Bold, "b", web_sys::HtmlBrElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/b)", childless);
+    component_impl!(Bold, "b", web_sys::HtmlBrElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/b)", childed);
     component_impl!(Br, "br", web_sys::HtmlBrElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/br)", childless);
     component_impl!(Base, "base", web_sys::HtmlBaseElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base)", childless);
     component_impl!(Button, "button", web_sys::HtmlButtonElement, "[the documentation on MDN](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button)", childed);
