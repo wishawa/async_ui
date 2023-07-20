@@ -32,3 +32,11 @@ leaf_primitive!(u8);
 leaf_primitive!(usize);
 leaf_primitive!(str);
 leaf_primitive!(());
+
+impl<'a> Trackable for &'a str {
+    type PathBuilder<P: Path<Out = Self>> = LeafPathBuilder<P>;
+
+    fn new_path_builder<P: Path<Out = Self>>(parent: P) -> Self::PathBuilder<P> {
+        LeafPathBuilder::new(parent)
+    }
+}
