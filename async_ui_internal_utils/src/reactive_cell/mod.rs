@@ -35,14 +35,7 @@ impl<T: Debug> Debug for ReactiveCell<T> {
 
 impl<T: Clone> Clone for ReactiveCell<T> {
     fn clone(&self) -> Self {
-        let old_inner = self.inner.borrow();
-        Self {
-            inner: RefCell::new(Inner {
-                data: old_inner.data.clone(),
-                listeners: WakersArena::new(),
-                version: 1,
-            }),
-        }
+        Self::new(self.inner.borrow().data.clone())
     }
 }
 
