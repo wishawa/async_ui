@@ -12,5 +12,6 @@ members = [
 	"examples/web-todomvc/",
 	"examples/big-list/",
 	"examples/x-bow-playground/",
+	"examples/guide-project/",
 	"examples/async_ui_web_draggable/",
 ]
