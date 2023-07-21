@@ -1,4 +1,7 @@
-use std::cell::{Ref, RefCell, RefMut};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    fmt::Debug,
+};
 
 use crate::{guarantee::PathExtGuaranteed, path::Path, trackable::Trackable, wakers::StoreWakers};
 
@@ -77,6 +80,12 @@ impl<'s, S> Clone for RootPath<'s, S> {
     }
 }
 impl<'s, S> Copy for RootPath<'s, S> {}
+
+impl<'s, S> Debug for RootPath<'s, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Root")
+    }
+}
 
 impl<'s, S> Path for RootPath<'s, S> {
     type Out = S;

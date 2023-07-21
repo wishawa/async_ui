@@ -1,5 +1,6 @@
 use std::{
     cell::{Ref, RefMut},
+    fmt::Debug,
     ops::{Deref, DerefMut},
 };
 
@@ -20,6 +21,15 @@ impl<T, P: Path<Out = T> + Clone> Clone for TransparentDerefMapper<T, P> {
         Self {
             parent: self.parent.clone(),
         }
+    }
+}
+
+impl<T, P: Path<Out = T> + Copy> Copy for TransparentDerefMapper<T, P> {}
+
+impl<T, P: Path<Out = T> + Debug> Debug for TransparentDerefMapper<T, P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.parent.fmt(f)?;
+        f.write_str("→(deref content)")
     }
 }
 

@@ -1,5 +1,6 @@
 use std::{
     cell::{Ref, RefMut},
+    fmt::Debug,
     hash::Hasher,
     ops::Deref,
     rc::Rc,
@@ -46,6 +47,14 @@ impl<T: ?Sized, P: Path<Out = Rc<T>> + Clone> Clone for RcMapper<T, P> {
         Self {
             parent: self.parent.clone(),
         }
+    }
+}
+impl<T: ?Sized, P: Path<Out = Rc<T>> + Copy> Copy for RcMapper<T, P> {}
+
+impl<T: ?Sized, P: Path<Out = Rc<T>> + Debug> Debug for RcMapper<T, P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.parent.fmt(f)?;
+        f.write_str("→(Rc content)")
     }
 }
 impl<T: ?Sized, P: Path<Out = Rc<T>>> Path for RcMapper<T, P> {

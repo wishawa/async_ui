@@ -1,6 +1,7 @@
 use std::{
     cell::{Ref, RefMut},
     collections::HashMap,
+    fmt::Debug,
     hash::Hash,
     ops::Deref,
 };
@@ -80,6 +81,15 @@ impl<K: Eq + Clone + Hash, V, P: Path<Out = HashMap<K, V>> + Clone> Clone
 impl<K: Eq + Clone + Hash + Copy, V, P: Path<Out = HashMap<K, V>> + Copy> Copy
     for HashMapKeyMapper<K, V, P>
 {
+}
+
+impl<K: Eq + Clone + Hash + Debug, V, P: Path<Out = HashMap<K, V>> + Debug> Debug
+    for HashMapKeyMapper<K, V, P>
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.parent.fmt(f)?;
+        f.write_fmt(format_args!("→(key {:?})", self.key))
+    }
 }
 
 impl<K: Eq + Clone + Hash, V, P: Path<Out = HashMap<K, V>>> Path for HashMapKeyMapper<K, V, P> {

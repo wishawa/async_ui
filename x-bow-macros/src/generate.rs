@@ -226,11 +226,7 @@ pub(crate) fn generate(
         let mapper_name = format_ident!("Mapper_{remote_name}_{field_name}");
         let field_type = &field.field().ty;
         let deep = field.is_deep();
-        // if deep {
-        //     where_clause
-        //         .predicates
-        //         .push(parse_quote! (#field_type: #prefix :: Trackable));
-        // }
+
         let input_ident = Ident::new("input", Span::mixed_site());
         let access = field.access(&input_ident, None, &parse_quote!(::std::cell::Ref), remote);
         let access_mut = field.access(
@@ -252,6 +248,7 @@ pub(crate) fn generate(
         } else {
             syn::Visibility::Public(Default::default())
         };
+        let debug_path_str = format!("→{field_name}");
         mappers.push(quote! {
             #[doc(hidden)]
             #[allow(non_camel_case_types)]
@@ -289,6 +286,12 @@ pub(crate) fn generate(
 
                 fn store_wakers(&self) -> &std::cell::RefCell<#prefix::StoreWakers> {
                     self.#parent_value_name.store_wakers()
+                }
+            }
+            impl <#impl_params_unbracketed #parent_generic_param: #prefix::Path<Out = #remote_name #type_params> + ::core::fmt::Debug> ::core::fmt::Debug for #mapper_name <#type_params_unbracketed #parent_generic_param> #where_clause {
+                fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                    ::core::fmt::Debug::fmt(&self.#parent_value_name, f)?;
+                    f.write_str(#debug_path_str)
                 }
             }
             #guarantee_code

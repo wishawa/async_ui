@@ -1,5 +1,6 @@
 use std::{
     cell::{Ref, RefMut},
+    fmt::Debug,
     hash::Hasher,
     ops::Deref,
 };
@@ -67,7 +68,15 @@ impl<T, P: Path<Out = Vec<T>> + Clone> Clone for VecIndexMapper<T, P> {
         }
     }
 }
+
 impl<T, P: Path<Out = Vec<T>> + Copy> Copy for VecIndexMapper<T, P> {}
+
+impl<T, P: Path<Out = Vec<T>> + Debug> Debug for VecIndexMapper<T, P> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.parent.fmt(f)?;
+        f.write_fmt(format_args!("→(index {})", self.index))
+    }
+}
 
 impl<T, P: Path<Out = Vec<T>>> Path for VecIndexMapper<T, P> {
     type Out = T;
