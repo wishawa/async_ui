@@ -1,12 +1,12 @@
 [package]
 name = "x-bow"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async_ui_internal_utils = { path = "../async_ui_internal_utils", version = "0.0.1" }
+async_ui_internal_utils = { path = "../async_ui_internal_utils", version = "0.0.2" }
 nohash-hasher = "0.2.0"
 futures-core = "0.3.28"
 x-bow-macros = { path = "../x-bow-macros/" }
