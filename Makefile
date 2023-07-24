@@ -11,6 +11,7 @@ demo_todomvc:
 	# before running make, run `git worktree add gh-pages/ gh-pages
 	rm -rf gh-pages/demos/todomvc
 	wasm-pack build --release --target web --out-dir ../../gh-pages/demos/todomvc/pkg examples/web-todomvc
+	rm gh-pages/demos/todomvc/pkg/.gitignore
 	cp examples/web-todomvc/index.html gh-pages/demos/todomvc/
 
 .PHONY: demo_simple
@@ -19,6 +20,7 @@ demo_simple:
 	# before running make, run `git worktree add gh-pages/ gh-pages
 	rm -rf gh-pages/demos/simple
 	wasm-pack build --release --target web --out-dir ../../gh-pages/demos/simple/pkg examples/web-simple-examples
+	rm gh-pages/demos/simple/pkg/.gitignore
 	cp examples/web-simple-examples/index.html gh-pages/demos/simple/
 
 .PHONY: demos
