@@ -2,16 +2,37 @@
 
 A web UI framework where Futures are components.
 
-## Async UI is...
+## Overview (for the User)
 
-* **Just async Rust**; if you know what Futures are and how to join them, you know 90% of Async UI already.
-* **Transparent**; we favor imperative async code, avoiding callbacks and custom DSLs.
-* **Flexible**; you get access to the entire Web API (through [web_sys](https://docs.rs/web-sys/latest/web_sys/)).
+Async UI is...
+*   **Easy**; if you know what Futures are and how to join them, you know 90% of Async UI already.
+*   **Just async Rust**; we leverage established patterns and primitives, avoiding DSL macros.
+*   **Flexible**; you get direct access to the entire Web API (through [web_sys](https://docs.rs/web-sys/latest/web_sys/)).
+
+[See hosted demos](https://wishawa.github.ui/async_ui/demos/index.html)
+[Get Started Now!](https://wishawa.github.ui/async_ui/book/index.html)
+
+## Overview (for the UI Framework Connoisseur)
+*   **Async as UI Runtime**; the app is one long-running Future.
+*   **Components are Futures**; composition is done by nesting and joining Futures.
+*   **UI as Side-Effect**; running a Future displays its UI, dropping it removes that UI.
+
+[Read more about the framework](https://wishawa.github.ui/async_ui/book/in-depth/framework-design.html)
 
 ## Example Code: Hello World
 ```rust
 async fn hello_world() {
     "Hello World".render().await;
+}
+```
+
+## Example Code: Async Control Flow
+```rust
+async fn app() {
+    let resource = loading_indicator(
+        fetch_resource()
+    ).await;
+    show_resource(&resource).await;
 }
 ```
 
@@ -35,16 +56,3 @@ async fn counter() {
     .await;
 }
 ```
-
-## Example Code: Async Control Flow
-```rust
-async fn app() {
-    let resource = loading_indicator(
-        fetch_resource()
-    ).await;
-    show_resource(&resource).await;
-}
-```
-
-## Design
-WIP. Please check back later.

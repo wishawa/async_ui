@@ -12,5 +12,5 @@ Let your imagination run!
 ## Other Resources
 
 * A quick overview of the library is available in the [README](https://github.com/wishawa/async_ui#readme).
-* Documentation is available [here on docs.rs](docs.rs/async_ui_web).
-* Hosted demos are available [here](TODO ADD LINK).
+* Documentation is available [here on docs.rs](https://docs.rs/async_ui_web).
+* Hosted demos are available [here](https://wishawa.github.ui/async_ui/demos/index.html).
