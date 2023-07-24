@@ -10,6 +10,31 @@ use crate::wakers_arena::{WakersArena, WakersSublist};
 
 use self::borrow_mut::ReactiveCellBorrowMut;
 
+/// Like a [RefCell], but you can subscribe to changes.
+///
+/// In addition to the RefCell methods, ReactiveCell also provides
+/// [until_change][ReactiveCell::until_change].
+/// After each time the cell is mutably borrowed, the `Stream + Future` returned
+/// by until_change will fire.
+///
+/// ```rust
+/// # use async_ui_internal_utils::reactive_cell::ReactiveCell;
+/// use futures_lite::future::FutureExt;
+/// # let _ = async {
+///     async fn do_something_and_modify_cell(cell: &ReactiveCell<i32>) {
+///         // ...
+///         *cell.borrow_mut() += 1;
+///     }
+///     let cell = ReactiveCell::new(123);
+///
+///     do_something_and_modify_cell(&cell).race(
+///         async {
+///             cell.until_change().await;
+///             println!("Modified!");
+///         }
+///     ).await;
+/// # };
+/// ```
 pub struct ReactiveCell<T> {
     inner: RefCell<Inner<T>>,
 }

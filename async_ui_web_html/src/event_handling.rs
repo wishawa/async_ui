@@ -17,9 +17,13 @@ use web_sys::{AddEventListenerOptions, EventTarget};
 /// Use [until_event][crate::events::EmitEvent::until_event] or other until_*
 /// methods to get this struct.
 ///
-/// The implementation only keeps the last event it receives.
-/// This means if you use some custom manually-implemented wrapper futures and
-/// fail to poll the stream upon `wake`, you might miss events.
+/// ### Notes for the Stream API
+///
+/// *   The returned Stream is never exhausted.
+/// *   The implementation only keeps the last event it receives.
+///     This means if you use some custom manually-implemented wrapper futures and
+///     fail to poll the Stream upon `wake`, you might miss some
+///     in-between events.
 pub struct EventFutureStream<E> {
     target: EventTarget,
     closure: Option<Closure<dyn Fn(web_sys::Event)>>,

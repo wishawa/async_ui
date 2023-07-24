@@ -9,3 +9,4 @@ async fn app() {
 
 mod building_ui;
 mod dynamicity;
+mod events;

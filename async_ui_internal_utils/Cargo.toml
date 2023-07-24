@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 futures-core = "0.3.28"
+
+[dev-dependencies]
+futures-lite = "1.12.0"

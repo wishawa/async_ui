@@ -7,7 +7,7 @@ use crate::wakers_arena::WakerSlot;
 use super::{ReactiveCell, SUBLIST};
 
 impl<T> ReactiveCell<T> {
-    pub fn until_change(&'_ self) -> UntilChangeFuture<'_, T> {
+    pub fn until_change(&self) -> UntilChangeFuture<'_, T> {
         UntilChangeFuture {
             target: self,
             last_version: 0,

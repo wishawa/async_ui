@@ -16,7 +16,9 @@ macro_rules! make_event_impl {
     };
 }
 
-/// Subscribe to common events emitted by HTML elements such as `click` or `scroll`.
+/// Subscribe to common events emitted by HTML `Element`s such as `click` or `scroll`.
+///
+/// See [MDN Web Docs for the events](https://developer.mozilla.org/en-US/docs/Web/API/Element#events).
 #[rustfmt::skip]
 pub trait EmitElementEvent: AsRef<Element> {
     make_event_impl!("cancel", until_cancel, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event)");
@@ -66,6 +68,9 @@ pub trait EmitElementEvent: AsRef<Element> {
 
 impl EmitElementEvent for Element {}
 
+/// Subscribe to common events emitted by HTML `HTMLElement`s such as `input` or `drag`.
+/// 
+/// See [MDN Web Docs for the events](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement#events).
 #[rustfmt::skip]
 pub trait EmitHtmlElementEvent: AsRef<HtmlElement> {
     make_event_impl!("input", until_input, web_sys::Event, "[MDN documentation for this event](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/input_event)");

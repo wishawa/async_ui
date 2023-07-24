@@ -20,5 +20,8 @@
 	- [The `DynamicSlot` Component](./dynamicity/2-dynamic-slot.md)
 	- [Lists](./dynamicity/3-lists.md)
 
+- [Handling Events](./events/README.md)
+- [Reactivity and State Management](./reactive/README.md)
+
 # Framework Design & Internals
 - [Framework Design](./in-depth/framework-design.md)
