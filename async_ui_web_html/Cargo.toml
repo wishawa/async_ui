@@ -16,7 +16,7 @@ smallvec = { version = "1", features = ["union", "const_generics"] }
 
 pin-project = "1.0"
 futures-core = "0.3.28"
-futures-lite = "1.12.0"
+futures-lite = "1.13.0"
 
 async-executor = "1.5.0"
 

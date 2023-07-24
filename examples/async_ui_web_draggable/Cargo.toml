@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 async_ui_web = { path = "../../async_ui_web/" }
-futures-lite = "1.12.0"
+futures-lite = "1.13.0"
 async_ui_internal_utils = { path = "../../async_ui_internal_utils/" }
 
 [dependencies.web-sys]

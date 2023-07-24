@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 [dependencies]
 async_ui_web = { path = "../../async_ui_web/" }
 wasm-bindgen = "0.2.82"
-futures-lite = "1.12.0"
+futures-lite = "1.13.0"

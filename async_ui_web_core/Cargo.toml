@@ -30,4 +30,4 @@ features = [
 ]
 
 [dev-dependencies]
-futures-lite = "1.12.0"
+futures-lite = "1.13.0"

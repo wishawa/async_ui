@@ -13,4 +13,4 @@ x-bow-macros = { path = "../x-bow-macros/" }
 pin-project-lite = "0.2"
 
 [dev-dependencies]
-futures-lite = "1.12.0"
+futures-lite = "1.13.0"
