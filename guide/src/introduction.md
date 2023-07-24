@@ -7,7 +7,7 @@ Async UI has a new and unique design, leveraging the async features of Rust
 to build UI (more on this in [the design chapter](./design/)).
 We are still exploring the countless patterns possible under this design.
 No idioms or opinionated conventions have been established yet.
-Let your imagination run!.
+Let your imagination run!
 
 ## Other Resources
 

@@ -28,7 +28,7 @@ There is a trait that implements `.render()` on `&str`.
 {{ #include ../../../examples/guide-project/src/building_ui/html.rs:text-node }}
 ```
 The trait implementation is based on [the Text component](https://docs.rs/async_ui_web/latest/async_ui_web/html/struct.Text.html).
-You can use that manually too.
+You can use that manually too (the next chapter will touch more on this).
 
 ## Other Elements
 `Div`, `Input`, and Text Node are only three components in Async UI's suite of HTML components.
