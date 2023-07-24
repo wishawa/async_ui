@@ -1,5 +1,5 @@
 impl super::nodes::Input {
-    pub fn new_with_type(ty: &str) -> Self {
+    fn new_with_type(ty: &str) -> Self {
         let input = Self::new();
         input.set_type(ty);
         input
@@ -9,6 +9,12 @@ impl super::nodes::Input {
 macro_rules! make_input_types {
     ($fn_name:ident, $text:literal) => {
         impl super::nodes::Input {
+            #[doc = "Create a new Input with type `"]
+            #[doc = $text]
+            #[doc = "`."]
+            #[doc = ""]
+            #[doc = "See [the MDN docs](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Input#input_types)"]
+            #[doc = "to learn more about different input types."]
             pub fn $fn_name() -> Self {
                 Self::new_with_type($text)
             }

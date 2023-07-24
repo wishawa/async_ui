@@ -15,7 +15,7 @@ pub trait Join {
     /// Which kind of future are we turning this into?
     type Future: Future<Output = Self::Output>;
 
-    /// Waits for multiple futures to complete.
+    /// Wait for multiple futures to complete.
     ///
     /// Awaits multiple futures simultaneously, returning the output of the
     /// futures once all complete.

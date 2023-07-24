@@ -19,6 +19,10 @@ macro_rules! component_impl {
             pub element: $elem_ty,
         }
         impl $ty {
+            #[doc = "Create a new instance of this type."]
+            #[doc = ""]
+            #[doc = "This creates the HTML node, but doesn't put it on the screen yet."]
+            #[doc = "Use the `.render(_)` method to do that."]
             pub fn new() -> Self {
                 Self {
                     element: create_element($tag_name),
@@ -48,6 +52,14 @@ macro_rules! component_impl {
     ($ty:ident, $tag_name:literal, $elem_ty:ty, $link:tt, childed) => {
         component_impl!($ty, $tag_name, $elem_ty, $link);
         impl $ty {
+            #[doc = "Put this HTML element on the screen."]
+            #[doc = ""]
+            #[doc = "The return Future completes when the given argument Future finishes."]
+            #[doc = "Anything the argument Future renders will in the HTML tag of this component."]
+            #[doc = ""]
+            #[doc = "When the returned Future is dropped, the HTML element will be removed."]
+            #[doc = ""]
+            #[doc = "This method should only be called once. It may misbehave otherwise."]
             pub fn render<F: Future>(&self, c: F) -> ContainerNodeFuture<F> {
                 ContainerNodeFuture::new(c, AsRef::<web_sys::Node>::as_ref(&self.element).clone())
             }
@@ -56,6 +68,13 @@ macro_rules! component_impl {
     ($ty:ident, $tag_name:literal, $elem_ty:ty, $link:tt, childless) => {
         component_impl!($ty, $tag_name, $elem_ty, $link);
         impl $ty {
+            #[doc = "Put this HTML element on the screen."]
+            #[doc = ""]
+            #[doc = "This method returns a Future that never finishes."]
+            #[doc = ""]
+            #[doc = "When the returned Future is dropped, the HTML element will be removed."]
+            #[doc = ""]
+            #[doc = "This method should only be called once. It may misbehave otherwise."]
             pub fn render(&self) -> ContainerNodeFuture<Pending<()>> {
                 ContainerNodeFuture::new(
                     pending(),

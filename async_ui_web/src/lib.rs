@@ -18,7 +18,9 @@ pub use async_ui_web_macros::select;
 pub use mount::{mount, mount_at};
 pub use no_child::NoChild;
 
+#[doc(hidden)]
 pub mod __private_macro_only {
+    #[doc(hidden)]
     pub use wasm_bindgen;
 }
 
