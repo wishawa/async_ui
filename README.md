@@ -6,7 +6,7 @@ A web UI framework where Futures are components.
 
 Async UI is...
 *   **Easy**; if you know what Futures are and how to join them, you know 90% of Async UI already.
-*   **Just async Rust**; we leverage established patterns and primitives, avoiding DSL macros.
+*   **Just async Rust**; no DSL or opaque runtime - leverage existing Async Rust patterns and ecosystem.
 *   **Flexible**; you get direct access to the entire Web API (through [web_sys](https://docs.rs/web-sys/latest/web_sys/)).
 
 [See hosted demos](https://wishawa.github.io/async_ui/demos/index.html)

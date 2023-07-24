@@ -1,6 +1,8 @@
 /*!
 # Async UI Web: Web UI with Async Rust
 
+See the [guide book](https://wishawa.github.io/async_ui/book/) to get started!
+
 */
 
 pub mod components;

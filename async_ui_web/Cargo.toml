@@ -5,6 +5,9 @@ edition = "2021"
 description = "Async UI for the Browser"
 license = "MPL-2.0"
 repository = "https://github.com/wishawa/async_ui"
+categories = ["gui", "wasm", "web-programming", "asynchronous"]
+keywords = ["gui", "wasm", "web-programming", "asynchronous"]
+documentation = "https://docs.rs/async_ui_web"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
