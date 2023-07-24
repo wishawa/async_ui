@@ -1,0 +1,14 @@
+{
+  "name": "web-todomvc",
+  "version": "0.1.0",
+  "files": [
+    "web_todomvc_bg.wasm",
+    "web_todomvc.js",
+    "web_todomvc.d.ts"
+  ],
+  "module": "web_todomvc.js",
+  "types": "web_todomvc.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

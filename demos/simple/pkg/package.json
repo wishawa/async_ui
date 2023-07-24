@@ -1,0 +1,14 @@
+{
+  "name": "web-simple-examples",
+  "version": "0.1.0",
+  "files": [
+    "web_simple_examples_bg.wasm",
+    "web_simple_examples.js",
+    "web_simple_examples.d.ts"
+  ],
+  "module": "web_simple_examples.js",
+  "types": "web_simple_examples.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
