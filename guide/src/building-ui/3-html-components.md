@@ -11,27 +11,32 @@ Still, it is perfectly fine to have `<div>` without children.
 ```html
 <div></div>
 ```
-So how do we do that in Async UI?
+The code to do that would be
 ```rust
 {{ #include ../../../examples/guide-project/src/building_ui/html.rs:div-empty }}
 ```
 
-What is [`NoChild`](https://docs.rs/async_ui_web/latest/async_ui_web/struct.NoChild.html)?
-It is a unit struct that implements Future. It puts nothing on the screen,
+Here, [`NoChild`](https://docs.rs/async_ui_web/latest/async_ui_web/struct.NoChild.html)
+is a unit struct that implements Future. It puts nothing on the screen,
 and it never finishes (just like `input.render()`).
 
-## Other Elements
-`Div` and `Input` are only two components in Async UI's suite of HTML components.
-You can see the full list [here](https://docs.rs/async_ui_web/latest/async_ui_web/html/index.html).
-
 ## Text
-How do we render an [HTML Text Node](https://developer.mozilla.org/en-US/docs/Web/API/Text)?
+We can also render [HTML Text Nodes](https://developer.mozilla.org/en-US/docs/Web/API/Text).
 
-We have a trait that implements `.render()` on `&str`.
+There is a trait that implements `.render()` on `&str`.
 ```rust
 {{ #include ../../../examples/guide-project/src/building_ui/html.rs:text-node }}
 ```
-We will learn how to do this without the magic trait in the next chapter.
+The trait implementation is based on [the Text component](https://docs.rs/async_ui_web/latest/async_ui_web/html/struct.Text.html).
+You can use that manually too.
+
+## Other Elements
+`Div`, `Input`, and Text Node are only three components in Async UI's suite of HTML components.
+You can see the full list [here](https://docs.rs/async_ui_web/latest/async_ui_web/html/index.html).
+
+All of them have the same form:
+a struct that can be constructed by `Type::new()`
+and can be rendered with the async `render()` method.
 
 ---
 
@@ -39,9 +44,7 @@ We will learn how to do this without the magic trait in the next chapter.
 How would you make a component that renders the following HTML?
 ```html
 <div>
-	<button>
-		Hello World
-	</button>
+	<button>Hello World</button>
 </div>
 ```
 If you haven't been running examples along the guide so far,

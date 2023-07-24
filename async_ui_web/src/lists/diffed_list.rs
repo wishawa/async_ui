@@ -74,6 +74,8 @@ where
         }
     }
     /// Display the list here.
+    ///
+    /// This async method never completes.
     pub async fn render(&self) {
         self.dl.render().await;
     }

@@ -47,7 +47,7 @@ We wrap it with `div.render(_)`, giving us
 </div>
 ```
 
-### UI Futures are *long-lived*
+### UI Futures are *long-running*
 `input.render()` returns a Future object that *never finishes*.
 If we `await` it, our code would just be stuck there.
 > #### Why does the Future never finish?

@@ -18,6 +18,8 @@ type Version = u64;
 ///
 /// ListModel does not provide any form of reactivity in itself.
 /// Use it with some reactive wrapper or signaling system.
+///
+/// **A limitation**: each list item has to be unique.
 #[derive(Clone, Debug)]
 pub struct ListModel<K> {
     vec: Vec<K>,
@@ -181,6 +183,8 @@ impl<K> FromIterator<K> for ListModel<K> {
 /// To use [ModeledList], wrap your data in [ListModel], modify the model
 /// as needed, and call [update][ModeledList::update] after modifications.
 ///
+/// **A limitation**: each item in the list has to be unique.
+///
 /// ```
 /// # use async_ui_web::prelude_traits::*;
 /// # use async_ui_web::html::Button;
@@ -188,7 +192,7 @@ impl<K> FromIterator<K> for ListModel<K> {
 /// # use async_ui_web::lists::{ModeledList, ListModel};
 /// # let _ = async {
 /// let list = ModeledList::new(|key: &i32| key.to_string().render());
-/// let mut fibo = ListModel::from(vec![1, 1]);
+/// let mut fibo = ListModel::from(vec![1, 2]);
 /// let btn = Button::new();
 /// join((
 ///     list.render(),
@@ -226,9 +230,14 @@ impl<'c, K: Eq + Hash + Clone, F: Future, R: Fn(&K) -> F> ModeledList<'c, K, F, 
             unique: Cell::new(None),
         }
     }
+
+    /// Render the list here.
+    ///
+    /// This async method never completes.
     pub async fn render(&self) {
         self.list.render().await;
     }
+
     /// Update the list to reflect the model.
     ///
     /// This method will:

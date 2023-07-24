@@ -14,7 +14,9 @@ An *element* is an HTML node. For example:
 * A `<div>...</div>` is an element.
 
 #### Component
-A *component* is something that puts element(s) on the screen.
+There is no fixed interface for what a *component* looks like in Async UI.
 
-There is no fixed interface for what a component looks like in Async UI.
-In this chapter we will cover different ways of making components.
+The term "component" will be used to refer to any piece of code that can
+be used to put some UI elements on the screen.
+
+By the end of this chapter, you will see some common forms of components.

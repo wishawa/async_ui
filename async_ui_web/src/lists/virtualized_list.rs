@@ -130,6 +130,7 @@ impl<'c, Fut: Future + 'c, Renderer: FnMut(usize) -> Fut> VirtualizedList<'c, Fu
         self.state.borrow_mut().num_items = num;
         self.update_visible();
     }
+    #[doc(hidden)]
     pub fn force_update(&self, _range: impl RangeBounds<usize>) {
         todo!()
     }

@@ -11,3 +11,5 @@ crate-type = ["cdylib"]
 async_ui_web = { path = "../../async_ui_web/" }
 wasm-bindgen = "0.2.87"
 futures-lite = "1.13.0"
+
+gloo-timers = { version = "0.2.6", features = ["futures"]}

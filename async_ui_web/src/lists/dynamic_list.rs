@@ -102,6 +102,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             detachment_blocker: DetachmentBlocker,
         }
     }
+
     /// Insert a future to render in the list.
     ///
     /// You supply a key along with the future to render.
@@ -156,6 +157,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             false
         }
     }
+
     /// Remove the future inserted with the specified key.
     /// Returns whether or not the future at that key was in the list
     /// (i.e. returns true iff something was removed).
@@ -182,6 +184,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             false
         }
     }
+
     /// Check if there is a future associated with the given key.
     /// Returns true if there is one.
     ///
@@ -193,6 +196,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     {
         self.inner.borrow().items.contains_key(key)
     }
+
     /// Move the future at the key given in the first argument (`to_move`) so that
     /// it appears just before the future at the key given in the second argument (`before`).
     ///
@@ -222,6 +226,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             Some(after),
         );
     }
+
     /// Swap the position of two futures.
     ///
     /// **Panics** if either of the keys don't exist in the list.
@@ -262,6 +267,7 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     {
         todo!()
     }
+
     /// Retain only the items satisfying the predicate.
     ///
     /// Items for which `func` returns `false` will be removed.
@@ -281,10 +287,10 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
             keep
         });
     }
+
     /// Render the list here.
     ///
-    /// This future never completes.
-    /// Race it with some other future if you want to drop it eventually.
+    /// This async method never completes.
     pub async fn render(&self) {
         let real_containing_node;
         {

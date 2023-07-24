@@ -21,7 +21,7 @@ you should see an empty input field.
 
 ## Extracting it into a Component
 Let's extract that single input field into a *component*.
-We'll make the simplest form of component possible: an async function.
+We'll make the simplest form of component possible: *an async function*.
 
 ```rust,noplayground
 	// src/lib.rs

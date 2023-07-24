@@ -1,7 +1,7 @@
 use std::{
     cell::RefCell,
     future::{poll_fn, Future},
-    pin::pin,
+    pin::{pin, Pin},
     task::{Poll, Waker},
 };
 
@@ -33,12 +33,16 @@ join((
 ```
  */
 pub struct DynamicSlot<F: Future> {
-    next: RefCell<(Waker, Next<F>)>,
+    // a tiny "channel" implementation to send what change should be made to the slot
+    channel: RefCell<(Waker, Message<F>)>,
 }
 
-enum Next<F> {
+enum Message<F> {
+    // replace the Future rendering in the slot with this new Future
     Set(F),
+    // remove the Future rendering in the slot
     Clear,
+    // don't do anything
     NoChange,
 }
 
@@ -49,36 +53,39 @@ impl<F: Future> Default for DynamicSlot<F> {
 }
 
 impl<F: Future> DynamicSlot<F> {
-    /// Create a new `Dynamic`, containing no Future inside.
+    /// Create a new `DynamicSlot`, containing no Future inside.
     pub fn new() -> Self {
         Self {
-            next: RefCell::new((dummy_waker(), Next::NoChange)),
+            channel: RefCell::new((dummy_waker(), Message::NoChange)),
         }
     }
 
-    /// Render the Future set inside the `Dynamic` here.
+    /// Render the Future set inside the `DynamicSlot` here.
     ///
     /// The UI will update when you call
-    /// [set_future][Dynamic::set_future] or [clear_future][Dynamic::clear_future].
+    /// [set_future][Self::set_future] or [clear_future][Self::clear_future].
     ///
     /// This async method never completes.
     ///
     /// This method should only ba called once. It may misbehave otherwise.
     pub async fn render(&self) {
-        let mut fut = pin!(None);
+        // this is where the Future lives
+        let mut fut_slot: Pin<&mut Option<F>> = pin!(None);
         poll_fn(|cx| {
             {
-                let mut next = self.next.borrow_mut();
-                match std::mem::replace(&mut next.1, Next::NoChange) {
-                    Next::Set(new_fut) => fut.set(Some(new_fut)),
-                    Next::Clear => fut.set(None),
-                    Next::NoChange => {}
+                let mut channel = self.channel.borrow_mut();
+                match std::mem::replace(&mut channel.1, Message::NoChange) {
+                    Message::Set(new_fut) => fut_slot.set(Some(new_fut)),
+                    Message::Clear => fut_slot.set(None),
+                    Message::NoChange => {}
                 }
-                if !next.0.will_wake(cx.waker()) {
-                    next.0 = cx.waker().to_owned();
+                // if the Waker in the channel is outdated, update it
+                if !channel.0.will_wake(cx.waker()) {
+                    channel.0 = cx.waker().to_owned();
                 }
             }
-            if let Some(fut) = fut.as_mut().as_pin_mut() {
+            // poll the Future in the slot, if there is one
+            if let Some(fut) = fut_slot.as_mut().as_pin_mut() {
                 let _ = fut.poll(cx);
             }
             Poll::Pending
@@ -88,14 +95,15 @@ impl<F: Future> DynamicSlot<F> {
 
     /// Set the future to render in the slot, dropping the previous one.
     pub fn set_future(&self, fut: F) {
-        let mut bm = self.next.borrow_mut();
-        bm.1 = Next::Set(fut);
-        bm.0.wake_by_ref();
+        let mut channel = self.channel.borrow_mut();
+        channel.1 = Message::Set(fut);
+        channel.0.wake_by_ref();
     }
+
     /// Remove the future currently rendering in the slot (if any).
     pub fn clear_future(&self) {
-        let mut bm = self.next.borrow_mut();
-        bm.1 = Next::Clear;
-        bm.0.wake_by_ref();
+        let mut channel = self.channel.borrow_mut();
+        channel.1 = Message::Clear;
+        channel.0.wake_by_ref();
     }
 }
