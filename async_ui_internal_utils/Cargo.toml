@@ -3,6 +3,7 @@ name = "async_ui_internal_utils"
 version = "0.0.2"
 edition = "2021"
 license = "MPL-2.0"
+description = "for internal use only"
 repository = "https://github.com/wishawa/async_ui"
 
 [dependencies]
