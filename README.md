@@ -1,4 +1,7 @@
 # Async UI
+[<img alt="crates.io" src="https://img.shields.io/crates/v/async_ui_web?style=for-the-badge" height="20">](https://crates.io/crates/async_ui_web)
+[<img alt="crates.io" src="https://img.shields.io/docsrs/async_ui_web?style=for-the-badge" height="20">](https://docs.rs/async_ui_web)
+
 
 A web UI framework where Futures are components.
 
