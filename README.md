@@ -9,15 +9,16 @@ Async UI is...
 *   **Just async Rust**; we leverage established patterns and primitives, avoiding DSL macros.
 *   **Flexible**; you get direct access to the entire Web API (through [web_sys](https://docs.rs/web-sys/latest/web_sys/)).
 
-[See hosted demos](https://wishawa.github.ui/async_ui/demos/index.html)
-[Get Started Now!](https://wishawa.github.ui/async_ui/book/index.html)
+[See hosted demos](https://wishawa.github.io/async_ui/demos/index.html)
+
+[Get Started Now!](https://wishawa.github.io/async_ui/book/index.html)
 
 ## Overview (for the UI Framework Connoisseur)
 *   **Async as UI Runtime**; the app is one long-running Future.
 *   **Components are Futures**; composition is done by nesting and joining Futures.
 *   **UI as Side-Effect**; running a Future displays its UI, dropping it removes that UI.
 
-[Read more about the framework](https://wishawa.github.ui/async_ui/book/in-depth/framework-design.html)
+[Read more about the framework](https://wishawa.github.io/async_ui/book/in-depth/framework-design.html)
 
 ## Example Code: Hello World
 ```rust
