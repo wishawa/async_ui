@@ -1,0 +1,1059 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Async UI Guide</title>
+        <meta name="robots" content="noindex" />
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Using Async UI</li><li class="chapter-item expanded "><a href="preparations/index.html"><strong aria-hidden="true">1.</strong> Preparations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="preparations/1-background.html"><strong aria-hidden="true">1.1.</strong> Prerequisites</a></li><li class="chapter-item expanded "><a href="preparations/2-installation.html"><strong aria-hidden="true">1.2.</strong> Installation</a></li><li class="chapter-item expanded "><a href="preparations/3-project-setup.html"><strong aria-hidden="true">1.3.</strong> Project Setup</a></li></ol></li><li class="chapter-item expanded "><a href="building-ui/index.html"><strong aria-hidden="true">2.</strong> Building the UI</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="building-ui/1-first-component.html"><strong aria-hidden="true">2.1.</strong> Your First Component</a></li><li class="chapter-item expanded "><a href="building-ui/2-nested-html.html"><strong aria-hidden="true">2.2.</strong> Building Nested HTML</a></li><li class="chapter-item expanded "><a href="building-ui/3-html-components.html"><strong aria-hidden="true">2.3.</strong> All the HTML</a></li><li class="chapter-item expanded "><a href="building-ui/4-siblings.html"><strong aria-hidden="true">2.4.</strong> Making Siblings</a></li><li class="chapter-item expanded "><a href="building-ui/5-components.html"><strong aria-hidden="true">2.5.</strong> Components</a></li></ol></li><li class="chapter-item expanded "><a href="dynamicity/index.html"><strong aria-hidden="true">3.</strong> Modifying the UI</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="dynamicity/1-using-js-api.html"><strong aria-hidden="true">3.1.</strong> Using the JS API</a></li><li class="chapter-item expanded "><a href="dynamicity/2-dynamic-slot.html"><strong aria-hidden="true">3.2.</strong> The DynamicSlot Component</a></li><li class="chapter-item expanded "><a href="dynamicity/3-lists.html"><strong aria-hidden="true">3.3.</strong> Lists</a></li></ol></li><li class="chapter-item expanded "><a href="events/index.html"><strong aria-hidden="true">4.</strong> Handling Events</a></li><li class="chapter-item expanded "><a href="reactive/index.html"><strong aria-hidden="true">5.</strong> Reactivity and State Management</a></li><li class="chapter-item expanded affix "><li class="part-title">Framework Design & Internals</li><li class="chapter-item expanded "><a href="in-depth/framework-design.html"><strong aria-hidden="true">6.</strong> Framework Design</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Async UI Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p>Async UI is a UI framework implemented for the web platform.
+Write your UI in Rust, compile to WebAssembly, and run in web browsers.</p>
+<p>Async UI has a new and unique design, leveraging the async features of Rust
+to build UI (more on this in <a href="./design/">the design chapter</a>).
+We are still exploring the countless patterns possible under this design.
+No idioms or opinionated conventions have been established yet.
+Let your imagination run!</p>
+<h2 id="other-resources"><a class="header" href="#other-resources">Other Resources</a></h2>
+<ul>
+<li>A quick overview of the library is available in the <a href="https://github.com/wishawa/async_ui#readme">README</a>.</li>
+<li>Documentation is available <a href="https://docs.rs/async_ui_web">here on docs.rs</a>.</li>
+<li>Hosted demos are available <a href="https://wishawa.github.ui/async_ui/demos/index.html">here</a>.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="preparations"><a class="header" href="#preparations">Preparations</a></h1>
+<p>This chapter goes over what you need before you can start
+writing UI code with Async UI!</p>
+<h3 id="note-on-environment"><a class="header" href="#note-on-environment">Note on Environment</a></h3>
+<p>The tool installation and project set-up steps are written for Linux and
+have only been tested on Linux.</p>
+<p>They <em>should</em> work on MacOS and Windows too. But if you're on those platforms,
+please don't just copy paste commands!
+pay attention to shell output to make sure no unexpected errors come up.</p>
+<p>If an error (or any other breakage) comes up,
+please <a href="https://github.com/wishawa/async_ui/issues">open an issue</a>!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="backgrounds"><a class="header" href="#backgrounds">Backgrounds</a></h1>
+<p>Async UI itself is quite easy to learn!
+But there are some prerequisites before you start:
+you need to know Rust, Async Rust, and the Web API.
+These are no small things to learn. However, all three are highly applicable.
+They will be useful even if you don't end up using Async UI.</p>
+<h3 id="rust"><a class="header" href="#rust">Rust</a></h3>
+<p>If you don't know Rust yet, the <a href="https://doc.rust-lang.org/book/">Rust Book</a>
+is a good place to start!</p>
+<h3 id="async-rust"><a class="header" href="#async-rust">Async Rust</a></h3>
+<p>You should know</p>
+<ul>
+<li>what <code>async</code>/<code>await</code> does in Rust</li>
+<li>what the Future trait is</li>
+<li>how to run multiple Futures concurrently (i.e. &quot;joining&quot; Futures)</li>
+</ul>
+<p>Mastery of manual <code>Future</code> implementation, <code>Pin</code>, or pin-projection is
+<strong>not</strong> required for using Async UI.</p>
+<p>If you don't know Async Rust yet, or want to brush up on your knowledge, the
+<a href="https://rust-lang.github.io/async-book/">Async Book</a> is a great resource.
+Chapter 1, 3, and 6 of the book cover most of what you need for working with
+Async UI.</p>
+<h3 id="web-api"><a class="header" href="#web-api">Web API</a></h3>
+<p>Async UI exposes most of the Web API. Make sure you know some HTML and
+JavaScript. To start with Async UI, you only need the basics:
+how to get the text value in an <code>&lt;input&gt;</code>, how to disable a <code>&lt;button&gt;</code>, etc.</p>
+<p>The <a href="https://developer.mozilla.org/en-US/">MDN Web Docs</a> is a good reference
+for the Web API.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="installating-tools"><a class="header" href="#installating-tools">Installating Tools</a></h1>
+<h3 id="rust-for-webassembly"><a class="header" href="#rust-for-webassembly">Rust for WebAssembly</a></h3>
+<p>Install Rust for <code>wasm32-unknown-unknown</code> (the browser WebAssembly target)</p>
+<pre><code class="language-shell">rustup target add wasm32-unknown-unknown
+</code></pre>
+<h3 id="wasm-pack"><a class="header" href="#wasm-pack">wasm-pack</a></h3>
+<p><a href="https://rustwasm.github.io/wasm-pack/">wasm-pack</a> is a tool for conveniently
+building WASM application.
+Install it by one of these options</p>
+<pre><code class="language-shell"># curl the binary
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+# or install via cargo (will compile from source)
+cargo install wasm-pack
+
+# or use npm/yarn
+npm install -g wasm-pack
+</code></pre>
+<h3 id="a-web-server"><a class="header" href="#a-web-server">A Web Server</a></h3>
+<p>You need a web server capable of serving the WebAssembly MIME type.
+If you don't already have one, you can get
+<a href="https://crates.io/crates/microserver">microserver</a>.</p>
+<pre><code class="language-shell">cargo install microserver
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="project-setup"><a class="header" href="#project-setup">Project Setup</a></h1>
+<h3 id="skip-by-cloning-from-template"><a class="header" href="#skip-by-cloning-from-template">Skip by Cloning from Template</a></h3>
+<p>If you want to skip all the setup steps below, simply clone the template.</p>
+<pre><code class="language-shell">git clone TODO TODO TODO
+</code></pre>
+<h3 id="setting-up-an-async-ui-app"><a class="header" href="#setting-up-an-async-ui-app">Setting Up an Async UI App</a></h3>
+<p>An Async UI project is just a Rust project.</p>
+<pre><code class="language-shell">cargo new --lib guide-project
+cd guide-project
+</code></pre>
+<p>Now you need to set up for WASM.
+Modify your <code>Cargo.toml</code> as so</p>
+<pre><code class="language-toml">[package]
+name = &quot;guide-project&quot;
+version = &quot;0.1.0&quot;
+edition = &quot;2021&quot;
+
+# 👇 Add this section so that your app can be compiled to WASM
+[lib]
+crate-type = [&quot;cdylib&quot;]
+
+[dependencies]
+# ...
+</code></pre>
+<p>Now add Async UI as a dependency.
+You'll also need <a href="https://docs.rs/wasm-bindgen/latest/wasm_bindgen/">wasm-bindgen</a>.</p>
+<p>I also recommend adding a utility crate for working with Futures.
+In this tutorial I will use <a href="https://docs.rs/futures-lite/latest/futures_lite/">futures-lite</a>,
+but feel free to use <a href="https://docs.rs/futures/latest/futures/">futures</a> instead if you want.</p>
+<pre><code class="language-toml"># ...
+[dependencies]
+async_ui_web = &quot;0.2.0&quot; # 👈 Async UI
+wasm-bindgen = &quot;0.2.87&quot; # 👈 For interfacing with JavaScript
+futures-lite = &quot;1.13.0&quot; # 👈 Helper
+</code></pre>
+<p>You also need an HTML &quot;boilerplate&quot; for the WebAssembly.
+Create a file <code>index.html</code> in your project directory (<strong>not</strong> inside <code>src/</code>).
+Put in the following content.</p>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta content=&quot;text/html;charset=utf-8&quot; http-equiv=&quot;Content-Type&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot; /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;script type=&quot;module&quot;&gt;
+        import init from './pkg/guide_project.js';
+		//                      👆👆👆
+		// change the import if you put in a different name when doing `cargo new`
+
+        init();
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<p>Almost there! Now we'll add an entrypoint for our application.
+Open your <code>src/lib.rs</code> and put in the following content.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[wasm_bindgen::prelude::wasm_bindgen(start)]
+pub fn run() {
+    async_ui_web::mount(app());
+}
+
+async fn app() {
+    // UI code goes here
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Now run it!</p>
+<pre><code class="language-shell">wasm-pack build --dev --target web &amp;&amp; microserver
+</code></pre>
+<p>Open your browser at <a href="http://localhost:9090">localhost:9090</a> to see the result.
+You should just get an empty page (after all we haven't put in any UI code yet).
+Check the console to make sure there are no errors.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="building-the-ui"><a class="header" href="#building-the-ui">Building the UI</a></h1>
+<p>This chapter describes how to put things on the screen.
+We'll cover how to make UI elements, and how to arrange and nest them.</p>
+<h3 id="some-terminology"><a class="header" href="#some-terminology">Some Terminology</a></h3>
+<p>We'll be talking about <em>components</em> and <em>elements</em>. Let's define them first.</p>
+<h4 id="element"><a class="header" href="#element">Element</a></h4>
+<p>An <em>element</em> is an HTML node. For example:</p>
+<ul>
+<li>A <code>&lt;button&gt;</code> is an element.</li>
+<li>An <a href="https://developer.mozilla.org/en-US/docs/Web/API/Text">HTML Text Node</a> is an element.</li>
+<li>A <code>&lt;div&gt;...&lt;/div&gt;</code> is an element.</li>
+</ul>
+<h4 id="component"><a class="header" href="#component">Component</a></h4>
+<p>There is no fixed interface for what a <em>component</em> looks like in Async UI.</p>
+<p>The term &quot;component&quot; will be used to refer to any piece of code that can
+be used to put some UI elements on the screen.</p>
+<p>By the end of this chapter, you will see some common forms of components.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="your-first-component"><a class="header" href="#your-first-component">Your First Component</a></h1>
+<h3 id="before-you-start"><a class="header" href="#before-you-start">Before You Start</a></h3>
+<p>Make sure you have the project set up as per <a href="building-ui/../preparations/3-project-setup.html">Project Setup</a>.</p>
+<h2 id="putting-something-on-the-screen"><a class="header" href="#putting-something-on-the-screen">Putting Something on the Screen</a></h2>
+<p>Let's put an <code>&lt;input&gt;</code> on the screen!</p>
+<pre><code class="language-rust noplayground">	// src/lib.rs
+
+    use async_ui_web::html::Input; // 👈 import the Input component
+
+    // 👇 this should be the same `app` function in `src/lib.rs` from the project setup
+    async fn app() {
+        let my_input = Input::new();
+        my_input.render().await;
+    }</code></pre>
+<p>Now run the application again
+(<code>wasm-pack build --dev --target web &amp;&amp; microserver</code>, as described in the
+<a href="building-ui/../preparations/3-project-setup.html">Project Setup</a>),
+you should see an empty input field.
+<img src="building-ui/./1-input.png" alt="A webpage with just an empty input field" /></p>
+<h2 id="extracting-it-into-a-component"><a class="header" href="#extracting-it-into-a-component">Extracting it into a Component</a></h2>
+<p>Let's extract that single input field into a <em>component</em>.
+We'll make the simplest form of component possible: <em>an async function</em>.</p>
+<pre><code class="language-rust noplayground">	// src/lib.rs
+
+    // 👇 This is your first component 💯
+    async fn my_input_field() {
+        let my_input = Input::new();
+        my_input.render().await;
+    }
+
+    async fn app() {
+        my_input_field().await; // 👈 use the component you made
+    }</code></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="building-nested-html"><a class="header" href="#building-nested-html">Building Nested HTML</a></h1>
+<p>In the previous subchapter, we were able to render</p>
+<pre><code class="language-html">&lt;input /&gt;
+</code></pre>
+<p>Let's do something more complicated. Let's render</p>
+<pre><code class="language-html">&lt;div&gt;
+	&lt;input /&gt;
+&lt;/div&gt;
+</code></pre>
+<pre><code class="language-rust noplayground">use async_ui_web::html::{Div, Input}; // import Div and Input components
+
+async fn my_input_field() {
+    let div = Div::new();
+    let input = Input::new();
+
+    // render the UI!
+    div.render(
+        input.render(), // input is inside the div
+    )
+    .await;
+}</code></pre>
+<p>Notice that <strong>there is only one <code>.await</code></strong> in the example above.</p>
+<pre><code class="language-rust ignore">// ❌❌ this wouldn't work
+div.render(
+	input.render().await
+	//             👆👆
+	// this await above is incorrect
+).await;</code></pre>
+<p>It is very important to understand why using two <code>await</code>s here is incorrect.
+The two concepts behind this rule are core concepts in Async UI.</p>
+<h3 id="render_-wraps-its-argument-future"><a class="header" href="#render_-wraps-its-argument-future"><code>.render(_)</code> <em>wraps</em> its argument Future</a></h3>
+<p>The signature of <code>div.render(_)</code> is</p>
+<pre><code class="language-rust ignore">fn render&lt;F: Future&gt;(&amp;self, c: F) -&gt; impl Future&lt;Output = F::Output&gt;;</code></pre>
+<p>It <strong>takes a Future object</strong> and returns a &quot;wrapped&quot; Future object.
+The new Future places a <code>&lt;div&gt;</code> on the screen, and if the inner Future
+put anything on the screen, that thing will appear inside the <code>&lt;div&gt;</code>.</p>
+<p>Our <code>input.render()</code> is a Future that puts an <code>&lt;input&gt;</code> on the screen.
+We wrap it with <code>div.render(_)</code>, giving us</p>
+<pre><code class="language-html">&lt;div&gt;
+	&lt;input /&gt;
+&lt;/div&gt;
+</code></pre>
+<h3 id="ui-futures-are-long-running"><a class="header" href="#ui-futures-are-long-running">UI Futures are <em>long-running</em></a></h3>
+<p><code>input.render()</code> returns a Future object that <em>never finishes</em>.
+If we <code>await</code> it, our code would just be stuck there.</p>
+<blockquote>
+<h4 id="why-does-the-future-never-finish"><a class="header" href="#why-does-the-future-never-finish">Why does the Future never finish?</a></h4>
+<p>The <code>&lt;input&gt;</code> element <strong>stays on the screen for as long as the Future is
+running</strong>. We wouldn't want the element to suddenly disappear!</p>
+<p>In later chapters, we will learn how to remove rendered elements.</p>
+</blockquote>
+<blockquote>
+<h4 id="does-divrender_-also-never-finish"><a class="header" href="#does-divrender_-also-never-finish">Does <code>div.render(_)</code> also never finish?</a></h4>
+<p><code>div.render(_)</code> finishes when the inner Future finishes.
+This is why we say <code>.render(_)</code> &quot;wraps&quot; the inner Future.</p>
+<p>In our case, though, the inner Future never finishes anyway</p>
+</blockquote>
+<blockquote>
+<h4 id="why-does-divrender_-take-an-argument-while-inputrender-doesnt"><a class="header" href="#why-does-divrender_-take-an-argument-while-inputrender-doesnt">Why does <code>div.render(_)</code> take an argument while <code>input.render()</code> doesn't?</a></h4>
+<p><a href="https://html.spec.whatwg.org/multipage/syntax.html#void-elements">Per the HTML spec</a>,
+<code>&lt;div&gt;</code> elements are allowed to have children, while <code>&lt;input&gt;</code> elements are not.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="all-the-html"><a class="header" href="#all-the-html">All the HTML</a></h1>
+<p>Let's look at some more ways to build HTML structures with Async UI.</p>
+<h2 id="empty-div"><a class="header" href="#empty-div">Empty <code>&lt;div&gt;</code></a></h2>
+<p>The previous subchapter ended with a note that <code>&lt;div&gt;</code>s can have children,
+but <code>&lt;input&gt;</code>s cannot.</p>
+<p>Still, it is perfectly fine to have <code>&lt;div&gt;</code> without children.</p>
+<pre><code class="language-html">&lt;div&gt;&lt;/div&gt;
+</code></pre>
+<p>The code to do that would be</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::NoChild; // 👈 new import!
+
+async fn just_div() {
+    let div = Div::new();
+
+    div.render(NoChild).await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Here, <a href="https://docs.rs/async_ui_web/latest/async_ui_web/struct.NoChild.html"><code>NoChild</code></a>
+is a unit struct that implements Future. It puts nothing on the screen,
+and it never finishes (just like <code>input.render()</code>).</p>
+<h2 id="text"><a class="header" href="#text">Text</a></h2>
+<p>We can also render <a href="https://developer.mozilla.org/en-US/docs/Web/API/Text">HTML Text Nodes</a>.</p>
+<p>There is a trait that implements <code>.render()</code> on <code>&amp;str</code>.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::shortcut_traits::ShortcutRenderStr; // 👈 new import!
+
+async fn hello_world() {
+    &quot;Hello World&quot;.render().await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The trait implementation is based on <a href="https://docs.rs/async_ui_web/latest/async_ui_web/html/struct.Text.html">the Text component</a>.
+You can use that manually too (the next chapter will touch more on this).</p>
+<h2 id="other-elements"><a class="header" href="#other-elements">Other Elements</a></h2>
+<p><code>Div</code>, <code>Input</code>, and Text Node are only three components in Async UI's suite of HTML components.
+You can see the full list <a href="https://docs.rs/async_ui_web/latest/async_ui_web/html/index.html">here</a>.</p>
+<p>All of them have the same form:
+a struct that can be constructed by <code>Type::new()</code>
+and can be rendered with the async <code>render()</code> method.</p>
+<hr />
+<h1 id="quiz"><a class="header" href="#quiz">Quiz</a></h1>
+<p>How would you make a component that renders the following HTML?</p>
+<pre><code class="language-html">&lt;div&gt;
+	&lt;button&gt;Hello World&lt;/button&gt;
+&lt;/div&gt;
+</code></pre>
+<p>If you haven't been running examples along the guide so far,
+now is the time 😤😤😤.
+Write out your answer to the quiz. Run it in your browser to check.</p>
+<details>
+<summary>Click to view solution</summary>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::html::Button;
+
+async fn quiz() {
+    Div::new()
+        .render(Button::new().render(&quot;Hello World&quot;.render()))
+        .await;
+}
+<span class="boring">}</span></code></pre></pre>
+</details><div style="break-before: page; page-break-before: always;"></div><h1 id="making-siblings-with-join"><a class="header" href="#making-siblings-with-join">Making Siblings with Join</a></h1>
+<p>We've so far seen how to render HTML elements and nest them.</p>
+<p>But how do we put elements side-by-side?</p>
+<pre><code class="language-html">&lt;input /&gt;
+&lt;input /&gt;
+</code></pre>
+<p>In the <a href="building-ui/./2-nested-html.html">Building Nested HTML subchapter</a>, we learned that
+UI elements only stay on screen for as long as their corresponding Future
+is running. Thus, if we want two elements on the screen at once, we'll
+need to run two Futures <em>concurrently</em>.</p>
+<p>To run Futures concurrently, we &quot;join&quot; them.
+The <a href="https://docs.rs/async_ui_web/latest/async_ui_web/fn.join.html">join function</a>
+takes in multiple Futures, and return a single Future. When awaited,
+the returned Future will drive the input Futures to completion and return
+all their results.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::{html::Input, join}; // 👈 get the `join` function
+async fn two_inputs() {
+    let input_1 = Input::new();
+    let input_2 = Input::new();
+    // 👇 join takes a tuple of Futures
+    join((input_1.render(), input_2.render())).await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><img src="building-ui/./4-two-inputs.png" alt="A webpage with two empty input fields" /></p>
+<p>Also, <code>join</code> is not limited to tuples of Futures. You can also pass it an array
+or a vector of Futures.
+See <a href="https://docs.rs/async_ui_web/latest/async_ui_web/fn.join.html">its documentation</a>
+to learn more.</p>
+<h3 id="more-complicated-example"><a class="header" href="#more-complicated-example">More complicated example</a></h3>
+<p>Let's render this HTML</p>
+<pre><code class="language-html">&lt;div&gt;
+	&lt;button&gt;Hello World&lt;/button&gt;
+
+	&lt;span&gt;1&lt;/span&gt;
+	&lt;span&gt;2&lt;/span&gt;
+	&lt;span&gt;3&lt;/span&gt;
+	&lt;!-- more spans here --&gt;
+	&lt;span&gt;98&lt;/span&gt;
+	&lt;span&gt;99&lt;/span&gt;
+	&lt;span&gt;100&lt;/span&gt;
+
+	&lt;input /&gt;
+&lt;/div&gt;
+</code></pre>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn lots_of_span() {
+    Div::new() // the wrapping &lt;div&gt;
+        .render(join((
+            // the &lt;button&gt; at the top
+            Button::new().render(&quot;Hello World&quot;.render()),
+            // the 100 &lt;span&gt;s, made by joining a vec of 100 Futures
+            join(
+                (1..=100)
+                    .map(|number| Span::new().render(number.to_string().render()))
+                    .collect::&lt;Vec&lt;_&gt;&gt;(),
+            ),
+            // the &lt;input&gt; at the end
+            Input::new().render(),
+        )))
+        .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>That code looks pretty complicated ☹️. But we can improve it!
+We'll split it into small, easy-to-understand parts in the next subchapter!</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="components"><a class="header" href="#components">Components</a></h1>
+<p>As mentioned <a href="building-ui/README.html#component">at the start of the chapter</a>, Async UI
+does not have any specific interface that &quot;components&quot; have to conform to.
+A &quot;component&quot; is just some piece of code that can be used to render UI.</p>
+<p>Here are two common forms of &quot;component&quot;</p>
+<h2 id="async-functions"><a class="header" href="#async-functions">Async Functions</a></h2>
+<p>This code from the <a href="building-ui/./4-siblings.html">previous subchapter</a> is somewhat complicated.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn lots_of_span() {
+    Div::new() // the wrapping &lt;div&gt;
+        .render(join((
+            // the &lt;button&gt; at the top
+            Button::new().render(&quot;Hello World&quot;.render()),
+            // the 100 &lt;span&gt;s, made by joining a vec of 100 Futures
+            join(
+                (1..=100)
+                    .map(|number| Span::new().render(number.to_string().render()))
+                    .collect::&lt;Vec&lt;_&gt;&gt;(),
+            ),
+            // the &lt;input&gt; at the end
+            Input::new().render(),
+        )))
+        .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>We should split it into smaller parts that are easier to understand.</p>
+<p>To do this, we'll isolate two of the Futures into a separate async functions
+(remember that Rust async functions return Future objects).</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn hundred_spans() {
+    join((1..=100).map(one_span).collect::&lt;Vec&lt;_&gt;&gt;()).await;
+}
+async fn one_span(number: i32) {
+    Span::new().render(number.to_string().render()).await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Our overall UI function is now just</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn lots_of_span_2() {
+    Div::new()
+        .render(join((
+            Button::new().render(&quot;Hello World&quot;.render()),
+            hundred_spans(),
+            Input::new().render(),
+        )))
+        .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Observe that the components we made are just plain Rust async function.
+Component functions can do all the things regular async functions can do:
+take arguments, borrow things, be generic, etc.</p>
+<h2 id="types-with-async-render-method"><a class="header" href="#types-with-async-render-method">Types with Async <code>.render()</code> Method</a></h2>
+<p>Components can also come in the form of a type.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>struct HelloWorld;
+impl HelloWorld {
+    async fn render(&amp;self) {
+        &quot;Hello World&quot;.render().await;
+    }
+}
+async fn app() {
+    let hello_world = HelloWorld;
+    hello_world.render().await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Calling the <code>.render()</code> method returns a Future. Running that Future puts the UI
+on the screen.</p>
+<p>You've seen this before! all the HTML components we've worked with -
+<code>Div</code>, <code>Input</code>, <code>Button</code>, etc. - are types with <code>.render(_)</code> method.</p>
+<p>How is this more useful than plain asnyc functions?
+It allows us to <em>modify</em> the element, as we'll see in the next chapter...</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="modifying-the-ui"><a class="header" href="#modifying-the-ui">Modifying the UI</a></h1>
+<p>The previous chapter covered how to write Async UI code that produces
+the HTML structure you want.</p>
+<p>In this chapter, we will learn how to modify the UI elements:
+how to set HTML attributes, how to remove a rendered element, etc.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="using-the-js-api"><a class="header" href="#using-the-js-api">Using the JS API</a></h1>
+<p>JavaScript provide API to manipulate HTML elements.
+Async UI provides the same API, translated to Rust via wasm-bindgen
+and the web-sys crate. Anything you can do in JavaScript,
+you should be able to do here.</p>
+<p>Let's start simple: we'll set the placeholder text in a text <code>&lt;input /&gt;</code> field.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn input_with_placeholder() {
+    let input = Input::new();
+    input.set_placeholder(&quot;enter something&quot;); // 👈 set the placeholder
+    input.render().await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The <code>.set_placeholder(_)</code> method used is <a href="https://docs.rs/web-sys/latest/web_sys/struct.HtmlInputElement.html#method.set_placeholder">from web_sys</a>.
+It is implemented on <a href="https://docs.rs/web-sys/latest/web_sys/struct.HtmlInputElement.html"><code>web_sys::HtmlInputElement</code></a>,
+which is web-sys' translation of the <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement">same JS API</a>
+(<code>x.set_placeholder(y);</code> is equal to <code>x.placeholder = y;</code> in JS).</p>
+<p>You can call the method on <a href="https://docs.rs/async_ui_web/latest/async_ui_web/html/struct.Input.html"><code>async_ui_web::html::Input</code></a>
+because our <code>Input</code> derefs to <code>web_sys::HtmlInputElement</code>.</p>
+<p>Other Async UI HTML components deref to their web-sys counterpart too.
+All the methods are listed in <a href="https://docs.rs/async_ui_web/latest/async_ui_web/html/index.html">the documentation</a>.</p>
+<h2 id="example-countdown"><a class="header" href="#example-countdown">Example: Countdown</a></h2>
+<p>This example update the content of an HTML Text Node every second.</p>
+<p>We'll use <a href="https://docs.rs/gloo-timers/latest/gloo_timers/index.html">gloo-timers</a>
+to conveniently access <a href="https://developer.mozilla.org/en-US/docs/Web/API/setTimeout">JavaScript <code>setTimeout</code></a>.
+Add this in your <code>Cargo.toml</code> dependencies</p>
+<pre><code class="language-toml">gloo-timers = { version = &quot;0.2.6&quot;, features = [&quot;futures&quot;] }
+</code></pre>
+<blockquote>
+<h4 id="leveraging-the-ecosystem"><a class="header" href="#leveraging-the-ecosystem">Leveraging the Ecosystem</a></h4>
+<p>The <code>gloo-timers</code> crate isn't related to Async UI,
+but since it provides an async API, we can use it in our Async UI app
+very easily.</p>
+<p>This is one of the strengths of Async UI: it integrates very well with
+any async Rust code.</p>
+</blockquote>
+<p>Now, for our countdown code</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::{html::Text, join};
+use gloo_timers::future::TimeoutFuture; // nice async interface to `setTimeout`
+
+async fn countdown(mut seconds: i32) {
+    let text = Text::new(); // create an HTML text node
+
+    // join two Futures:
+    // * one to render the text node
+    // * the other to keep updating the content of the node
+    join((
+        text.render(), // render the text node
+        async {
+            while seconds &gt; 0 {
+                // 👇 Set the content of the text node. This is `text.data = &quot;...&quot;` in JS.
+                text.set_data(&amp;seconds.to_string());
+
+                // wait 1 second
+                TimeoutFuture::new(1000).await;
+
+                // decrement the count
+                seconds -= 1;
+            }
+            // count has reached zero!
+            text.set_data(&quot;boom!&quot;);
+        },
+    ))
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><em>Note</em>: Our example here is just for demonstration.
+For a correct countdown implementation, use <a href="https://developer.mozilla.org/en-US/docs/Web/API/setInterval"><code>setInterval</code></a>
+instead of <code>setTimeout</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="the-dynamicslot-component"><a class="header" href="#the-dynamicslot-component">The DynamicSlot Component</a></h1>
+<p>The last subchapter covered dynaimcally <em>updating</em> HTML elements.
+Now we'll be <em>adding</em> and <em>removing</em> elements.</p>
+<p>The <a href="https://docs.rs/async_ui_web/latest/async_ui_web/components/struct.DynamicSlot.html"><code>DynamicSlot</code> component</a>
+provided by Async UI acts like a &quot;slot&quot;.
+You can dynamically set what Future runs in the slot.</p>
+<p>In this example, we will display a button for 3 seconds,
+display some text for 3 seconds, and then display nothing.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::{
+    components::DynamicSlot, html::Button, join, shortcut_traits::ShortcutRenderStr,
+};
+use futures_lite::FutureExt; // for .boxed_local(), which converts a Future to a `Box&lt;dyn Future&gt;`
+use gloo_timers::future::TimeoutFuture; // nice async interface to `setTimeout`
+
+async fn show_button_and_remove() {
+    let slot = DynamicSlot::new();
+
+    slot.set_future(
+        // put &lt;button&gt;I will disappear soon!&lt;/button&gt; in the slot
+        Button::new()
+            .render(&quot;I will disappear soon!&quot;.render())
+            .boxed_local(), // make it dynamically typed so we can put Futures of other types in the slot
+    );
+
+    // join two Futures:
+    // * one to render the slot
+    // * the other to manipulate the content of the slot
+    join((
+        slot.render(), // render the slot
+        async {
+            // wait 3 seconds
+            TimeoutFuture::new(3000).await;
+            // 👇 replace the button in the slot with a text
+            slot.set_future(&quot;The button is gone!&quot;.render().boxed_local());
+
+            // wait another 3 seconds
+            TimeoutFuture::new(3000).await;
+            // 👇 remove the text in the slot
+            slot.clear_future();
+        },
+    ))
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<blockquote>
+<h4 id="its-not-magic"><a class="header" href="#its-not-magic">It's not magic</a></h4>
+<p>If you're familiar with hand-implementing Futures, take a look at the
+<a href="https://github.com/wishawa/async_ui/blob/main/async_ui_web/src/components/dynamic_slot.rs">source code of DynamicSlot</a>.</p>
+<p>You'll see that it's no private-API-powered magic;
+it's just general async Rust code. You can even implement it yourself!</p>
+</blockquote>
+<h2 id="extra"><a class="header" href="#extra">Extra</a></h2>
+<p>Can you implement the example above without <code>DynamicSlot</code>?
+Hint: there is <a href="https://docs.rs/async_ui_web/latest/async_ui_web/fn.race.html"><code>race</code></a>,
+which is like <code>join</code>, but completes as soon as the first Future completes.</p>
+<details>
+<summary>Click to view solution</summary>
+<p>Let's make a helper function first</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::race; // 👈 new!
+use std::future::Future;
+
+/// Run the given Future.
+/// If it is still running after 3 seconds, just drop it and return.
+async fn run_for_3_seconds(f: impl Future&lt;Output = ()&gt;) {
+    race((
+        f,                        // the Future to run
+        TimeoutFuture::new(3000), // a Future that waits 3000 ms
+    ))
+    .await
+}
+<span class="boring">}</span></code></pre></pre>
+<p>And now our main UI</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn show_button_and_remove_2() {
+    run_for_3_seconds(
+        // show &lt;button&gt;I will disappear soon!&lt;/button&gt;
+        Button::new().render(&quot;I will disappear soon!&quot;.render()),
+    )
+    .await;
+
+    run_for_3_seconds(
+        // the text
+        &quot;The button is gone!&quot;.render(),
+    )
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+</details><div style="break-before: page; page-break-before: always;"></div><h1 id="lists"><a class="header" href="#lists">Lists</a></h1>
+<p>We've so far covered how to render many Futures (we rendered 100 <code>&lt;span&gt;</code>s <a href="dynamicity/../building-ui/4-siblings.html">in chapter 1</a>),
+and how to dynamically put or remove a Future (the previous subchapter on <code>DynamicSlot</code>).</p>
+<p>Now, how do we dynamically insert or remove from a list of many Futures?</p>
+<p>Async UI comes with many different list components.
+They are documented <a href="https://docs.rs/async_ui_web/latest/async_ui_web/lists/index.html">here</a>.</p>
+<p>The most recommended list - the one we will use in this guide - is
+<a href="https://docs.rs/async_ui_web/latest/async_ui_web/lists/struct.ModeledList.html">ModeledList</a>.</p>
+<p>Each ModeledList has two parts:</p>
+<ul>
+<li>The <code>ModeledList</code> instance. This is what you <code>.render()</code>.
+It knows how to turn each list item into a Future to be rendered.</li>
+<li>The data model: <a href="https://docs.rs/async_ui_web/latest/async_ui_web/lists/struct.ListModel.html">ListModel</a>.
+This is where the items of the list actually live. It is similar to a <code>Vec</code>.</li>
+</ul>
+<p>Operation is simple: you update the <code>ListModel</code>,
+then tell the <code>ModeledList</code> that the data have been updated,
+and the <code>ModeledList</code> will figure out inserting new items and deleting removed items.</p>
+<h2 id="example-a-fibonacci-list"><a class="header" href="#example-a-fibonacci-list">Example: a Fibonacci list</a></h2>
+<p>We'll make a list of Fibonacci numbers.
+First, let's import things</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::{
+    html::Div,
+    join,
+    lists::{ListModel, ModeledList}, // 👈 new!
+    shortcut_traits::ShortcutRenderStr,
+};
+use gloo_timers::future::TimeoutFuture;
+<span class="boring">}</span></code></pre></pre>
+<p>Before making the list, let's think of how we'll render each item in the list</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn render_one_item(n: usize, fib_n: u64) {
+    Div::new()
+        .render(format!(&quot;The {n}th Fibonacci number is {fib_n}.&quot;).render())
+        .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>And finally, we make the list</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn fibonacci() {
+    // 👇 create a list that can render numbers
+    let list = ModeledList::new(|(n, fib_n)| render_one_item(*n, *fib_n));
+    // 👇 create a model that contains the numbers we'll render
+    let mut fibo = ListModel::from(vec![
+        (1, 1), // fib_1 is 1
+        (2, 1), // fib_2 is also 1
+    ]);
+    // 👇 tell the list to render the numbers in the `fibo` model
+    list.update(&amp;fibo);
+
+    // join 2 Futures:
+    // * the list
+    // * a Future to manipulate the items
+    join((
+        list.render(), // 👈 render the list
+        async {
+            loop {
+                // wait 1 second
+                TimeoutFuture::new(1000).await;
+
+                // 👇 change `fibo`, adding the next fibonacci number
+                fibo.push((
+                    fibo.len() + 1, // `n` - the index of the next fibo number
+                    // compute `fib_n`
+                    fibo.iter()
+                        .rev()
+                        .map(|(_n, fib_n)| fib_n)
+                        .take(2)
+                        .cloned()
+                        .sum(),
+                ));
+                // 👇 tell the list that the numbers in the model have changed
+                list.update(&amp;fibo);
+            }
+        },
+    ))
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><img src="dynamicity/./3-fibonacci.png" alt="A webpage with a list of Fibonacci numbers" /></p>
+<p><strong>Warning</strong>: Our Fibonacci implementation will eventually overflow.</p>
+<p>Fixing the incorrect English usage (&quot;1th&quot;, &quot;2th&quot;, &quot;3th&quot;) is left as an exercise for the reader.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="handling-events"><a class="header" href="#handling-events">Handling Events</a></h1>
+<p>Unlike other UI frameworks,
+Async UI does <strong>not</strong> let you set event handler callbacks.</p>
+<p>Instead, we provide an async API.
+Waiting for a user click is no different from waiting for the <code>TimeoutFuture</code>
+we used in previous chapters.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use async_ui_web::event_traits::EmitElementEvent; // 👈 new import!
+
+async fn quick_example() {
+    let button = Button::new();
+    join((
+        // render the button
+        button.render(&quot;Click me!&quot;.render()),
+        async {
+            button.until_click().await; // 👈 wait for the button to be clicked
+
+            // handle click
+        },
+    ))
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>The methods for waiting for events are all named <code>until_*</code>.
+They are provided in 3 different traits</p>
+<ul>
+<li>
+<p><a href="https://docs.rs/async_ui_web/latest/async_ui_web/event_traits/trait.EmitEvent.html">EmitEvent</a>
+is implemented on anything that is a <a href="https://developer.mozilla.org/en-US/docs/Web/API/EventTarget">JavaScript Event Target</a>.
+It provides only one method:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn until_event&lt;E&gt;(&amp;self, name: Cow&lt;'static, str&gt;) -&gt; EventFutureStream&lt;E&gt;;
+<span class="boring">}</span></code></pre></pre>
+<p>It listens to event of the given name.</p>
+<p>We will discuss what <code>EventFutureStream</code> does shortly.</p>
+</li>
+<li>
+<p><a href="https://docs.rs/async_ui_web/latest/async_ui_web/event_traits/trait.EmitElementEvent.html">EmitElementEvent</a>
+is implemented for <a href="https://developer.mozilla.org/en-US/docs/Web/API/Element">the Element JavaScript class</a>.
+It provides methods like:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn until_click(&amp;self) -&gt; EventFutureStream&lt;MouseEvent&gt;;
+fn until_focus(&amp;self) -&gt; EventFutureStream&lt;UiEvent&gt;;
+fn until_keydown(&amp;self) -&gt; EventFutureStream&lt;KeyboardEvent&gt;;
+// ... and more ...
+<span class="boring">}</span></code></pre></pre>
+</li>
+<li>
+<p><a href="https://docs.rs/async_ui_web/latest/async_ui_web/event_traits/trait.EmitHtmlElementEvent.html">EmitHtmlElementEvent</a>
+is implemented for <a href="https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement">the HTMLElement JavaScript class</a>
+(note that this is not the same thing as the <code>Element</code> class).
+It provides methods like:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn until_input(&amp;self) -&gt; EventFutureStream&lt;Event&gt;;
+fn until_drag(&amp;self) -&gt; EventFutureStream&lt;DragEvent&gt;;
+// ... and more ...
+<span class="boring">}</span></code></pre></pre>
+</li>
+</ul>
+<p>Usually, you would just type in the method you want to use, and <a href="https://rust-analyzer.github.io/">rust-analyzer</a>
+will figure out which trait to import for you.</p>
+<h2 id="eventfuturestrame"><a class="header" href="#eventfuturestrame"><code>EventFutureStram&lt;E&gt;</code></a></h2>
+<p>The return type of all those methods is
+<a href="https://docs.rs/async_ui_web/latest/async_ui_web/event_handling/struct.EventFutureStream.html">EventFutureStream</a>.</p>
+<h3 id="use-as-future"><a class="header" href="#use-as-future">Use as Future</a></h3>
+<p>As you have already seen in the previous example,
+you can <code>await</code> an EventFutureStream. It is a Future.</p>
+<p>When <code>await</code>-ed, an EventFutureStream will return the JavaScript Event object that
+it listens for (the object is translated to Rust via web-sys;
+see for instance <a href="https://docs.rs/web-sys/latest/web_sys/struct.MouseEvent.html">web_sys::MouseEvent</a>).</p>
+<p>You can, for example, call <a href="https://developer.mozilla.org/en-US/docs/Web/API/Event/preventDefault"><code>preventDefault</code></a>
+on the returned event object.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>async fn return_type() {
+    let link = Anchor::new();
+    link.set_href(&quot;https://example.com/&quot;);
+    join((
+        // render the link
+        link.render(&quot;I'm a link!&quot;.render()),
+        async {
+            let ev = link.until_click().await; // 👈 wait for the button to be clicked
+
+            ev.prevent_default(); // 👈 use the event object
+                                  // we called preventDefault so example.com won't be opened
+        },
+    ))
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<p>In this example, notice that we only listen to <code>click</code> event <em>once</em>.
+The first time the user click the link, <code>preventDefault</code> will be called and the
+link won't be opened. The second time, however, the link will open normally.</p>
+<p>If you want to handle the event every time it fires, you can put the code in
+a loop. Try it! now the link won't open however many times you click.</p>
+<h3 id="use-as-stream"><a class="header" href="#use-as-stream">Use as Stream</a></h3>
+<p>EventFutureStream is not only a Future, it is also a
+<a href="https://docs.rs/futures-core/latest/futures_core/stream/trait.Stream.html">Stream</a>.
+It can be quite convenient to work with it through the Stream API instead of
+the Future API.</p>
+<p>For example, let's use the Stream API from <a href="https://docs.rs/futures-lite">futures-lite</a>.</p>
+<p>The crate provides a <a href="https://docs.rs/futures-lite/latest/futures_lite/stream/trait.StreamExt.html#method.for_each">for_each method</a>
+for Streams. It is perfect for our use case.</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use futures_lite::StreamExt; // 👈 new!
+
+async fn prevent_default_with_stream() {
+    let link = Anchor::new();
+    link.set_href(&quot;https://example.com/&quot;);
+    join((
+        // render the link
+        link.render(&quot;I'm a link!&quot;.render()),
+        // for each click event, `preventDefault` it
+        link.until_click().for_each(|ev| {
+            ev.prevent_default();
+        }),
+    ))
+    .await;
+}
+<span class="boring">}</span></code></pre></pre>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="reactivity-and-state-management"><a class="header" href="#reactivity-and-state-management">Reactivity and State Management</a></h1>
+<p>Async UI <strong>does not</strong> provide reactivity or state management solution.
+The async API should be flexible enough for you to &quot;bring your own reactivity&quot;.</p>
+<p>The <code>async_ui_web</code> crate does expose a <a href="https://docs.rs/async_ui_web/latest/async_ui_web/struct.ReactiveCell.html">ReactiveCell</a>
+type that provides basic reactivity. However, it is unlikely to be powerful
+enough to manage the state of complex applications.</p>
+<p>There are, as far as I am aware, two Rust state management libraries out there
+that provide async API.</p>
+<h3 id="futures-signals"><a class="header" href="#futures-signals">Futures-Signals</a></h3>
+<p>The <a href="https://crates.io/crates/futures-signals">futures-signals crate</a>
+provide reactivity based on &quot;signals&quot;. If you're interested, <a href="https://docs.rs/futures-signals/latest/futures_signals/tutorial/index.html">the crate's
+tutorial</a>
+explains everything.</p>
+<h3 id="x-bow"><a class="header" href="#x-bow">X-Bow</a></h3>
+<p>Along with Async UI, I have also been working on a state management library.
+It's name is <code>X-Bow</code> (because early prototypes were inspired by the JavaScript
+<a href="https://mobx.js.org/">MobX</a> library). You can access it's documentation
+<a href="https://docs.rs/x-bow">here</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="framework-design"><a class="header" href="#framework-design">Framework Design</a></h1>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </div>
+    </body>
+</html>
