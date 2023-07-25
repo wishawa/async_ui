@@ -1,10 +1,11 @@
 pub mod bind_for_each;
 pub mod for_each;
+pub mod for_each_async;
 pub mod signal_stream;
 
 use std::cell::{Ref, RefMut};
 
-use futures_core::Stream;
+use futures_core::{Future, Stream};
 
 use crate::{
     borrow_mut_guard::BorrowMutGuard, until_change::UntilChange, Path, ReferencePath, Trackable,
@@ -284,6 +285,41 @@ pub trait PathExt: Path {
     #[must_use = "the returned Future is lazy; await it to make it do work"]
     fn for_each<C: FnMut(&Self::Out)>(&self, closure: C) -> for_each::ForEach<'_, Self, C> {
         for_each::ForEach::new(self, self.until_change(), closure)
+    }
+
+    /// Execute the given async function (a function returning Future)
+    /// with the data as argument. Repeat every time the data changes.
+    ///
+    /// If the async function is still executing when the data changes,
+    /// the execution is canceled (by dropping the Future) so that the new
+    /// one can start.
+    ///
+    /// The return future finishes when the data couldn't be accessed
+    /// (when [borrow_opt][PathExt::borrow_opt] returns None).
+    ///
+    /// ```
+    /// # use x_bow::{Path, PathExt};
+    /// # async fn example(path_to_url: &impl Path<Out = String>) {
+    /// # struct ui_element;
+    /// # impl ui_element {
+    /// #   fn set_text(&self, t: &str) {}
+    /// # }
+    /// # async fn fetch_content(url: &String) -> String {
+    /// # todo!();
+    /// # }
+    /// // when the URL changes, fetch the content and set the text
+    /// path_to_url.for_each_async(|url: &String| async move {
+    ///     let content = fetch_content(url).await;
+    ///     ui_element.set_Text(&content);
+    /// }).await;
+    /// # }
+    /// ```
+    #[must_use = "the returned Future is lazy; await it to make it do work"]
+    fn for_each_async<F: Future<Output = ()>, C: FnMut(&Self::Out) -> F>(
+        &self,
+        closure: C,
+    ) -> for_each_async::ForEachAsync<'_, Self, F, C> {
+        for_each_async::ForEachAsync::new(self, self.until_change(), closure)
     }
 
     /// For making a two-way binding.
