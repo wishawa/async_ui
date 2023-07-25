@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Using Async UI</li><li class="chapter-item expanded "><a href="../preparations/index.html"><strong aria-hidden="true">1.</strong> Preparations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../preparations/1-background.html"><strong aria-hidden="true">1.1.</strong> Prerequisites</a></li><li class="chapter-item expanded "><a href="../preparations/2-installation.html"><strong aria-hidden="true">1.2.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../preparations/3-project-setup.html"><strong aria-hidden="true">1.3.</strong> Project Setup</a></li></ol></li><li class="chapter-item expanded "><a href="../building-ui/index.html"><strong aria-hidden="true">2.</strong> Building the UI</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../building-ui/1-first-component.html"><strong aria-hidden="true">2.1.</strong> Your First Component</a></li><li class="chapter-item expanded "><a href="../building-ui/2-nested-html.html"><strong aria-hidden="true">2.2.</strong> Building Nested HTML</a></li><li class="chapter-item expanded "><a href="../building-ui/3-html-components.html"><strong aria-hidden="true">2.3.</strong> All the HTML</a></li><li class="chapter-item expanded "><a href="../building-ui/4-siblings.html"><strong aria-hidden="true">2.4.</strong> Making Siblings</a></li><li class="chapter-item expanded "><a href="../building-ui/5-components.html"><strong aria-hidden="true">2.5.</strong> Components</a></li></ol></li><li class="chapter-item expanded "><a href="../dynamicity/index.html"><strong aria-hidden="true">3.</strong> Modifying the UI</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../dynamicity/1-using-js-api.html"><strong aria-hidden="true">3.1.</strong> Using the JS API</a></li><li class="chapter-item expanded "><a href="../dynamicity/2-dynamic-slot.html"><strong aria-hidden="true">3.2.</strong> The DynamicSlot Component</a></li><li class="chapter-item expanded "><a href="../dynamicity/3-lists.html"><strong aria-hidden="true">3.3.</strong> Lists</a></li></ol></li><li class="chapter-item expanded "><a href="../events/index.html"><strong aria-hidden="true">4.</strong> Handling Events</a></li><li class="chapter-item expanded "><a href="../reactive/index.html"><strong aria-hidden="true">5.</strong> Reactivity and State Management</a></li><li class="chapter-item expanded affix "><li class="part-title">Framework Design & Internals</li><li class="chapter-item expanded "><a href="../in-depth/framework-design.html" class="active"><strong aria-hidden="true">6.</strong> Framework Design</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="../introduction.html">Introduction</a></li><li class="chapter-item expanded affix "><li class="part-title">Using Async UI</li><li class="chapter-item expanded "><a href="../preparations/index.html"><strong aria-hidden="true">1.</strong> Preparations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../preparations/1-background.html"><strong aria-hidden="true">1.1.</strong> Prerequisites</a></li><li class="chapter-item expanded "><a href="../preparations/2-installation.html"><strong aria-hidden="true">1.2.</strong> Installation</a></li><li class="chapter-item expanded "><a href="../preparations/3-project-setup.html"><strong aria-hidden="true">1.3.</strong> Project Setup</a></li></ol></li><li class="chapter-item expanded "><a href="../building-ui/index.html"><strong aria-hidden="true">2.</strong> Building the UI</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../building-ui/1-first-component.html"><strong aria-hidden="true">2.1.</strong> Your First Component</a></li><li class="chapter-item expanded "><a href="../building-ui/2-nested-html.html"><strong aria-hidden="true">2.2.</strong> Building Nested HTML</a></li><li class="chapter-item expanded "><a href="../building-ui/3-all-the-html.html"><strong aria-hidden="true">2.3.</strong> All the HTML</a></li><li class="chapter-item expanded "><a href="../building-ui/4-siblings.html"><strong aria-hidden="true">2.4.</strong> Making Siblings</a></li><li class="chapter-item expanded "><a href="../building-ui/5-components.html"><strong aria-hidden="true">2.5.</strong> Components</a></li></ol></li><li class="chapter-item expanded "><a href="../dynamicity/index.html"><strong aria-hidden="true">3.</strong> Modifying the UI</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../dynamicity/1-using-js-api.html"><strong aria-hidden="true">3.1.</strong> Using the JS API</a></li><li class="chapter-item expanded "><a href="../dynamicity/2-dynamic-slot.html"><strong aria-hidden="true">3.2.</strong> The DynamicSlot Component</a></li><li class="chapter-item expanded "><a href="../dynamicity/3-lists.html"><strong aria-hidden="true">3.3.</strong> Lists</a></li></ol></li><li class="chapter-item expanded "><a href="../events/index.html"><strong aria-hidden="true">4.</strong> Handling Events</a></li><li class="chapter-item expanded "><a href="../reactive/index.html"><strong aria-hidden="true">5.</strong> Reactivity and State Management</a></li><li class="chapter-item expanded "><a href="../extras/index.html"><strong aria-hidden="true">6.</strong> Extras</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../extras/css.html"><strong aria-hidden="true">6.1.</strong> CSS Styling</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Framework Design & Internals</li><li class="chapter-item expanded "><a href="../in-depth/framework-design.html" class="active"><strong aria-hidden="true">7.</strong> Framework Design</a></li><li class="chapter-item expanded "><a href="../in-depth/other-backends.html"><strong aria-hidden="true">8.</strong> Future Work: Other Backends</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -145,15 +145,136 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="framework-design"><a class="header" href="#framework-design">Framework Design</a></h1>
+<h2 id="design"><a class="header" href="#design">Design</a></h2>
+<h3 id="basics"><a class="header" href="#basics">Basics</a></h3>
+<ul>
+<li>UI as side effect: Rust <a href="https://doc.rust-lang.org/nightly/core/future/trait.Future.html">Future</a>
+objects can render things.
+<ul>
+<li>These Futures are long-running. Their UI elements stay on the screen
+until they are dropped.</li>
+</ul>
+</li>
+</ul>
+<h3 id="dom"><a class="header" href="#dom">DOM</a></h3>
+<ul>
+<li>HTML structure is built by joining and nesting Futures.
+<ul>
+<li>The &quot;base&quot; Future is <a href="https://docs.rs/async_ui_web_core/latest/async_ui_web_core/struct.ContainerNodeFuture.html">ContainerNodeFuture</a>.
+It puts a single HTML node on the screen.
+It use the described context to insert its node on first poll,
+and remove the node when dropped.</li>
+<li>The code for joining is based on <a href="https://docs.rs/futures-concurrency/">futures-concurrency</a>,
+but rewritten to significantly improve performance and reduce allocations.</li>
+</ul>
+</li>
+<li>We use an implicit rendering context, provided as a scoped thread-local set
+for each Future <code>poll</code>. The context provides the information needed for
+<a href="https://developer.mozilla.org/en-US/docs/Web/API/Node/insertBefore"><code>insertBefore</code></a>
+<ul>
+<li>The HTML element that the polled Future should insert its own element to.
+This is the &quot;parent element&quot;.</li>
+<li>An ordered map containing all the children of the parent element,
+each keyed by a lexicographical &quot;path&quot; from the parent element.
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Div::new().render( // this Div is the parent element for A-F
+join((
+	A, // path = [0]
+	join((
+		C, // path = [1, 0]
+		D, // path = [1, 1]
+		join((
+			E, // path = [1, 2, 0]
+			F, // path = [1, 2, 1]
+		))
+	)),
+	B, // path = [2]
+	Div::new().render( // this Div is the parent of G and H
+	join((
+		G, // path = [0]
+		H, // path = [1]
+	))
+	),
+))
+)
+<span class="boring">}</span></code></pre></pre>
+<pre><code class="language-html">&lt;div&gt;
+	A
+	C
+	D
+	E
+	F
+	B
+	&lt;div&gt;
+		G
+		H
+	&lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+<ul>
+<li>The &quot;path&quot; is stored as a <code>SmallVec&lt;[u32; 4]&gt;</code>.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>No diffing virtual DOM. Dynamicity is special case
+(<a href="https://docs.rs/async_ui_web/latest/async_ui_web/components/struct.DynamicSlot.html">DynamicSlot</a>).</li>
+<li>The event listener <a href="https://docs.rs/async_ui_web/latest/async_ui_web/event_handling/struct.EventFutureStream.html">EventFutureStream</a>
+type add a callback to put the event object in a cell and wake its waker.
+On every poll it the check if there is an event in the cell.</li>
+</ul>
+<h3 id="state"><a class="header" href="#state">State</a></h3>
+<ul>
+<li>We don't provide reactivity or state management.</li>
+<li>State can be put in Future objects.
+<ul>
+<li>Usually, this comes in the form of variables in async functions.</li>
+</ul>
+</li>
+</ul>
+<h3 id="scheduling"><a class="header" href="#scheduling">Scheduling</a></h3>
+<ul>
+<li>The whole app is one big Future.</li>
+<li>A &quot;main&quot; async executor is provided (<a href="https://docs.rs/async-executor/">async-executor</a>).
+It drives the app Future and can also be used to spawn things.</li>
+<li>The main executor is driven by a hand-rolled &quot;root&quot; executor.
+<ul>
+<li>The root executor <code>setTimeout</code> itself to execute when woken.</li>
+</ul>
+</li>
+</ul>
+<h2 id="comparisons"><a class="header" href="#comparisons">Comparisons</a></h2>
+<ul>
+<li>The UI-as-side-effect design of Async UI is quite unique, as far as I know.
+<ul>
+<li>Blocking UI (like <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/alert"><code>alert</code></a>
+or <a href="https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messagebox"><code>MessageBox</code></a>)
+technically present UI as side-effect too, but they're not very flexible
+since they block the entire application.</li>
+</ul>
+</li>
+<li>Async UI has long-living async functions and store component state as
+variables in functions. This approach is similar to <a href="https://crank.js.org/">Crank.js</a>.</li>
+</ul>
+<h2 id="motivations"><a class="header" href="#motivations">Motivations</a></h2>
+<p>Async UI is motivated by the fact that async is an effect system, and in many cases,
+UI is too.</p>
+<p>But that isn't the only possible motive for this framework design.
+<a href="https://notgull.github.io/async-gui/">This blog post by <em>notgull</em></a> describes
+the same idea of using async for UI, but from a less abstracted perspective.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../reactive/index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../extras/css.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
+                            <a rel="next" href="../in-depth/other-backends.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -161,10 +282,13 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../reactive/index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../extras/css.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
+                    <a rel="next" href="../in-depth/other-backends.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
 
         </div>
