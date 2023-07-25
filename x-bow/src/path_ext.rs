@@ -198,8 +198,11 @@ pub trait PathExt: Path {
         UntilChange::new(self.store_wakers(), self)
     }
 
-    /// Get a [Stream][futures_core::Stream] that fires **once now** and once
+    /// Get a [Stream][futures_core::Stream] that fires once
     /// every time the data changes, yielding [Ref]s to the data.
+    ///
+    /// If the `fire_immediately` argument is `true`, then the stream will fire
+    /// on the first poll too.
     ///
     /// The stream ends when the data cannot be borrowed (when [borrow_opt][Self::borrow_opt]
     /// returns None).
@@ -217,7 +220,7 @@ pub trait PathExt: Path {
     /// # }
     /// // set the text with the current data
     /// // and update the text whenever the data change
-    /// path.signal_stream().for_each(|data: Ref<'_, String>| {
+    /// path.signal_stream(true).for_each(|data: Ref<'_, String>| {
     ///     let s: &str = &**data;
     ///     ui_element.set_text(s);
     /// }).await;
@@ -243,7 +246,7 @@ pub trait PathExt: Path {
     /// # async fn example(path: &impl Path) {
     /// let stream = path.signal_stream();
     /// // is equivalent to
-    /// let stream = futures_lite::stream::once(()) // fire once in the beginning...
+    /// let stream = futures_lite::stream::once(()) // fire immediately in the beginning...
     ///     .chain(path.until_change()) // and after every change
     ///     .map(|_| path.borrow_opt()) // borrow the data into a Ref
     ///     .take_while(Option::is_some) // end the stream if the data is unavailable
@@ -251,8 +254,8 @@ pub trait PathExt: Path {
     /// # }
     /// ```
     #[must_use = "the returned Stream is lazy; poll it or use StreamExt on it"]
-    fn signal_stream(&self) -> signal_stream::SignalStream<'_, Self> {
-        signal_stream::SignalStream::new(self, self.until_change())
+    fn signal_stream(&self, fire_immediately: bool) -> signal_stream::SignalStream<'_, Self> {
+        signal_stream::SignalStream::new(self, self.until_change(), fire_immediately)
     }
 
     /// Execute the given function with the data as argument. Repeat every time

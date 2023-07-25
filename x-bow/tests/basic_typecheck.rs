@@ -5,7 +5,7 @@ use x_bow::Trackable;
 
 #[test]
 fn just_leaf() {
-    let mut a: i32 = 5;
+    let a: i32 = 5;
     let store = Store::new(a);
     let _ = async {
         let _ = store.build_path().until_change();
@@ -49,12 +49,12 @@ fn struct_project() {
         let _: String = store.build_path().field_3().t1().borrow().clone();
     }
     let _ = async {
-        store.build_path().field_1().until_change();
-        store.build_path().field_1().field_1().until_change();
-        store.build_path().field_2().until_change();
-        store.build_path().field_3().until_change();
-        store.build_path().field_3().t0().until_change();
-        store.build_path().field_3().t1().until_change();
+        let _ = store.build_path().field_1().until_change();
+        let _ = store.build_path().field_1().field_1().until_change();
+        let _ = store.build_path().field_2().until_change();
+        let _ = store.build_path().field_3().until_change();
+        let _ = store.build_path().field_3().t0().until_change();
+        let _ = store.build_path().field_3().t1().until_change();
     };
 }
 

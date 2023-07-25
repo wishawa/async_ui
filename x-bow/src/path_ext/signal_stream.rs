@@ -8,11 +8,16 @@ use crate::{until_change::UntilChange, Path, PathExt};
 pub struct SignalStream<'a, P: Path + ?Sized> {
     path: &'a P,
     until_change: UntilChange<'a>,
+    fire_immediately: bool,
 }
 
 impl<'a, P: Path + ?Sized> SignalStream<'a, P> {
-    pub(super) fn new(path: &'a P, until_change: UntilChange<'a>) -> Self {
-        Self { path, until_change }
+    pub(super) fn new(path: &'a P, until_change: UntilChange<'a>, fire_immediately: bool) -> Self {
+        Self {
+            path,
+            until_change,
+            fire_immediately,
+        }
     }
 }
 
@@ -25,7 +30,9 @@ impl<'a, P: Path + ?Sized> Stream for SignalStream<'a, P> {
     ) -> Poll<Option<Self::Item>> {
         let this = self.get_mut();
         let first = !this.until_change.has_been_polled();
-        if first | Pin::new(&mut this.until_change).poll_next(cx).is_ready() {
+        if (first && this.fire_immediately)
+            | Pin::new(&mut this.until_change).poll_next(cx).is_ready()
+        {
             Poll::Ready(this.path.borrow_opt())
         } else {
             Poll::Pending
