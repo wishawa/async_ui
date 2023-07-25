@@ -50,7 +50,7 @@ impl<'p> DomContext<'p> {
                 container
                     .insert_before(&new_child, reference_sibling)
                     .unwrap_throw();
-                group.insert(position, new_child);
+                panic_if_duplicate_node(group.insert(position, new_child));
             }
             DomContext::Sibling {
                 parent,
@@ -67,7 +67,7 @@ impl<'p> DomContext<'p> {
                     .get_containing_node()
                     .insert_before(&new_child, Some(reference_sibling))
                     .unwrap_throw();
-                group.insert(position, new_child);
+                panic_if_duplicate_node(group.insert(position, new_child));
             }
             DomContext::Child { parent, index } => {
                 position.wrap(*index);
@@ -117,3 +117,22 @@ fn remove_children_here(
         }
     }
 }
+
+#[cfg(debug_assertions)]
+fn panic_if_duplicate_node(node: Option<web_sys::Node>) {
+    if let Some(node) = node {
+        web_sys::console::error_2(
+            &"Attempted to insert two nodes at the same position.\n\
+            You probably either used a `join` implementation from outside Async UI,\
+            or tried to render something in a spawned Future.\n\
+            This message is only shown in debug builds.\n\
+            Check the code where you render this node:\
+            "
+            .into(),
+            node.as_ref(),
+        );
+        panic!()
+    }
+}
+#[cfg(not(debug_assertions))]
+fn panic_duplicate_node(_node: Option<web_sys::Node>) {}

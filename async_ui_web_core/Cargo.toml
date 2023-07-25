@@ -22,6 +22,7 @@ async_ui_internal_utils = { version = "0.0.2", path = "../async_ui_internal_util
 [dependencies.web-sys]
 version = "0.3.64"
 features = [
+	'console',
 	'Node',
 	'Window',
 	'Document',
