@@ -44,8 +44,6 @@ impl<'a, P: Path + ?Sized, F: Future<Output = ()>, C: FnMut(&P::Out) -> F + Unpi
             if let Some(data) = this.path.borrow_opt().as_deref() {
                 let fut = (this.closure)(data);
                 this.future.set(Some(fut));
-            } else {
-                return Poll::Ready(());
             }
         }
         if let Some(fut) = this.future.as_mut().as_pin_mut() {

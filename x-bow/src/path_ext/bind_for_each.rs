@@ -38,30 +38,33 @@ where
     fn poll(self: std::pin::Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         let mut this = self.project();
 
-        match this.incoming.as_mut().poll_next(cx) {
-            Poll::Ready(Some(val)) => {
-                if let Some(bm) = this.path.borrow_opt_mut().as_deref_mut() {
-                    *bm = val;
-                } else {
+        let mut val = None;
+        loop {
+            match this.incoming.as_mut().poll_next(cx) {
+                Poll::Ready(Some(v)) => {
+                    val = Some(v);
+                }
+                Poll::Ready(None) => {
                     return Poll::Ready(());
                 }
-                let _ = this.until_change.as_mut().poll_next(cx);
+                Poll::Pending => break,
             }
-            Poll::Ready(None) => {
+        }
+        if let Some(val) = val {
+            if let Some(bm) = this.path.borrow_opt_mut().as_deref_mut() {
+                *bm = val;
+            } else {
                 return Poll::Ready(());
             }
-            Poll::Pending => {}
+            let _ = this.until_change.as_mut().poll_next(cx);
         }
+
         let first = !this.until_change.has_been_polled();
         if first | this.until_change.as_mut().poll_next(cx).is_ready() {
             if let Some(data) = this.path.borrow_opt().as_deref() {
                 (this.closure)(data);
-                Poll::Pending
-            } else {
-                Poll::Ready(())
             }
-        } else {
-            Poll::Pending
         }
+        Poll::Pending
     }
 }

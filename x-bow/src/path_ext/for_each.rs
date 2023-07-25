@@ -30,12 +30,8 @@ impl<'a, P: Path + ?Sized, C: FnMut(&P::Out) + Unpin> Future for ForEach<'a, P, 
         if first | Pin::new(&mut this.until_change).poll_next(cx).is_ready() {
             if let Some(data) = this.path.borrow_opt().as_deref() {
                 (this.closure)(data);
-                Poll::Pending
-            } else {
-                Poll::Ready(())
             }
-        } else {
-            Poll::Pending
         }
+        Poll::Pending
     }
 }

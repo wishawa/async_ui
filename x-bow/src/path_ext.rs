@@ -245,7 +245,7 @@ pub trait PathExt: Path {
     /// # use x_bow::{Path, PathExt};
     /// # use std::cell::Ref;
     /// # async fn example(path: &impl Path) {
-    /// let stream = path.signal_stream();
+    /// let stream = path.signal_stream(true);
     /// // is equivalent to
     /// let stream = futures_lite::stream::once(()) // fire immediately in the beginning...
     ///     .chain(path.until_change()) // and after every change
@@ -262,8 +262,7 @@ pub trait PathExt: Path {
     /// Execute the given function with the data as argument. Repeat every time
     /// the data changes.
     ///
-    /// The return future finishes when the data couldn't be accessed
-    /// (when [borrow_opt][PathExt::borrow_opt] returns None).
+    /// The return future never finishes.
     ///
     /// ```
     /// # use x_bow::{Path, PathExt};
@@ -294,8 +293,7 @@ pub trait PathExt: Path {
     /// the execution is canceled (by dropping the Future) so that the new
     /// one can start.
     ///
-    /// The return future finishes when the data couldn't be accessed
-    /// (when [borrow_opt][PathExt::borrow_opt] returns None).
+    /// The return future never finishes.
     ///
     /// ```
     /// # use x_bow::{Path, PathExt};
@@ -308,9 +306,12 @@ pub trait PathExt: Path {
     /// # todo!();
     /// # }
     /// // when the URL changes, fetch the content and set the text
-    /// path_to_url.for_each_async(|url: &String| async move {
-    ///     let content = fetch_content(url).await;
-    ///     ui_element.set_Text(&content);
+    /// path_to_url.for_each_async(|url: &String| {
+    ///     let url = url.clone();
+    ///     async move {
+    ///         let content = fetch_content(&url).await;
+    ///         ui_element.set_text(&content);
+    ///     }
     /// }).await;
     /// # }
     /// ```
@@ -331,10 +332,7 @@ pub trait PathExt: Path {
     /// the data will be updated to that value. The `on_change` function
     /// won't be called for changes that come in this way.
     ///
-    /// The future finishes when either
-    /// *   the `incoming_changes` stream yield None
-    /// *   the data couldn't be accessed
-    ///     ([borrow_opt][PathExt::borrow_opt] returns None)
+    /// The future finishes when the `incoming_changes` stream yield None.
     ///
     /// ```
     /// # use x_bow::{Path, PathExt};
