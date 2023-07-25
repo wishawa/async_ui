@@ -11,7 +11,7 @@
 - [Building the UI](./building-ui/README.md)
 	- [Your First Component](./building-ui/1-first-component.md)
 	- [Building Nested HTML](./building-ui/2-nested-html.md)
-	- [All the HTML](./building-ui/3-html-components.md)
+	- [All the HTML](./building-ui/3-all-the-html.md)
 	- [Making Siblings](./building-ui/4-siblings.md)
 	- [Components](./building-ui/5-components.md)
 
@@ -22,6 +22,8 @@
 
 - [Handling Events](./events/README.md)
 - [Reactivity and State Management](./reactive/README.md)
-
+- [Extras](./extras/README.md)
+	- [CSS Styling](./extras/css.md)
 # Framework Design & Internals
 - [Framework Design](./in-depth/framework-design.md)
+- [Future Work: Other Backends](./in-depth/other-backends.md)

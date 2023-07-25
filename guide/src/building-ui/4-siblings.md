@@ -1,4 +1,4 @@
-# Making Siblings with Join
+# Making Siblings
 
 We've so far seen how to render HTML elements and nest them.
 

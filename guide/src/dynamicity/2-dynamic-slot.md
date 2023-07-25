@@ -1,6 +1,6 @@
 # The DynamicSlot Component
 
-The last subchapter covered dynaimcally *updating* HTML elements.
+The previous subchapter covered dynamically *updating* HTML elements.
 Now we'll be *adding* and *removing* elements.
 
 The [`DynamicSlot` component](https://docs.rs/async_ui_web/latest/async_ui_web/components/struct.DynamicSlot.html)
