@@ -34,7 +34,7 @@
 //! let stream = path.until_change();
 //!
 //! // Mutably borrow the `i32` of the path, and increment it.
-//! // This will cause the `stream` we create to fire.
+//! // This will cause the `stream` we created to fire.
 //! *path.borrow_mut() += 1;
 //! ```
 //!
@@ -67,6 +67,103 @@
 //! ### Trackable Types
 //! Types that implements [Trackable] have their corresponding `PathBuilder` type.
 //! To be `Trackable`, types should have `#[derive(Trackable)]` on them.
+//!
+//! ## Usage
+//! ### Steps
+//! 1.  Make your structs and enums trackable by putting
+//!     `#[derive(Trackable)]` and `[track(deep)]` on them.
+//!     See documentation for the [Trackable macro][derive@Trackable].
+//!     ```
+//!     # use x_bow::{Trackable, Store, PathExt, PathExtGuaranteed};
+//!     // 👇 Derive `Trackable` to allow parts of the struct to be tracked.
+//!     #[derive(Trackable)]
+//!     #[track(deep)]
+//!     struct MyStruct {
+//!         field_1: i32,
+//!         field_2: u64,
+//!         child_enum: MyEnum
+//!     }
+//!     // 👇 Derive `Trackable` to allow parts of the enum to be tracked.
+//!     #[derive(Trackable)]
+//!     #[track(deep)]
+//!     enum MyEnum {
+//!         Variant1(i32),
+//!         Variant2 {
+//!             data: String
+//!         }
+//!     }
+//!     ```
+//! 2.  Put your data in a [Store].
+//!     ```
+//!     # use x_bow::{Trackable, Store, PathExt, PathExtGuaranteed};
+//!     # #[derive(Trackable)]
+//!     # #[track(deep)]
+//!     # struct MyStruct {
+//!     #     field_1: i32,
+//!     #     field_2: u64,
+//!     #     child_enum: MyEnum
+//!     # }
+//!     #
+//!     # #[derive(Trackable)]
+//!     # #[track(deep)]
+//!     # enum MyEnum {
+//!     #     Variant1(i32),
+//!     #     Variant2 {
+//!     #         data: String
+//!     #     }
+//!     # }
+//!     let my_data = MyStruct {
+//!         field_1: 42,
+//!         field_2: 123,
+//!         child_enum: MyEnum::Variant2 { data: "Hello".to_string() }
+//!     };
+//!     let store = Store::new(my_data);
+//!     ```
+//! 3.  Make [Path]s.
+//!     ```
+//!     # use x_bow::{Trackable, Store, PathExt, PathExtGuaranteed};
+//!     # #[derive(Trackable)]
+//!     # #[track(deep)]
+//!     # struct MyStruct {
+//!     #     field_1: i32,
+//!     #     field_2: u64,
+//!     #     child_enum: MyEnum
+//!     # }
+//!     #
+//!     # #[derive(Trackable)]
+//!     # #[track(deep)]
+//!     # enum MyEnum {
+//!     #     Variant1(i32),
+//!     #     Variant2 {
+//!     #         data: String
+//!     #     }
+//!     # }
+//!     let my_data = MyStruct {
+//!         field_1: 42,
+//!         field_2: 123,
+//!         child_enum: MyEnum::Variant2 { data: "Hello".to_string() }
+//!     };
+//!     # let store = Store::new(my_data);
+//!     let path_to_field_1 = store.build_path().field_1();
+//!     let path_to_data = store.build_path().child_enum().Variant2_data();
+//!     ```
+//! 4.  Use the Paths you made.
+//!     See [PathExt] and [PathExtGuaranteed] for available APIs.
+//!
+//! ### Tracking through Vec and HashMap
+//! You can track through [Vec] using the `index(_)` method.
+//! ```
+//! # use x_bow::{Trackable, Store, PathExt, PathExtGuaranteed};
+//! let store = Store::new(vec![1, 2, 3]);
+//! let path = store.build_path().index(1); // 👈 path to the second element in the vec
+//! ```
+//! You can track through [HashMap][std::collections::HashMap] using the `key(_)` method.
+//! ```
+//! # use x_bow::{Trackable, Store, PathExt, PathExtGuaranteed};
+//! # use std::collections::HashMap;
+//! let store = Store::new(HashMap::<u32, String>::new());
+//! let path = store.build_path().key(555); // 👈 path to the String at key 555 in the hashmap.
+//! ```
 //!
 //! ## Design
 //!

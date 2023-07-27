@@ -35,4 +35,24 @@ pub trait PathExtGuaranteed: PathExt {
     fn borrow_mut_without_notifying(&self) -> RefMut<'_, <Self as Path>::Out> {
         self.borrow_opt_mut_without_notifying().unwrap()
     }
+
+    /// Clone the data identified by this path.
+    ///
+    /// Equivalent to `path.borrow().clone()`.
+    fn get(&self) -> Self::Out
+    where
+        Self::Out: Clone,
+    {
+        self.borrow().clone()
+    }
+
+    /// Set the data identified by this path, notifying listeners.
+    ///
+    /// Equivalent to `*path.borrow_mut() = data;`
+    fn set(&self, data: Self::Out)
+    where
+        Self::Out: Sized,
+    {
+        *self.borrow_mut() = data;
+    }
 }

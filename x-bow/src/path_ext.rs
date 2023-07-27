@@ -129,7 +129,7 @@ pub trait PathExt: Path {
     /// Clone the data identified by this path.
     ///
     /// Equivalent to `path.borrow_opt().as_deref().map(Clone::clone)`.
-    fn get_cloned(&self) -> Option<Self::Out>
+    fn get_opt(&self) -> Option<Self::Out>
     where
         Self::Out: Clone,
     {
@@ -138,17 +138,18 @@ pub trait PathExt: Path {
 
     /// Set the data identified by this path, notifying listeners.
     ///
-    /// Returns whether or not the data was set.
-    ///
-    /// Equivalent to `self.borrow_opt_mut().as_deref_mut().map(|s| *s = data).is_some()`.
-    fn set(&self, data: Self::Out) -> bool
+    /// If the data cannot be accessed, Err is returned with the input.
+    fn set_opt(&self, data: Self::Out) -> Result<(), Self::Out>
     where
         Self::Out: Sized,
     {
-        self.borrow_opt_mut()
-            .as_deref_mut()
-            .map(|s| *s = data)
-            .is_some()
+        match self.borrow_opt_mut().as_deref_mut() {
+            Some(state) => {
+                *state = data;
+                Ok(())
+            }
+            None => Err(data),
+        }
     }
 
     /// Get a [Stream][futures_core::Stream] that fires everytime a mutable
@@ -425,6 +426,22 @@ pub trait PathExt: Path {
     /// This is useful when you are handling the type that implements `Path`
     /// directly. Most of the time, though, you will already be working with
     /// `PathBuilder`s.
+    /// 
+    /// ```
+    /// # use x_bow::{Path, PathExt, PathExtGuaranteed, Store, Trackable, IntoPath};
+    /// fn modify_string(path: impl Path<Out = String>) {
+    ///     path.set_opt("haha".to_string()).ok();
+    /// }
+    /// #[derive(Trackable)]
+    /// struct MyStruct {
+    ///     s: String
+    /// }
+    /// let store = Store::new(MyStruct {
+    ///     s: String::from("hello world")
+    /// });
+    /// modify_string(store.build_path().s().into_path());
+    /// assert_eq!(&**store.build_path().s().borrow(), "haha");
+    /// ```
     fn build_path(self) -> <Self::Out as Trackable>::PathBuilder<Self>
     where
         Self: Sized,
@@ -435,7 +452,6 @@ pub trait PathExt: Path {
 
     /// Create a new Path from borrowing this path.
     ///
-    /// Usually, paths are owned and live for as long as the store itself.
     /// ```
     /// # use x_bow::{Trackable, Store, PathExt};
     /// # #[derive(Default, Trackable)]
