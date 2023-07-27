@@ -5,19 +5,20 @@
 export function run(): void;
 /**
 */
-export function style_71dajr0j_dep(): void;
+export function style_qla5fmqv_dep(): void;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly run: () => void;
-  readonly style_71dajr0j_dep: () => void;
+  readonly style_qla5fmqv_dep: () => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
   readonly __wbindgen_export_2: WebAssembly.Table;
-  readonly _dyn_core__ops__function__Fn__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hb825880f5304c0a0: (a: number, b: number, c: number) => void;
+  readonly wasm_bindgen__convert__closures__invoke1__hdde257fc6a1e62ac: (a: number, b: number, c: number) => void;
   readonly _dyn_core__ops__function__Fn_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h065b0fca1eda8af0: (a: number, b: number) => void;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_exn_store: (a: number) => void;
   readonly __wbindgen_start: () => void;
 }

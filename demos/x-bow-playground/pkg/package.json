@@ -1,0 +1,14 @@
+{
+  "name": "x-bow-playground",
+  "version": "0.1.0",
+  "files": [
+    "x_bow_playground_bg.wasm",
+    "x_bow_playground.js",
+    "x_bow_playground.d.ts"
+  ],
+  "module": "x_bow_playground.js",
+  "types": "x_bow_playground.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

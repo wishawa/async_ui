@@ -205,7 +205,7 @@ function makeClosure(arg0, arg1, dtor, f) {
     return real;
 }
 function __wbg_adapter_18(arg0, arg1, arg2) {
-    wasm._dyn_core__ops__function__Fn__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__hc9912f6e748d343f(arg0, arg1, addHeapObject(arg2));
+    wasm._dyn_core__ops__function__Fn__A____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h6e6e08e318a33c41(arg0, arg1, addHeapObject(arg2));
 }
 
 function makeMutClosure(arg0, arg1, dtor, f) {
@@ -237,7 +237,7 @@ function __wbg_adapter_21(arg0, arg1) {
 }
 
 function __wbg_adapter_24(arg0, arg1) {
-    wasm._dyn_core__ops__function__Fn_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h02b0ec1304a66718(arg0, arg1);
+    wasm._dyn_core__ops__function__Fn_____Output___R_as_wasm_bindgen__closure__WasmClosure___describe__invoke__h065b0fca1eda8af0(arg0, arg1);
 }
 
 /**
@@ -344,20 +344,20 @@ function __wbg_get_imports() {
         const ret = false;
         return ret;
     };
-    imports.wbg.__wbg_static_accessor_style_9kadaf7q_b4a8b615af17bb45 = function() {
-        const ret = style_9kadaf7q;
-        return addHeapObject(ret);
-    };
     imports.wbg.__wbg_static_accessor_style_otl31hq3_05cd4c6f565e04a6 = function() {
         const ret = style_otl31hq3;
+        return addHeapObject(ret);
+    };
+    imports.wbg.__wbg_static_accessor_style_odi9mfip_63ab9e2984d029d3 = function() {
+        const ret = style_odi9mfip;
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_static_accessor_style_m9f0qa6h_76eabea8c7a359e1 = function() {
         const ret = style_m9f0qa6h;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbg_static_accessor_style_odi9mfip_63ab9e2984d029d3 = function() {
-        const ret = style_odi9mfip;
+    imports.wbg.__wbg_static_accessor_style_9kadaf7q_b4a8b615af17bb45 = function() {
+        const ret = style_9kadaf7q;
         return addHeapObject(ret);
     };
     imports.wbg.__wbg_static_accessor_style_dv5i2trl_9df8a437815195a2 = function() {
