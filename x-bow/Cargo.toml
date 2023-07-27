@@ -5,12 +5,16 @@ edition = "2021"
 description = "Precise State Management Library"
 license = "MPL-2.0"
 repository = "https://github.com/wishawa/async_ui"
+categories = ["rust-patterns", "gui", "asynchronous"]
+keywords = ["state-management", "state", "gui", "asynchronous", "lens"]
+documentation = "https://docs.rs/x-bow"
+
 
 [dependencies]
 async_ui_internal_utils = { path = "../async_ui_internal_utils", version = "0.0.2" }
 nohash-hasher = "0.2.0"
 futures-core = "0.3.28"
-x-bow-macros = { path = "../x-bow-macros/" }
+x-bow-macros = { version = "0.2.0", path = "../x-bow-macros/" }
 pin-project-lite = "0.2"
 
 [dev-dependencies]

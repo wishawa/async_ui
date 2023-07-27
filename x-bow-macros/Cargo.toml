@@ -1,9 +1,10 @@
 [package]
 name = "x-bow-macros"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "see the x-bow crate"
+license = "MPL-2.0"
+repository = "https://github.com/wishawa/async_ui"
 
 [lib]
 proc-macro = true
