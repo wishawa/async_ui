@@ -23,5 +23,15 @@ demo_simple:
 	rm gh-pages/demos/simple/pkg/.gitignore
 	cp examples/web-simple-examples/index.html gh-pages/demos/simple/
 
+.PHONY: demo_x_bow_playground
+demo_x_bow_playground:
+	@echo "====> building demo x_bow_playground"
+	# before running make, run `git worktree add gh-pages/ gh-pages
+	rm -rf gh-pages/demos/x-bow-playground
+	wasm-pack build --release --target web --out-dir ../../gh-pages/demos/x-bow-playground/pkg examples/x-bow-playground
+	rm gh-pages/demos/x-bow-playground/pkg/.gitignore
+	cp examples/x-bow-playground/index.html gh-pages/demos/x-bow-playground/
+
+
 .PHONY: demos
-demos: demo_todomvc demo_simple
+demos: demo_todomvc demo_simple demo_x_bow_playground
