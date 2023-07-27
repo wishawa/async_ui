@@ -135,4 +135,4 @@ fn panic_if_duplicate_node(node: Option<web_sys::Node>) {
     }
 }
 #[cfg(not(debug_assertions))]
-fn panic_duplicate_node(_node: Option<web_sys::Node>) {}
+fn panic_if_duplicate_node(_node: Option<web_sys::Node>) {}
