@@ -32,6 +32,14 @@ demo_x_bow_playground:
 	rm gh-pages/demos/x-bow-playground/pkg/.gitignore
 	cp examples/x-bow-playground/index.html gh-pages/demos/x-bow-playground/
 
+.PHONY: demo_login_flow
+demo_login_flow:
+	@echo "====> building demo login_flow"
+	# before running make, run `git worktree add gh-pages/ gh-pages
+	rm -rf gh-pages/demos/login-flow
+	wasm-pack build --release --target web --out-dir ../../gh-pages/demos/login-flow/pkg examples/login-flow
+	rm gh-pages/demos/login-flow/pkg/.gitignore
+	cp examples/login-flow/index.html gh-pages/demos/login-flow/
 
 .PHONY: demos
-demos: demo_todomvc demo_simple demo_x_bow_playground
+demos: demo_todomvc demo_simple demo_x_bow_playground demo_login_flow

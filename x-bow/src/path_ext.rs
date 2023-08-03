@@ -426,7 +426,7 @@ pub trait PathExt: Path {
     /// This is useful when you are handling the type that implements `Path`
     /// directly. Most of the time, though, you will already be working with
     /// `PathBuilder`s.
-    /// 
+    ///
     /// ```
     /// # use x_bow::{Path, PathExt, PathExtGuaranteed, Store, Trackable, IntoPath};
     /// fn modify_string(path: impl Path<Out = String>) {
