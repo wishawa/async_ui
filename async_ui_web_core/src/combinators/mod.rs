@@ -1,9 +1,12 @@
 mod common;
+mod extras;
 mod join;
 mod race;
 mod race_ok;
 mod try_join;
 mod utils;
+
+pub use extras::UiFutureExt;
 
 /// Wait for multiple futures to complete.
 ///

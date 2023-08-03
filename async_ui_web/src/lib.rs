@@ -43,14 +43,15 @@ pub mod event_traits {
 
 pub mod shortcut_traits {
     /*!
-    Convenience traits. Includes traits for manipulating element classes and rendering str.
+    Traits provided for convenience.
      */
     pub use super::shortcuts::{ShortcutClassList, ShortcutClassListBuilder, ShortcutRenderStr};
+    pub use async_ui_web_core::combinators::UiFutureExt;
 }
 
 pub mod prelude_traits {
     /*!
-    Includes traits from [event_traits][super::event_traits]
+    Includes all traits from [event_traits][super::event_traits]
     and [shortcut_traits][super::shortcut_traits].
     ```
     use async_ui_web::prelude_traits::*;
@@ -59,6 +60,7 @@ pub mod prelude_traits {
     pub use super::shortcuts::{
         ShortcutClassList as _, ShortcutClassListBuilder as _, ShortcutRenderStr as _,
     };
+    pub use async_ui_web_core::combinators::UiFutureExt as _;
     pub use async_ui_web_html::events::{
         EmitElementEvent as _, EmitEvent as _, EmitHtmlElementEvent as _,
     };
