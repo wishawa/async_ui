@@ -1,0 +1,14 @@
+{
+  "name": "login-flow",
+  "version": "0.1.0",
+  "files": [
+    "login_flow_bg.wasm",
+    "login_flow.js",
+    "login_flow.d.ts"
+  ],
+  "module": "login_flow.js",
+  "types": "login_flow.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
