@@ -11,18 +11,22 @@ pub trait UiFutureExt: Future + Sized {
     ///
     /// ```rust
     /// # async fn my_async_fn() {}
+    /// # let _ = async {
     /// use async_ui_web_core::combinators::UiFutureExt;
     /// let fut = my_async_fn().pend_after::<std::convert::Infallible>();
     /// fut.await; // will never finish
+    /// # };
     /// ```
     ///
     /// `f.pend_after()` is equivalent to
     /// ```rust
     /// # let f = async {};
+    /// # async { let _: i32 = 
     /// async {
     /// 	f.await;
-    /// 	std::future::pending()
+    /// 	std::future::pending().await
     /// }
+    /// # .await; };
     /// ```
     fn pend_after<T>(self) -> PendAfter<Self, T> {
         PendAfter {
@@ -34,13 +38,18 @@ pub trait UiFutureExt: Future + Sized {
     ///
     /// `f.meanwhile(g)` is equivalent to
     /// ```rust
-    /// # let (f, g) = (async {}, async{});
+    /// # let (f, g) = (async {}, async {});
     /// # use async_ui_web_core::combinators::{UiFutureExt, race};
+    /// # async {
     /// race((
     /// 	f,
     /// 	g.pend_after()
     /// ))
+    /// # };
     /// ```
+    /// 
+    /// Use this to display UI as side-effect of some async execution.
+    /// For example, `load_data().meanwhile(spinner()).await`.
     fn meanwhile<F: Future>(
         self,
         effect: F,
