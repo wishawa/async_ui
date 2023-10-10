@@ -1,6 +1,6 @@
 [package]
 name = "async_ui_web"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 description = "Async UI for the Browser"
 license = "MPL-2.0"
@@ -14,7 +14,7 @@ crate-type = ["cdylib", "rlib"]
 doctest = false
 
 [dependencies]
-async_ui_web_core = { version = "0.2.0", path = "../async_ui_web_core/" }
+async_ui_web_core = { version = "0.2.1", path = "../async_ui_web_core/" }
 async_ui_web_html = { version = "0.2.0", path = "../async_ui_web_html/" }
 async_ui_web_macros = { version = "0.2.0", path = "../async_ui_web_macros/" }
 async_ui_internal_utils = { version = "0.0.2", path = "../async_ui_internal_utils/" }
