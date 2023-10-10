@@ -91,7 +91,6 @@ where
         let mut prev_keys_set = prev_keys_list.iter().collect::<HashSet<_>>();
         let mut prev_keys_iter = prev_keys_list.iter().peekable();
         for key in new_keys.iter() {
-            let key = key.borrow();
             if prev_keys_set.remove(key) {
                 if prev_keys_iter.next_if_eq(&key).is_some() {
                     continue;
