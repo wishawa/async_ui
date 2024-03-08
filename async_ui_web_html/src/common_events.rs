@@ -3,7 +3,7 @@ use web_sys::{Element, HtmlElement};
 
 macro_rules! make_event_impl {
     ($ev_name:literal, $func_name:ident, $ty:ty, $link:tt) => {
-        #[must_use("the returned object is a Future+Stream that does nothing unless polled")]
+        #[must_use = "the returned object is a Future+Stream that does nothing unless polled"]
         #[doc = "Like [until_event][EmitEvent::until_event] for the `"]
         #[doc = $ev_name]
         #[doc = "` event."]
