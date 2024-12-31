@@ -235,11 +235,13 @@ struct Observer {
 
 impl Observer {
     fn new(root: &Element, spacers: &[&HtmlElement], wake: &js_sys::Function) -> Self {
+        let options = IntersectionObserverInit::new();
+        options.set_root(Some(root));
+        options.set_root_margin("100%");
+
         let observer = IntersectionObserver::new_with_options(
             wake,
-            IntersectionObserverInit::new()
-                .root(Some(root))
-                .root_margin("100%"),
+            &options
         )
         .unwrap_throw();
         spacers.iter().for_each(|sp| observer.observe(sp));
