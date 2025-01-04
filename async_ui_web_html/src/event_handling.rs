@@ -55,7 +55,7 @@ impl<E: JsCast> EventFutureStream<E> {
     pub fn set_capture(&mut self, capture: bool) {
         self.options
             .get_or_insert_with(AddEventListenerOptions::new)
-            .capture(capture);
+            .set_capture(capture);
     }
     /// The `passive` option indicates that the function specified by listener
     /// will never call `preventDefault()`.
@@ -70,7 +70,7 @@ impl<E: JsCast> EventFutureStream<E> {
     pub fn set_passive(&mut self, passive: bool) {
         self.options
             .get_or_insert_with(AddEventListenerOptions::new)
-            .passive(passive);
+            .set_passive(passive);
     }
 }
 
