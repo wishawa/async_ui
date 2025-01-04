@@ -159,11 +159,16 @@ pub use impls::*;
 pub struct CustomElement {
     pub element: web_sys::HtmlElement,
 }
+
 impl CustomElement {
     pub fn new(tag_name: Cow<'static, str>) -> Self {
         Self {
             element: create_element(&tag_name),
         }
+    }
+
+    pub fn render<F: Future>(&self, c: F) -> ContainerNodeFuture<F> {
+        ContainerNodeFuture::new(c, AsRef::<web_sys::Node>::as_ref(&self.element).clone())
     }
 }
 
