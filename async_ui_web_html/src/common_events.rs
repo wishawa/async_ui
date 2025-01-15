@@ -15,9 +15,9 @@ macro_rules! make_event_impl {
             #[cfg(feature = "csr")]
             {
                 use crate::events::EmitEvent;
-                self.as_ref().until_event($ev_name.into())
+                return self.as_ref().until_event($ev_name.into())
             }
-            #[cfg(feature = "ssr")]
+            #[cfg(not(feature = "csr"))]
             {
                 EventFutureStream::new_dummy($ev_name.into())
             }

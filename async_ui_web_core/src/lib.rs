@@ -6,9 +6,13 @@ pub mod window;
 
 #[cfg(feature = "csr")]
 pub mod dom;
-#[cfg(feature = "ssr")]
+// Make lints happy by default, by making ssr items always visible
+#[cfg(not(feature = "csr"))]
 #[path = "./dom_ssr.rs"]
 pub mod dom;
+
+#[cfg(all(feature = "csr", feature = "ssr"))]
+compile_error!("csr and ssr features are mutually exclusive!");
 
 mod context;
 mod dropping;

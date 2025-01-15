@@ -9,8 +9,9 @@ use std::{
 use async_ui_internal_utils::dummy_waker::dummy_waker;
 use async_ui_web_core::dom::EventTarget;
 use futures_core::Stream;
-use wasm_bindgen::{JsCast, UnwrapThrowExt};
-use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
+#[cfg(feature = "csr")]
+use wasm_bindgen::{closure::Closure, UnwrapThrowExt};
 
 /// A struct implementing both [Future] and [Stream].
 /// Yields [Event][web_sys::Event] objects.
@@ -26,11 +27,12 @@ use wasm_bindgen::closure::Closure;
 ///     fail to poll the Stream upon `wake`, you might miss some
 ///     in-between events.
 pub struct EventFutureStream<E> {
+    #[allow(dead_code)]
     target: EventTarget,
 
     #[cfg(feature = "csr")]
     closure: Option<Closure<dyn Fn(web_sys::Event)>>,
-    #[cfg(feature = "ssr")]
+    #[cfg(not(feature = "csr"))]
     closure: Option<()>,
 
     shared: Rc<RefCell<(Option<E>, Waker)>>,
@@ -38,18 +40,23 @@ pub struct EventFutureStream<E> {
     #[cfg(feature = "csr")]
     options: Option<web_sys::AddEventListenerOptions>,
 
+    #[allow(dead_code)]
     event_name: Cow<'static, str>,
 }
 
 impl<E: JsCast> EventFutureStream<E> {
-    #[cfg(feature = "ssr")]
     pub fn new_dummy(event_name: Cow<'static, str>) -> Self {
         use async_ui_web_core::dom;
 
         Self {
+            #[cfg(feature = "csr")]
+            target: web_sys::EventTarget::new().unwrap(),
+            #[cfg(not(feature = "csr"))]
             target: dom::SsrEventTarget {},
             closure: None,
             shared: Rc::new(RefCell::new((None, dummy_waker()))),
+            #[cfg(feature = "csr")]
+            options: None,
             event_name,
         }
     }
@@ -197,6 +204,7 @@ impl EmitEvent for EventTarget {
 
 impl<E> Drop for EventFutureStream<E> {
     fn drop(&mut self) {
+        #[allow(unused_variables)]
         if let Some(callback) = self.closure.take() {
             #[cfg(feature = "csr")]
             {

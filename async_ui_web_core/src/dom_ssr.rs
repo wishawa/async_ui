@@ -16,13 +16,13 @@ pub type Comment = SsrComment;
 pub struct SsrEventTarget {}
 
 impl SsrEventTarget {
-    pub fn event_subscribed(&self, name: &str) {
+    pub fn event_subscribed(&self, _name: &str) {
         // I think it might be good to I.e disable checkboxes etc
         // in SSR when there is an event subscription created, making it impossible
         // to interact with such elements until client hydration is complete?
         // println!("event subscribed: {name}")
     }
-    pub fn event_unsubscribed(&self, name: &str) {
+    pub fn event_unsubscribed(&self, _name: &str) {
         // println!("event unsubscribed: {name}")
     }
     pub fn to_owned(&self) -> Self {
@@ -159,12 +159,12 @@ pub mod elements {
     impl_element!(HtmlVideoElement, childed);
 
     macro_rules! ats {
-        ($id:ident, &str, $v:literal) => {
+        ($id:ident, &str, attr: $v:literal) => {
             pub fn $id(&self, v: &str) {
                 self.set_attribute($v, v)
             }
         };
-        ($id:ident, bool, $v:literal) => {
+        ($id:ident, bool, attr: $v:literal) => {
             pub fn $id(&self, v: bool) {
                 if v {
                     self.set_attribute($v, "")
@@ -173,65 +173,65 @@ pub mod elements {
                 }
             }
         };
+        ($id:ident, &str, noop) => {
+            pub fn $id(&self, _v: &str) {}
+        };
+        ($id:ident, bool, noop) => {
+            pub fn $id(&self, _v: bool) {}
+        };
+    }
+    macro_rules! atg {
+        ($id:ident, $ty:ty, $v:expr) => {
+            pub fn $id(&self) -> $ty {
+                $v
+            }
+        };
+        // Some values can be get back from the attribute
+        ($id:ident, $ty:ty, attr: $name:literal $(.map(|$mi:ident| $me:expr))? = $v:expr) => {
+            pub fn $id(&self) -> $ty {
+                self.get_attribute($name)
+                    $(.map(|$mi| $me))?
+                    .unwrap_or_else(|| $v)
+            }
+        };
     }
     impl HtmlButtonElement {
-        pub fn set_disabled(&self, disabled: bool) {
-            todo!()
-        }
+        ats!(set_disabled, bool, attr: "disabled");
     }
     impl HtmlLabelElement {
-        ats!(set_html_for, &str, "for");
+        ats!(set_html_for, &str, attr: "for");
     }
     impl HtmlInputElement {
-        ats!(set_type, &str, "type");
-        ats!(set_placeholder, &str, "placeholder");
-        ats!(set_autofocus, bool, "autofocus");
-        pub fn value(&self) -> String {
-            todo!()
-        }
-        pub fn value_as_number(&self) -> f64 {
-            todo!()
-        }
-        pub fn checked(&self) -> bool {
-            todo!()
-        }
-        pub fn set_checked(&self, flag: bool) {
-            todo!()
-        }
-        pub fn set_min(&self, v: &str) {
-            todo!()
-        }
-        pub fn set_max(&self, v: &str) {
-            todo!()
-        }
-        pub fn set_step(&self, v: &str) {
-            todo!()
-        }
-        pub fn set_value(&self, v: &str) {
-            todo!()
-        }
+        ats!(set_type, &str, attr: "type");
+        ats!(set_placeholder, &str, attr: "placeholder");
+        ats!(set_autofocus, bool, attr: "autofocus");
+        ats!(set_value, &str, attr: "value");
+        atg!(value, String, attr: "value" = "".to_owned());
+        atg!(value_as_number, f64, attr: "value".map(|v| v.parse().unwrap_or(f64::NAN)) = f64::NAN);
+        atg!(checked, bool, attr: "checked".map(|_v| true) = true);
+        ats!(set_checked, bool, attr: "checked");
+        ats!(set_step, &str, attr: "step");
+        ats!(set_min, &str, attr: "min");
+        ats!(set_max, &str, attr: "max");
     }
     impl HtmlOptionElement {
-        pub fn set_selected(&self, flag: bool) {
-            todo!()
-        }
+        // TODO: Other sibling `HtmlSelectElement` options should be reset here, should it be emulated?
+        // Can't do that server-side. Without that, server may produce invalid html.
+        //
+        // Maybe some generic on-load-prop-setting option should be added for not available attributes?..
+        // E.g data-oncreate="self.selected = true"... It won't work with noscript, however.
+        ats!(set_selected, bool, attr: "selected");
     }
     impl HtmlSelectElement {
-        pub fn set_value(&self, val: &str) {
-            todo!()
-        }
-        pub fn selected_index(&self) -> usize {
-            todo!()
-        }
-        pub fn set_autofocus(&self, auto: bool) {
-            todo!()
-        }
-        pub fn set_placeholder(&self, placeholder: &str) {
-            todo!()
-        }
+        ats!(set_placeholder, &str, attr: "placeholder");
+        // Is a property, not an attribute, see comment on set_selected in `HtmlOptionElement`
+        ats!(set_value, &str, noop);
+        // Until set_value is not working, default index is ok...
+        atg!(selected_index, i32, 0);
+        ats!(set_autofocus, bool, attr: "autofocus");
     }
     impl HtmlAnchorElement {
-        ats!(set_href, &str, "href");
+        ats!(set_href, &str, attr: "href");
     }
 }
 
@@ -411,6 +411,10 @@ impl Deref for SsrComment {
     }
 }
 
+// If something is not used in SSR rendering, return this to avoid warnings caused
+// by usage of empty tuple.
+pub struct Unused;
+
 #[derive(Clone, Debug)]
 pub struct SsrNode(Rc<RefCell<SsrNodeInner>>);
 impl SsrNode {
@@ -423,7 +427,7 @@ impl SsrNode {
             if let Some(parent) = parent.upgrade() {
                 drop(node);
                 parent
-                    .remove_child(&self)
+                    .remove_child(self)
                     .expect("parent is set for node => parent should contain this child");
             }
         }
@@ -459,12 +463,28 @@ impl SsrNode {
         Some(())
     }
     // TODO: move this method to `Element`
+    pub fn get_attribute(&self, name: &str) -> Option<String> {
+        assert_ne!(name, "class");
+        let mut node = self.0.borrow_mut();
+        match &mut node.kind {
+            SsrNodeKind::Element { attrs, .. } => {
+                let (_, v) = attrs.iter().find(|(n, _)| n == name)?;
+                Some(v.to_owned())
+            }
+            SsrNodeKind::Comment(_)
+            | SsrNodeKind::Text(_)
+            | SsrNodeKind::DocumentFragment { .. } => {
+                panic!("text/comment have no attributes")
+            }
+        }
+    }
+    // TODO: move this method to `Element`
     pub fn set_attribute(&self, name: &str, value: &str) {
         assert_ne!(name, "class");
         let mut node = self.0.borrow_mut();
         match &mut node.kind {
             SsrNodeKind::Element { attrs, .. } => {
-                if let Some((_, v)) = attrs.iter_mut().find(|(n, v)| n == name) {
+                if let Some((_, v)) = attrs.iter_mut().find(|(n, _)| n == name) {
                     *v = value.to_owned();
                 } else {
                     attrs.push((name.to_string(), value.to_string()));
@@ -483,7 +503,7 @@ impl SsrNode {
         let mut node = self.0.borrow_mut();
         match &mut node.kind {
             SsrNodeKind::Element { attrs, .. } => {
-                if let Some(pos) = attrs.iter_mut().position(|(n, v)| n == name) {
+                if let Some(pos) = attrs.iter_mut().position(|(n, _)| n == name) {
                     attrs.remove(pos);
                 }
             }
@@ -567,15 +587,18 @@ impl SsrNode {
                 };
 
                 let mut node = new_node.0.borrow_mut();
-                if let SsrNodeKind::DocumentFragment { children:frag_child } = &mut node.kind {
+                if let SsrNodeKind::DocumentFragment {
+                    children: frag_child,
+                } = &mut node.kind
+                {
                     for child in std::mem::take(frag_child) {
                         let mut child_node = child.0.borrow_mut();
                         child_node.parent = Some(Self::downgrade(self));
                         drop(child_node);
-                        
+
                         if let Some(pos) = &mut pos {
                             children.insert(*pos, child.clone());
-                            *pos +=1 ;
+                            *pos += 1;
                         } else {
                             children.push(child.clone());
                         }
@@ -599,7 +622,7 @@ impl SsrNode {
 
     /// None corresponds to web NotFoundError: the node to be removed is not a child of this node.
     // TODO: Return removed child?
-    pub fn remove_child(&self, child: &Node) -> Option<()> {
+    pub fn remove_child(&self, child: &Node) -> Option<Unused> {
         assert!(!self.is_same_node(Some(child)), "parent != child");
         let mut node = self.0.borrow_mut();
         match &mut node.kind {
@@ -609,7 +632,7 @@ impl SsrNode {
                 children.remove(pos);
                 drop(node);
                 child.take_known_parent(self);
-                Some(())
+                Some(Unused)
             }
         }
     }
@@ -710,11 +733,14 @@ impl SsrNode {
         let node = self.0.borrow();
         match &node.kind {
             SsrNodeKind::DocumentFragment { children } => {
-                write!(out, "<!--BUG: documentfragment is never inserted directly-->");
+                write!(
+                    out,
+                    "<!--BUG: documentfragment is never inserted directly-->"
+                )?;
                 for child in children {
                     child.serialize_html(skip_this, visited, last_is_text, out)?;
                 }
-                write!(out, "<!--BUG: end of documentfragment-->");
+                write!(out, "<!--BUG: end of documentfragment-->")?;
                 *last_is_text = false;
             }
             SsrNodeKind::Text(t) => {
@@ -733,35 +759,35 @@ impl SsrNode {
             } => {
                 // TODO: Ensure there is nothing criminal in element name/attrs?
                 if !skipped {
-                out.push('<');
-                out.push_str(name);
-                // #[cfg(debug_assertions)]
-                // {
-                //     // Debug piece for cycle debugging
-                //     write!(out, " nod=\"{id_addr:x}\"")?;
-                // }
-                {
-                    // TODO: Ensure added classes have no spaces in them?
-                    let classes = classes.0.borrow();
-                    if !classes.is_empty() {
-                        out.push_str(" class=\"");
-                        for (i, ele) in classes.iter().enumerate() {
-                            if i != 0 {
-                                out.push(' ');
+                    out.push('<');
+                    out.push_str(name);
+                    // #[cfg(debug_assertions)]
+                    // {
+                    //     // Debug piece for cycle debugging
+                    //     write!(out, " nod=\"{id_addr:x}\"")?;
+                    // }
+                    {
+                        // TODO: Ensure added classes have no spaces in them?
+                        let classes = classes.0.borrow();
+                        if !classes.is_empty() {
+                            out.push_str(" class=\"");
+                            for (i, ele) in classes.iter().enumerate() {
+                                if i != 0 {
+                                    out.push(' ');
+                                }
+                                write!(out, "{}", AttrValue(ele))?;
                             }
-                            write!(out, "{}", AttrValue(ele))?;
+                            out.push('"');
                         }
-                        out.push('"');
                     }
-                }
-                for (k, v) in attrs {
-                    write!(out, " {k}=\"{}\"", AttrValue(v))?;
-                }
+                    for (k, v) in attrs {
+                        write!(out, " {k}=\"{}\"", AttrValue(v))?;
+                    }
                 }
                 if children.is_empty() {
                     // Closing self-closing element is not valid in HTML4, ensure that DOCTYPE html is passed for html5 compat
                     if !skipped {
-                    out.push_str("/>");
+                        out.push_str("/>");
                     }
                 } else {
                     if !skipped {
@@ -771,7 +797,7 @@ impl SsrNode {
                     for child in children {
                         child.serialize_html(skip_this, visited, last_is_text, out)?;
                     }
-                    if !skipped{
+                    if !skipped {
                         write!(out, "</{name}>")?;
                     }
                 }
@@ -783,7 +809,7 @@ impl SsrNode {
                 // Is comment content even important? Maybe for some hydration markers?
                 // TODO: Make sure nothing is broken due to nod display
                 // TODO: Ensure proper escaping
-                write!(out, "<!--{c}-->");
+                write!(out, "<!--{c}-->")?;
                 //nod=\"{id_addr:x}\"-->")?;
                 *last_is_text = false;
             }
@@ -817,7 +843,6 @@ pub fn create_ssr_text(name: &str) -> SsrText {
 
 #[inline]
 pub fn marker_node(dbg: &'static str) -> Comment {
-
     let c = Comment::new().expect("marker");
     #[cfg(debug_assertions)]
     {

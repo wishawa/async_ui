@@ -9,7 +9,7 @@ use std::{
 
 use async_executor::{LocalExecutor, Task};
 use async_ui_web_core::{
-    dom::{Comment, DocumentFragment, Node, self},
+    dom::{DocumentFragment, Node, marker_node},
     ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture,
 };
 use wasm_bindgen::UnwrapThrowExt;
@@ -89,8 +89,8 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Create a new list, without anything in it.
     pub fn new() -> Self {
         let frag = DocumentFragment::new().unwrap_throw();
-        let list_end_marker = dom::marker_node("list end").into();
-        let list_start_marker = dom::marker_node("list start").into();
+        let list_end_marker = marker_node("list end").into();
+        let list_start_marker = marker_node("list start").into();
         frag.append_child(&list_start_marker).unwrap_throw();
         frag.append_child(&list_end_marker).unwrap_throw();
         Self {
@@ -124,16 +124,8 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     pub fn insert(&self, key: K, future: F, before: Option<&K>) -> bool {
         let mut inner = self.inner.borrow_mut();
         let container = inner.containing_node.get();
-        let start_marker: Node = {
-            let mut c = Comment::new().unwrap_throw();
-            c.set_data("item start");
-            c.into()
-        };
-        let end_marker: Node = {
-            let mut c = Comment::new().unwrap_throw();
-            c.set_data("item end");
-            c.into()
-        };
+        let start_marker: Node = marker_node("item start").into();
+        let end_marker: Node = marker_node("item end").into();
         let after = before
             .map(|k| &inner.items.get(k).unwrap().start_marker)
             .unwrap_or(&self.list_end_marker);

@@ -1,5 +1,5 @@
 use std::future::Future;
-use std::pin::{pin, Pin};
+use std::pin::pin;
 use std::task::{ready, Poll};
 
 use async_ui_web_core::dom::{create_ssr_element, SsrNode};

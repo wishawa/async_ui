@@ -3,8 +3,7 @@ use std::future::Pending;
 use async_ui_web_core::dom::Element;
 use async_ui_web_core::ContainerNodeFuture;
 use async_ui_web_html::nodes::Text;
-use js_sys::Array;
-use wasm_bindgen::{JsValue, UnwrapThrowExt};
+use wasm_bindgen::UnwrapThrowExt;
 
 pub trait ShortcutRenderStr {
     /// Render the [str] as an HTML text node with that content.
@@ -46,8 +45,12 @@ pub trait ShortcutClassList {
 }
 
 /// Convert an iterator of str to a JS array of strings.
-fn strs_to_js_array<'a>(values: impl Iterator<Item = &'a str>) -> Array {
-    values.into_iter().map(JsValue::from_str).collect()
+#[cfg(feature = "csr")]
+fn strs_to_js_array<'a>(values: impl Iterator<Item = &'a str>) -> js_sys::Array {
+    values
+        .into_iter()
+        .map(wasm_bindgen::JsValue::from_str)
+        .collect()
 }
 
 impl ShortcutClassList for Element {
@@ -60,7 +63,7 @@ impl ShortcutClassList for Element {
             .add(&strs_to_js_array(c.into_iter()))
             .unwrap_throw();
     }
-    #[cfg(feature = "ssr")]
+    #[cfg(not(feature = "csr"))]
     fn add_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
         self.class_list().add(c).unwrap_throw();
     }
@@ -74,7 +77,7 @@ impl ShortcutClassList for Element {
             .remove(&strs_to_js_array(c.into_iter()))
             .unwrap_throw();
     }
-    #[cfg(feature = "ssr")]
+    #[cfg(not(feature = "csr"))]
     fn del_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
         self.class_list().remove(c).unwrap_throw();
     }

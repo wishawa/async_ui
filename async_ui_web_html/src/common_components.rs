@@ -181,7 +181,7 @@ fn create_element<E: JsCast>(tag_name: &str) -> E {
         .unchecked_into()
 }
 
-#[cfg(feature = "ssr")]
+#[cfg(any(feature = "ssr", not(feature = "csr")))]
 fn create_element<E: From<dom::Element>>(tag_name: &str) -> E {
     E::from(dom::create_ssr_element(tag_name))
 }

@@ -11,16 +11,11 @@ pub struct Text {
 }
 
 impl Text {
-    #[cfg(feature = "csr")]
-    pub fn new() -> Self {
-        use async_ui_web_core::window::DOCUMENT;
-        Self {
-            node: DOCUMENT.with(|doc| doc.create_text_node("")),
-        }
-    }
-    #[cfg(feature = "ssr")]
     pub fn new() -> Self {
         Self {
+            #[cfg(feature = "csr")]
+            node: async_ui_web_core::window::DOCUMENT.with(|doc| doc.create_text_node("")),
+            #[cfg(not(feature = "csr"))]
             node: dom::create_ssr_text("")
         }
     }
