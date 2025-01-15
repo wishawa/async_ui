@@ -37,10 +37,11 @@ features = [
 ]
 
 [features]
-default = ["ssr"]
+default = []
 # Events are not feature-gated to make code just work somehow without
 # shimming them all, event handlers are noop in SSR.
 csr = [
+	'async_ui_web_core/csr',
 	'web-sys/Node',
 	'web-sys/Window',
 	'web-sys/Document',
@@ -121,4 +122,6 @@ csr = [
 	'web-sys/HtmlHeadingElement',
 	'web-sys/HtmlFieldSetElement',
 ]
-ssr = []
+ssr = [
+	'async_ui_web_core/ssr',
+]

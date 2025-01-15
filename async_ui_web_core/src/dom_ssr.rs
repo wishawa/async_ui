@@ -1,4 +1,7 @@
+use core::panic;
 use std::cell::RefCell;
+use std::collections::HashSet;
+use std::fmt::{self, Display};
 use std::mem;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
@@ -286,6 +289,9 @@ enum SsrNodeKind {
         attrs: Vec<(String, String)>,
         children: Vec<Node>,
     },
+    DocumentFragment {
+        children: Vec<Node>,
+    },
     Comment(String),
 }
 #[derive(Debug)]
@@ -353,7 +359,10 @@ impl From<SsrText> for SsrNode {
 pub struct SsrDocumentFragment(SsrNode);
 impl SsrDocumentFragment {
     pub fn new() -> Option<Self> {
-        Some(Self(create_ssr_element("#fragment").0))
+        Some(Self(SsrNode(Rc::new(RefCell::new(SsrNodeInner {
+            kind: SsrNodeKind::DocumentFragment { children: vec![] },
+            parent: None,
+        })))))
     }
 }
 impl AsRef<SsrNode> for SsrDocumentFragment {
@@ -381,6 +390,9 @@ impl SsrComment {
             parent: None,
         })))))
     }
+    pub fn set_data(&self, text: &str) {
+        self.0.set_text_content(Some(text));
+    }
 }
 impl AsRef<SsrNode> for SsrComment {
     fn as_ref(&self) -> &SsrNode {
@@ -405,12 +417,14 @@ impl SsrNode {
     fn take_parent(&self) {
         // borrow_mut to immediately take `node.parent` `Option`, might not be required
         // but doing that to be safe.
-        let mut node = self.0.borrow_mut();
-        if let Some(parent) = node.parent.take() {
+        let node = self.0.borrow();
+        if let Some(parent) = &node.parent {
             // unreachable!("experiment: check if reparenting happens this way in async-ui");
             if let Some(parent) = parent.upgrade() {
                 drop(node);
-                parent.remove_child(&parent);
+                parent
+                    .remove_child(&self)
+                    .expect("parent is set for node => parent should contain this child");
             }
         }
     }
@@ -428,16 +442,14 @@ impl SsrNode {
     // }
     fn take_known_parent(&self, known: &Self) {
         let mut node = self.0.borrow_mut();
-        // parent might not be set if called from `insert_before`.
-        if let Some(parent) = node.parent.take() {
-            if cfg!(debug_assertions) {
-                let parent = parent.upgrade().expect("parent is either not set or known");
-                drop(node);
-                assert!(
-                    Self::ptr_eq(&parent, known),
-                    "parent is either not set or known"
-                );
-            }
+        let parent = node.parent.take().expect("parent doesn't exists");
+        {
+            let parent = parent.upgrade().expect("parent should live at this point");
+            drop(node);
+            assert!(
+                Self::ptr_eq(&parent, known),
+                "parent is either not set or known"
+            );
         }
     }
 
@@ -458,7 +470,9 @@ impl SsrNode {
                     attrs.push((name.to_string(), value.to_string()));
                 }
             }
-            SsrNodeKind::Comment(_) | SsrNodeKind::Text(_) => {
+            SsrNodeKind::Comment(_)
+            | SsrNodeKind::Text(_)
+            | SsrNodeKind::DocumentFragment { .. } => {
                 panic!("text/comment have no attributes")
             }
         }
@@ -473,7 +487,9 @@ impl SsrNode {
                     attrs.remove(pos);
                 }
             }
-            SsrNodeKind::Comment(_) | SsrNodeKind::Text(_) => {
+            SsrNodeKind::Comment(_)
+            | SsrNodeKind::Text(_)
+            | SsrNodeKind::DocumentFragment { .. } => {
                 panic!("text/comment have no attributes")
             }
         }
@@ -509,7 +525,7 @@ impl SsrNode {
             .iter()
             .position(|el| Self::ptr_eq(el, self))
             .expect("parent should contain child");
-        let sibling = children.get(pos+1)?.clone();
+        let sibling = children.get(pos + 1)?.clone();
         assert!(!sibling.is_same_node(Some(self)));
         Some(sibling)
     }
@@ -523,7 +539,10 @@ impl SsrNode {
         self.insert_before(new_node, None)
     }
     pub fn insert_before(&self, new_node: &Node, reference_node: Option<&Node>) -> Option<()> {
-        assert!(!new_node.is_same_node(Some(self)));
+        assert!(
+            !new_node.is_same_node(Some(self)),
+            "the new child can't be a parent"
+        );
         // insert_before removes node from the previous parent first.
         // Not sure it if matters in async-ui, but matching DOM behavior first.
         new_node.take_parent();
@@ -534,9 +553,10 @@ impl SsrNode {
                 // TODO: Error: Cannot add children to a Text
                 None
             }
-            SsrNodeKind::Element { children, .. } => {
+            SsrNodeKind::Element { children, .. }
+            | SsrNodeKind::DocumentFragment { children, .. } => {
                 // Find the insert position
-                let pos = if let Some(reference_node) = reference_node {
+                let mut pos = if let Some(reference_node) = reference_node {
                     // TODO: Error: Child to insert before is not a child of this node
                     let pos = children
                         .iter()
@@ -546,17 +566,31 @@ impl SsrNode {
                     None
                 };
 
-                // Update node parent
-                {
-                    let mut node = new_node.0.borrow_mut();
-                    node.parent = Some(Self::downgrade(self));
-                }
-
-                // Perform insertion
-                if let Some(pos) = pos {
-                    children.insert(pos, new_node.clone());
+                let mut node = new_node.0.borrow_mut();
+                if let SsrNodeKind::DocumentFragment { children:frag_child } = &mut node.kind {
+                    for child in std::mem::take(frag_child) {
+                        let mut child_node = child.0.borrow_mut();
+                        child_node.parent = Some(Self::downgrade(self));
+                        drop(child_node);
+                        
+                        if let Some(pos) = &mut pos {
+                            children.insert(*pos, child.clone());
+                            *pos +=1 ;
+                        } else {
+                            children.push(child.clone());
+                        }
+                    }
                 } else {
-                    children.push(new_node.clone());
+                    // Update node parent
+                    node.parent = Some(Self::downgrade(self));
+                    drop(node);
+
+                    // Perform insertion
+                    if let Some(pos) = pos {
+                        children.insert(pos, new_node.clone());
+                    } else {
+                        children.push(new_node.clone());
+                    }
                 }
                 Some(())
             }
@@ -566,10 +600,11 @@ impl SsrNode {
     /// None corresponds to web NotFoundError: the node to be removed is not a child of this node.
     // TODO: Return removed child?
     pub fn remove_child(&self, child: &Node) -> Option<()> {
+        assert!(!self.is_same_node(Some(child)), "parent != child");
         let mut node = self.0.borrow_mut();
         match &mut node.kind {
             SsrNodeKind::Text(_) | SsrNodeKind::Comment(_) => None,
-            SsrNodeKind::Element { children, .. } => {
+            SsrNodeKind::Element { children, .. } | SsrNodeKind::DocumentFragment { children } => {
                 let pos = children.iter().position(|el| Self::ptr_eq(el, child))?;
                 children.remove(pos);
                 drop(node);
@@ -589,7 +624,7 @@ impl SsrNode {
             SsrNodeKind::Text(v) | SsrNodeKind::Comment(v) => {
                 *v = text.unwrap_or_default().to_owned();
             }
-            SsrNodeKind::Element { children, .. } => {
+            SsrNodeKind::Element { children, .. } | SsrNodeKind::DocumentFragment { children } => {
                 let old_children = mem::take(children);
                 children.push(create_ssr_text(text.unwrap_or_default()).0);
                 drop(node);
@@ -609,37 +644,85 @@ impl SsrNode {
         Rc::ptr_eq(&a.0, &b.0)
     }
 
-    pub fn serialize_html(&self, last_is_text: &mut bool, out: &mut String) {
-        fn encode_text(text: &str, out: &mut String) {
-            for ele in text.chars() {
-                match ele {
-                    '&' => out.push_str("&amp;"),
-                    '<' => out.push_str("&lt;"),
-                    '>' => out.push_str("&gt;"),
-                    c => out.push(c),
+    pub fn to_html(&self) -> String {
+        self.to_html_impl(false)
+    }
+    pub fn to_inner_html(&self) -> String {
+        self.to_html_impl(true)
+    }
+
+    fn to_html_impl(&self, mut inner: bool) -> String {
+        let mut out = String::new();
+        self.serialize_html(&mut inner, &mut HashSet::new(), &mut false, &mut out)
+            .expect("fmt shouldn't fail");
+        out
+    }
+
+    fn serialize_html(
+        &self,
+        skip_this: &mut bool,
+        visited: &mut HashSet<usize>,
+        last_is_text: &mut bool,
+        out: &mut String,
+    ) -> fmt::Result {
+        use std::fmt::Write;
+
+        struct Text<'s>(&'s str);
+        impl Display for Text<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                for ele in self.0.chars() {
+                    match ele {
+                        '&' => write!(f, "&amp;")?,
+                        '<' => write!(f, "&lt;")?,
+                        '>' => write!(f, "&gt;")?,
+                        c => write!(f, "{c}")?,
+                    }
                 }
+                Ok(())
             }
         }
-        fn encode_attr_value(text: &str, out: &mut String) {
-            for ele in text.chars() {
-                match ele {
-                    '&' => out.push_str("&amp;"),
-                    '<' => out.push_str("&lt;"),
-                    '>' => out.push_str("&gt;"),
-                    '"' => out.push_str("&quot;"),
-                    c => out.push(c),
+        struct AttrValue<'s>(&'s str);
+        impl Display for AttrValue<'_> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                for ele in self.0.chars() {
+                    match ele {
+                        '&' => write!(f, "&amp;")?,
+                        '<' => write!(f, "&lt;")?,
+                        '>' => write!(f, "&gt;")?,
+                        '"' => write!(f, "&quot;")?,
+                        c => write!(f, "{c}")?,
+                    }
                 }
+                Ok(())
             }
         }
+        let id_addr = Rc::as_ptr(&self.0).addr();
+        #[cfg(debug_assertions)]
+        if !visited.insert(id_addr) {
+            write!(out, "<!--BUG: CYCLE nod=\"{id_addr:x}\"-->")?;
+            *last_is_text = false;
+            return Ok(());
+        }
+
+        let skipped = *skip_this;
+        *skip_this = false;
 
         let node = self.0.borrow();
         match &node.kind {
+            SsrNodeKind::DocumentFragment { children } => {
+                write!(out, "<!--BUG: documentfragment is never inserted directly-->");
+                for child in children {
+                    child.serialize_html(skip_this, visited, last_is_text, out)?;
+                }
+                write!(out, "<!--BUG: end of documentfragment-->");
+                *last_is_text = false;
+            }
             SsrNodeKind::Text(t) => {
                 if *last_is_text {
                     // For hydration - ensure text nodes are separated, as with real DOM building
-                    out.push_str("<!---->");
+                    write!(out, "<!--DUMMY TEXT SEP-->")?;
                 }
-                encode_text(t, out);
+                write!(out, "{}", Text(t))?;
                 *last_is_text = true;
             }
             SsrNodeKind::Element {
@@ -649,16 +732,14 @@ impl SsrNode {
                 children,
             } => {
                 // TODO: Ensure there is nothing criminal in element name/attrs?
+                if !skipped {
                 out.push('<');
                 out.push_str(name);
-                for (k, v) in attrs {
-                    out.push(' ');
-                    out.push_str(k);
-                    out.push('=');
-                    out.push('"');
-                    encode_attr_value(v, out);
-                    out.push('"');
-                }
+                // #[cfg(debug_assertions)]
+                // {
+                //     // Debug piece for cycle debugging
+                //     write!(out, " nod=\"{id_addr:x}\"")?;
+                // }
                 {
                     // TODO: Ensure added classes have no spaces in them?
                     let classes = classes.0.borrow();
@@ -668,36 +749,51 @@ impl SsrNode {
                             if i != 0 {
                                 out.push(' ');
                             }
-                            encode_attr_value(ele, out);
+                            write!(out, "{}", AttrValue(ele))?;
                         }
                         out.push('"');
                     }
                 }
+                for (k, v) in attrs {
+                    write!(out, " {k}=\"{}\"", AttrValue(v))?;
+                }
+                }
                 if children.is_empty() {
                     // Closing self-closing element is not valid in HTML4, ensure that DOCTYPE html is passed for html5 compat
+                    if !skipped {
                     out.push_str("/>");
-                } else {
-                    *last_is_text = false;
-                    out.push('>');
-                    for child in children {
-                        child.serialize_html(last_is_text, out);
                     }
-                    out.push('<');
-                    out.push('/');
-                    out.push_str(name);
-                    out.push('>');
+                } else {
+                    if !skipped {
+                        *last_is_text = false;
+                        out.push('>');
+                    }
+                    for child in children {
+                        child.serialize_html(skip_this, visited, last_is_text, out)?;
+                    }
+                    if !skipped{
+                        write!(out, "</{name}>")?;
+                    }
                 }
-                *last_is_text = false;
+                if !skipped {
+                    *last_is_text = false;
+                }
             }
             SsrNodeKind::Comment(c) => {
                 // Is comment content even important? Maybe for some hydration markers?
+                // TODO: Make sure nothing is broken due to nod display
                 // TODO: Ensure proper escaping
-                out.push_str("<!--'");
-                out.push_str(c);
-                out.push_str("-->");
+                write!(out, "<!--{c}-->");
+                //nod=\"{id_addr:x}\"-->")?;
                 *last_is_text = false;
             }
         }
+
+        #[cfg(debug_assertions)]
+        if !visited.remove(&id_addr) {
+            panic!("visited marker disappeared");
+        }
+        Ok(())
     }
 }
 
@@ -717,4 +813,15 @@ pub fn create_ssr_text(name: &str) -> SsrText {
         kind: SsrNodeKind::Text(name.to_owned()),
         parent: None,
     }))))
+}
+
+#[inline]
+pub fn marker_node(dbg: &'static str) -> Comment {
+
+    let c = Comment::new().expect("marker");
+    #[cfg(debug_assertions)]
+    {
+        c.set_data(dbg);
+    }
+    c
 }

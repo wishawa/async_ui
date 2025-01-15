@@ -53,6 +53,8 @@
               cargo-watch
               cargo-edit
               gdb
+              wasm-pack
+              miniserve
             ]
             ++ serverDeps;
           RUST_SRC_PATH = "${rust}/lib/rustlib/src/rust/library";

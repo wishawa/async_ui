@@ -7,6 +7,7 @@ use std::{cell::OnceCell, future::pending};
 
 use async_executor::LocalExecutor;
 use async_ui_web_core::executor::set_executor_future;
+use std::future::Future;
 
 thread_local! {
     static EXECUTOR: OnceCell<&'static LocalExecutor<'static>> = OnceCell::new();

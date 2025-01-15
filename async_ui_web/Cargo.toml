@@ -37,10 +37,11 @@ features = [
 	'IntersectionObserver',
 	'IntersectionObserverInit',
 	'IntersectionObserverEntry',
-	'console'
+	'console',
 ]
 
 [features]
-default = ["ssr"]
-csr = []
-ssr = []
+default = []
+csr = ['async_ui_web_core/csr', 'async_ui_web_html/csr']
+ssr = ['async_ui_web_core/ssr', 'async_ui_web_html/ssr']
+

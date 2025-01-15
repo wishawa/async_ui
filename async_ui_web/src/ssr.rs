@@ -22,9 +22,9 @@ pub async fn render_to_string<F: Future + 'static>(child_future: F) -> String {
         println!("After");
     })
     .await;
-    let mut out = String::new();
     println!("serialize");
-    node.serialize_html(&mut false, &mut out);
+    // inner to strip outer <#root>
+    let out = node.to_inner_html();
     println!("done");
     drop(root_fut_own);
     println!("dropped fut");

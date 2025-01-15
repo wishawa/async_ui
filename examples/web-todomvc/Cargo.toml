@@ -15,3 +15,7 @@ name = "ssr"
 async_ui_web = { path = "../../async_ui_web/" }
 wasm-bindgen = "0.2.82"
 futures-lite = "1.13.0"
+
+[features]
+csr = ["async_ui_web/csr"]
+ssr = ["async_ui_web/ssr"]

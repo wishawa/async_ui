@@ -9,7 +9,7 @@ use std::{
 
 use async_executor::{LocalExecutor, Task};
 use async_ui_web_core::{
-    dom::{Comment, DocumentFragment, Node},
+    dom::{Comment, DocumentFragment, Node, self},
     ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture,
 };
 use wasm_bindgen::UnwrapThrowExt;
@@ -89,8 +89,8 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     /// Create a new list, without anything in it.
     pub fn new() -> Self {
         let frag = DocumentFragment::new().unwrap_throw();
-        let list_end_marker = Comment::new().unwrap_throw().into();
-        let list_start_marker = Comment::new().unwrap_throw().into();
+        let list_end_marker = dom::marker_node("list end").into();
+        let list_start_marker = dom::marker_node("list start").into();
         frag.append_child(&list_start_marker).unwrap_throw();
         frag.append_child(&list_end_marker).unwrap_throw();
         Self {
@@ -124,8 +124,16 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     pub fn insert(&self, key: K, future: F, before: Option<&K>) -> bool {
         let mut inner = self.inner.borrow_mut();
         let container = inner.containing_node.get();
-        let start_marker: Node = Comment::new().unwrap_throw().into();
-        let end_marker: Node = Comment::new().unwrap_throw().into();
+        let start_marker: Node = {
+            let mut c = Comment::new().unwrap_throw();
+            c.set_data("item start");
+            c.into()
+        };
+        let end_marker: Node = {
+            let mut c = Comment::new().unwrap_throw();
+            c.set_data("item end");
+            c.into()
+        };
         let after = before
             .map(|k| &inner.items.get(k).unwrap().start_marker)
             .unwrap_or(&self.list_end_marker);
@@ -356,12 +364,33 @@ fn move_nodes_before(
     end_marker: &Node,
     after: Option<&Node>,
 ) {
-    println!("MNB");
+    #[cfg(feature = "ssr")]
+    {
+        println!(
+            "MNB\nC {}\nS {}\nE {}",
+            container.to_html(),
+            start_marker.to_html(),
+            end_marker.to_html()
+        );
+    }
+
+    #[cfg(feature = "ssr")]
+    if let Some(parent) = container.parent_node() {
+        println!("MNB parent\n{}", parent.to_html());
+    }
     let mut node = start_marker.clone();
     loop {
-        println!("loop!");
+        #[cfg(feature = "ssr")]
+        {
+            println!("loop!\n- {}", node.to_html());
+        }
         let next_node = node.next_sibling();
-        assert!(!container.is_same_node(Some(&node)));
+        #[cfg(feature = "ssr")]
+        if container.is_same_node(Some(&node)) {
+            let c = container.to_html();
+
+            panic!("oopsie, wtf is with dom\ncontainer = {c}");
+        }
         container.insert_before(&node, after).unwrap_throw();
         if end_marker.is_same_node(Some(&node)) {
             break;

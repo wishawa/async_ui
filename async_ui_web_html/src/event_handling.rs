@@ -9,7 +9,8 @@ use std::{
 use async_ui_internal_utils::dummy_waker::dummy_waker;
 use async_ui_web_core::dom::EventTarget;
 use futures_core::Stream;
-use wasm_bindgen::JsCast;
+use wasm_bindgen::{JsCast, UnwrapThrowExt};
+use wasm_bindgen::closure::Closure;
 
 /// A struct implementing both [Future] and [Stream].
 /// Yields [Event][web_sys::Event] objects.
