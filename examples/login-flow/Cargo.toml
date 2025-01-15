@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["rlib", "cdylib"]
 
 [dependencies]
 async_ui_web = { path = "../../async_ui_web/" }
@@ -15,3 +15,6 @@ futures-lite = "1.13.0"
 console_error_panic_hook = "0.1.6"
 gloo-timers = { version = "0.2", features = ["futures"] }
 
+[features]
+csr = ["async_ui_web/csr"]
+ssr = ["async_ui_web/ssr"]

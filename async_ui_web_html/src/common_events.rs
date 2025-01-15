@@ -1,5 +1,6 @@
-use crate::events::{EmitEvent, EventFutureStream};
-use web_sys::{Element, HtmlElement};
+use crate::events::EventFutureStream;
+
+use async_ui_web_core::dom::{Element, HtmlElement};
 
 macro_rules! make_event_impl {
     ($ev_name:literal, $func_name:ident, $ty:ty, $link:tt) => {
@@ -11,7 +12,15 @@ macro_rules! make_event_impl {
         #[doc = $link]
         #[doc = "."]
         fn $func_name(&self) -> EventFutureStream<$ty> {
-            self.as_ref().until_event($ev_name.into())
+            #[cfg(feature = "csr")]
+            {
+                use crate::events::EmitEvent;
+                return self.as_ref().until_event($ev_name.into())
+            }
+            #[cfg(not(feature = "csr"))]
+            {
+                EventFutureStream::new_dummy($ev_name.into())
+            }
         }
     };
 }

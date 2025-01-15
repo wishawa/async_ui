@@ -21,3 +21,8 @@ version = "0.3.56"
 features = [
 	'console'
 ]
+
+[features]
+default = ["csr"]
+csr = ["async_ui_web/csr"]
+ssr = []

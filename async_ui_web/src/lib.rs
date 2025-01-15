@@ -6,18 +6,28 @@ See the [guide book](https://wishawa.github.io/async_ui/book/) to get started!
 */
 
 pub mod components;
+#[cfg(feature = "csr")]
+pub mod executor;
+#[cfg(feature = "ssr")]
+#[path = "./executor_ssr.rs"]
 pub mod executor;
 pub mod lists;
+#[cfg(feature = "csr")]
 mod mount;
 mod no_child;
 mod shortcuts;
+#[cfg(feature = "ssr")]
+mod ssr;
 
 pub use async_ui_internal_utils::reactive_cell::ReactiveCell;
 pub use async_ui_web_core::combinators::{join, race, race_ok, try_join};
 pub use async_ui_web_html::nodes as html;
 pub use async_ui_web_macros::css;
 pub use async_ui_web_macros::select;
+#[cfg(feature = "csr")]
 pub use mount::{mount, mount_at};
+#[cfg(feature = "ssr")]
+pub use ssr::render_to_string;
 pub use no_child::NoChild;
 
 #[doc(hidden)]

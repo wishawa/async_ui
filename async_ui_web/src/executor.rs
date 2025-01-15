@@ -7,6 +7,7 @@ use std::{cell::OnceCell, future::pending};
 
 use async_executor::LocalExecutor;
 use async_ui_web_core::executor::set_executor_future;
+use std::future::Future;
 
 thread_local! {
     static EXECUTOR: OnceCell<&'static LocalExecutor<'static>> = OnceCell::new();
@@ -31,4 +32,13 @@ pub fn get_executor() -> &'static LocalExecutor<'static> {
             exe
         })
     })
+}
+
+/// If something needs to be run to completion before sending user html - it needs to be wrapped in `run_loading` call.
+///
+/// let data = run_loading(load_data()).await;
+///
+/// DataDisplay::new(data).render().await
+pub async fn run_loading<V>(f: impl Future<Output = V>) -> V {
+    f.await
 }

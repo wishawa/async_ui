@@ -11,9 +11,15 @@ book_pages:
 demo_todomvc:
 	@echo "====> building demo todomvc"
 	rm -rf gh-pages/demos/todomvc
-	wasm-pack build --release --target web --out-dir ../../gh-pages/demos/todomvc/pkg examples/web-todomvc
+	wasm-pack build --release --target web --out-dir ../../gh-pages/demos/todomvc/pkg examples/web-todomvc --features=csr
 	rm gh-pages/demos/todomvc/pkg/.gitignore
 	cp examples/web-todomvc/index.html gh-pages/demos/todomvc/
+
+.PHONY: demo_todomvc_ssr
+demo_todomvc_ssr:
+	@echo "====> running demo todomvc ssr"
+	# FIXME: how to unset target set via cargo config and just use current system's?
+	cargo run -p web-todomvc --features=ssr --bin ssr --target=x86_64-unknown-linux-gnu
 
 .PHONY: demo_simple
 demo_simple:

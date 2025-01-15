@@ -1,11 +1,10 @@
-use async_ui_web::mount;
-use wasm_bindgen::prelude::{wasm_bindgen, JsValue};
+pub mod app;
 
-mod app;
-use app::app;
+#[cfg(feature = "csr")]
+#[wasm_bindgen::prelude::wasm_bindgen(start)]
+pub fn run() -> Result<(), wasm_bindgen::JsValue> {
+    use async_ui_web::mount;
 
-#[wasm_bindgen(start)]
-pub fn run() -> Result<(), JsValue> {
-    mount(app());
+    mount(app::app());
     Ok(())
 }

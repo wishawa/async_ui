@@ -230,7 +230,11 @@ macro_rules! impl_common_tuple {
             fn drop(self: Pin<&mut Self>) {
                 let this = self.project();
 
-                if !this.detachment_blocker.block_until_drop() {
+                
+                if !this.detachment_blocker.block_until_drop()
+                    // There is some bug here, in SSR rendering it fails during drop
+                    //  due to missing context, I think it is broken for top-level elements?
+                    && (cfg!(feature = "csr") || DOM_CONTEXT.is_set()) {
                     DOM_CONTEXT.with(|parent: &DomContext| parent.remove_child(ChildPosition::default()));
                 }
 

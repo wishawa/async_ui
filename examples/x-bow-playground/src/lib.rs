@@ -3,7 +3,7 @@ use std::{fmt::Debug, future::pending, pin::Pin};
 use async_ui_web::{
     event_traits::EmitElementEvent,
     html::{Anchor, Button, Div, Span, H3},
-    join, mount,
+    join,
     shortcut_traits::{ShortcutClassList, ShortcutClassListBuilder, ShortcutRenderStr},
     ReactiveCell,
 };
@@ -128,7 +128,10 @@ impl<T: Trackable + Debug> CanDisplay for Leaf<T> {
 }
 
 #[wasm_bindgen(start)]
+#[cfg(feature = "csr")]
 pub fn run() {
+    use async_ui_web::mount;
+
     console_error_panic_hook::set_once();
     mount(app());
 }

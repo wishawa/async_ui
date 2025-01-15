@@ -7,10 +7,14 @@ use std::{
 };
 
 use async_ui_internal_utils::reactive_cell::ReactiveCell;
-use async_ui_web_core::{combinators::join, ContainerNodeFuture};
+use async_ui_web_core::{
+    combinators::join,
+    dom::{Element, HtmlElement},
+    ContainerNodeFuture,
+};
 use futures_lite::{Future, StreamExt};
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue, UnwrapThrowExt};
-use web_sys::{Element, HtmlElement, IntersectionObserver, IntersectionObserverInit};
+use web_sys::{IntersectionObserver, IntersectionObserverInit};
 
 use super::DynamicList;
 

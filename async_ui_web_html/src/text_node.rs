@@ -3,17 +3,20 @@ use std::{
     ops::Deref,
 };
 
-use async_ui_web_core::{window::DOCUMENT, ContainerNodeFuture};
+use async_ui_web_core::{dom, ContainerNodeFuture};
 
 /// An HTML text node.
 pub struct Text {
-    pub node: web_sys::Text,
+    pub node: dom::Text,
 }
 
 impl Text {
     pub fn new() -> Self {
         Self {
-            node: DOCUMENT.with(|doc| doc.create_text_node("")),
+            #[cfg(feature = "csr")]
+            node: async_ui_web_core::window::DOCUMENT.with(|doc| doc.create_text_node("")),
+            #[cfg(not(feature = "csr"))]
+            node: dom::create_ssr_text("")
         }
     }
     pub fn render(&self) -> ContainerNodeFuture<Pending<()>> {
@@ -28,7 +31,7 @@ impl Default for Text {
 }
 
 impl Deref for Text {
-    type Target = web_sys::Text;
+    type Target = dom::Text;
 
     fn deref(&self) -> &Self::Target {
         &self.node
