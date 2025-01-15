@@ -31,4 +31,4 @@ futures-lite = "1.13.0"
 default = []
 csr = ["web-sys"]
 ssr = []
-
+hydrate = []

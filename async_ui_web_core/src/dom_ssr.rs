@@ -1,13 +1,12 @@
-use core::panic;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell, RefMut};
 use std::collections::HashSet;
 use std::fmt::{self, Display};
 use std::mem;
 use std::ops::Deref;
 use std::rc::{Rc, Weak};
 pub type Node = SsrNode;
-pub type HtmlElement = elements::HtmlElement;
 pub type Element = SsrElement;
+pub type HtmlElement = SsrHtmlElement;
 pub type Text = SsrText;
 pub type EventTarget = SsrEventTarget;
 pub type DocumentFragment = SsrDocumentFragment;
@@ -31,13 +30,13 @@ impl SsrEventTarget {
 }
 
 pub mod elements {
-    use super::{Element, Node};
+    use super::{Element, SsrHtmlElement, HtmlElement, Node};
     use std::ops::Deref;
 
     macro_rules! impl_element {
         ($name:ident) => {
             #[repr(transparent)]
-            pub struct $name(Element);
+            pub struct $name(HtmlElement);
 
             impl AsRef<Node> for $name {
                 fn as_ref(&self) -> &Node {
@@ -46,117 +45,90 @@ pub mod elements {
             }
             impl AsRef<Element> for $name {
                 fn as_ref(&self) -> &Element {
+                    &self.0 .0
+                }
+            }
+            impl AsRef<HtmlElement> for $name {
+                fn as_ref(&self) -> &HtmlElement {
                     &self.0
                 }
             }
             impl AsRef<$name> for $name {
                 fn as_ref(&self) -> &Self {
-                    &self
-                }
-            }
-            impl From<Element> for $name {
-                fn from(e: Element) -> Self {
-                    Self(e)
-                }
-            }
-        };
-        ($name:ident, childless) => {
-            impl_element!($name);
-            impl AsRef<HtmlElement> for $name {
-                fn as_ref(&self) -> &HtmlElement {
-                    // SAFETY: All node structs are `repr(transparent)` and have
-                    // the same contents, also all are only using interior mutability.
-                    unsafe { core::mem::transmute(&self.0) }
+                    self
                 }
             }
             impl Deref for $name {
                 type Target = HtmlElement;
+
                 fn deref(&self) -> &Self::Target {
                     self.as_ref()
                 }
             }
-        };
-        ($name:ident, childed) => {
-            impl_element!($name);
-            impl AsRef<HtmlElement> for $name {
-                fn as_ref(&self) -> &HtmlElement {
-                    // SAFETY: All node structs are `repr(transparent)` and have
-                    // the same contents, also all are only using interior mutability.
-                    unsafe { core::mem::transmute(&self.0) }
-                }
-            }
-            impl Deref for $name {
-                type Target = HtmlElement;
-                fn deref(&self) -> &Self::Target {
-                    self.as_ref()
-                }
-            }
-        };
-        ($name:ident, childed, htmlelement) => {
-            impl_element!($name);
-            impl Deref for $name {
-                type Target = Element;
-                fn deref(&self) -> &Self::Target {
-                    self.as_ref()
+            impl TryFrom<Element> for $name {
+                type Error = ();
+
+                fn try_from(value: Element) -> Result<Self, Self::Error> {
+                    // Nothing is done for non-html elements yet, all elements are html elements
+                    Ok(Self(SsrHtmlElement(value)))
                 }
             }
         };
     }
-    impl_element!(HtmlElement, childed, htmlelement);
-    impl_element!(HtmlAnchorElement, childed);
-    impl_element!(HtmlAreaElement, childless);
-    impl_element!(HtmlAudioElement, childed);
-    // impl_element!(HtmlBElement, childed);
-    impl_element!(HtmlBrElement, childless);
-    impl_element!(HtmlBaseElement, childless);
-    impl_element!(HtmlButtonElement, childed);
-    impl_element!(HtmlCanvasElement, childed);
-    impl_element!(HtmlDListElement, childed);
-    impl_element!(HtmlDataElement, childed);
-    impl_element!(HtmlDataListElement, childed);
-    impl_element!(HtmlDialogElement, childed);
-    impl_element!(HtmlDivElement, childed);
-    impl_element!(HtmlEmbedElement, childless);
-    impl_element!(HtmlFieldSetElement, childed);
-    impl_element!(HtmlFormElement, childed);
-    impl_element!(HtmlFrameSetElement, childed);
-    impl_element!(HtmlHrElement, childless);
-    impl_element!(HtmlHeadingElement, childed);
-    impl_element!(HtmlImageElement, childed);
-    impl_element!(HtmlIFrameElement, childed);
-    impl_element!(HtmlInputElement, childless);
-    impl_element!(HtmlLiElement, childed);
-    impl_element!(HtmlLabelElement, childed);
-    impl_element!(HtmlLegendElement, childed);
-    impl_element!(HtmlLinkElement, childless);
-    impl_element!(HtmlMapElement, childed);
-    impl_element!(HtmlMetaElement, childless);
-    impl_element!(HtmlMeterElement, childed);
-    impl_element!(HtmlOListElement, childed);
-    impl_element!(HtmlObjectElement, childed);
-    impl_element!(HtmlOptGroupElement, childed);
-    impl_element!(HtmlOptionElement, childed);
-    impl_element!(HtmlOutputElement, childed);
-    impl_element!(HtmlParagraphElement, childed);
-    impl_element!(HtmlPictureElement, childed);
-    impl_element!(HtmlPreElement, childed);
-    impl_element!(HtmlProgressElement, childed);
-    impl_element!(HtmlQuoteElement, childed);
-    impl_element!(HtmlSelectElement, childed);
-    impl_element!(HtmlSourceElement, childless);
-    impl_element!(HtmlSpanElement, childed);
-    impl_element!(HtmlStyleElement, childed);
-    impl_element!(HtmlTableCellElement, childed);
-    impl_element!(HtmlTableColElement, childed);
-    impl_element!(HtmlTableElement, childed);
-    impl_element!(HtmlTableRowElement, childed);
-    impl_element!(HtmlTableSectionElement, childed);
-    impl_element!(HtmlTemplateElement, childed);
-    impl_element!(HtmlTextAreaElement, childed);
-    impl_element!(HtmlTimeElement, childed);
-    impl_element!(HtmlTrackElement, childless);
-    impl_element!(HtmlUListElement, childed);
-    impl_element!(HtmlVideoElement, childed);
+    impl_element!(HtmlAnchorElement);
+    impl_element!(HtmlAreaElement);
+    impl_element!(HtmlAudioElement);
+    // impl_element!(HtmlBElement);
+    impl_element!(HtmlBrElement);
+    impl_element!(HtmlBaseElement);
+    impl_element!(HtmlButtonElement);
+    impl_element!(HtmlCanvasElement);
+    impl_element!(HtmlDListElement);
+    impl_element!(HtmlDataElement);
+    impl_element!(HtmlDataListElement);
+    impl_element!(HtmlDialogElement);
+    impl_element!(HtmlDivElement);
+    impl_element!(HtmlEmbedElement);
+    impl_element!(HtmlFieldSetElement);
+    impl_element!(HtmlFormElement);
+    impl_element!(HtmlFrameSetElement);
+    impl_element!(HtmlHrElement);
+    impl_element!(HtmlHeadingElement);
+    impl_element!(HtmlImageElement);
+    impl_element!(HtmlIFrameElement);
+    impl_element!(HtmlInputElement);
+    impl_element!(HtmlLiElement);
+    impl_element!(HtmlLabelElement);
+    impl_element!(HtmlLegendElement);
+    impl_element!(HtmlLinkElement);
+    impl_element!(HtmlMapElement);
+    impl_element!(HtmlMetaElement);
+    impl_element!(HtmlMeterElement);
+    impl_element!(HtmlOListElement);
+    impl_element!(HtmlObjectElement);
+    impl_element!(HtmlOptGroupElement);
+    impl_element!(HtmlOptionElement);
+    impl_element!(HtmlOutputElement);
+    impl_element!(HtmlParagraphElement);
+    impl_element!(HtmlPictureElement);
+    impl_element!(HtmlPreElement);
+    impl_element!(HtmlProgressElement);
+    impl_element!(HtmlQuoteElement);
+    impl_element!(HtmlSelectElement);
+    impl_element!(HtmlSourceElement);
+    impl_element!(HtmlSpanElement);
+    impl_element!(HtmlStyleElement);
+    impl_element!(HtmlTableCellElement);
+    impl_element!(HtmlTableColElement);
+    impl_element!(HtmlTableElement);
+    impl_element!(HtmlTableRowElement);
+    impl_element!(HtmlTableSectionElement);
+    impl_element!(HtmlTemplateElement);
+    impl_element!(HtmlTextAreaElement);
+    impl_element!(HtmlTimeElement);
+    impl_element!(HtmlTrackElement);
+    impl_element!(HtmlUListElement);
+    impl_element!(HtmlVideoElement);
 
     macro_rules! ats {
         ($id:ident, &str, attr: $v:literal) => {
@@ -171,6 +143,11 @@ pub mod elements {
                 } else {
                     self.remove_attribute($v);
                 }
+            }
+        };
+        ($id:ident, f64, attr: $v:literal) => {
+            pub fn $id(&self, v: f64) {
+                self.set_attribute($v, &v.to_string())
             }
         };
         ($id:ident, &str, noop) => {
@@ -195,6 +172,10 @@ pub mod elements {
             }
         };
     }
+    impl HtmlElement {
+        ats!(set_hidden, bool, attr: "hidden");
+        ats!(set_title, &str, attr: "title");
+    }
     impl HtmlButtonElement {
         ats!(set_disabled, bool, attr: "disabled");
     }
@@ -213,6 +194,7 @@ pub mod elements {
         ats!(set_step, &str, attr: "step");
         ats!(set_min, &str, attr: "min");
         ats!(set_max, &str, attr: "max");
+        ats!(set_disabled, bool, attr: "disabled");
     }
     impl HtmlOptionElement {
         // TODO: Other sibling `HtmlSelectElement` options should be reset here, should it be emulated?
@@ -221,36 +203,71 @@ pub mod elements {
         // Maybe some generic on-load-prop-setting option should be added for not available attributes?..
         // E.g data-oncreate="self.selected = true"... It won't work with noscript, however.
         ats!(set_selected, bool, attr: "selected");
+        atg!(value, String, attr: "value" = "".to_owned());
+        ats!(set_value, &str, attr: "value");
+        ats!(set_disabled, bool, attr: "disabled");
     }
     impl HtmlSelectElement {
         ats!(set_placeholder, &str, attr: "placeholder");
         // Is a property, not an attribute, see comment on set_selected in `HtmlOptionElement`
         ats!(set_value, &str, noop);
+        atg!(value, String, "".to_owned());
         // Until set_value is not working, default index is ok...
         atg!(selected_index, i32, 0);
         ats!(set_autofocus, bool, attr: "autofocus");
+        ats!(set_multiple, bool, attr: "multiple");
+        ats!(set_disabled, bool, attr: "disabled");
     }
     impl HtmlAnchorElement {
         ats!(set_href, &str, attr: "href");
+    }
+    impl HtmlMeterElement {
+        ats!(set_min, f64, attr: "min");
+        ats!(set_max, f64, attr: "max");
+        ats!(set_value, f64, attr: "value");
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SsrStyle(SsrElement);
+impl SsrStyle {
+    pub fn set_property(&self, property: &str, value: &str) -> Option<()> {
+        let mut element = self.0.borrow_element_mut();
+        if value.is_empty() {
+            if let Some(pos) = element.style.iter().position(|(k, _)| k == property) {
+                element.style.remove(pos);
+            }
+        } else if let Some((_, v)) = element.style.iter_mut().find(|(k, _)| k == property) {
+            *v = value.to_owned()
+        } else {
+            element.style.push((property.to_owned(), value.to_owned()));
+        }
+        Some(())
     }
 }
 
 // It is possible to make it just a wrapper that calls `set_attribute(class, ...)`...
 // Except async-ui already provides api for classList manipulation, and we need to optimize for this case
-#[derive(Debug, Default, Clone)]
-pub struct SsrClassList(Rc<RefCell<Vec<String>>>);
+#[derive(Debug, Clone)]
+pub struct SsrClassList(SsrElement);
 impl SsrClassList {
     pub fn add_1(&self, class: &str) -> Option<()> {
-        let mut v = self.0.borrow_mut();
-        v.push(class.to_owned());
+        let mut element = self.0.borrow_element_mut();
+
+        let class = class.to_owned();
+
+        if !element.classes.contains(&class) {
+            element.classes.push(class);
+        }
 
         Some(())
     }
     pub fn remove_1(&self, class: &str) -> Option<()> {
-        let mut v = self.0.borrow_mut();
-        let pos = v.iter().position(|el| el == class);
+        let mut element = self.0.borrow_element_mut();
+
+        let pos = element.classes.iter().position(|el| el == class);
         if let Some(pos) = pos {
-            v.remove(pos);
+            element.classes.remove(pos);
         }
 
         Some(())
@@ -281,17 +298,19 @@ impl SsrClassList {
 }
 
 #[derive(Debug)]
+struct SsrElementData {
+    name: String,
+    classes: Vec<String>,
+    style: Vec<(String, String)>,
+    attrs: Vec<(String, String)>,
+    children: Vec<Node>,
+}
+
+#[derive(Debug)]
 enum SsrNodeKind {
     Text(String),
-    Element {
-        name: String,
-        classes: SsrClassList,
-        attrs: Vec<(String, String)>,
-        children: Vec<Node>,
-    },
-    DocumentFragment {
-        children: Vec<Node>,
-    },
+    Element(SsrElementData),
+    DocumentFragment { children: Vec<Node> },
     Comment(String),
 }
 #[derive(Debug)]
@@ -308,13 +327,71 @@ impl WeakSsrNode {
     }
 }
 
-// TODO: The structure is weird... It would be better to make it the
-// other way around... Implement every method for every node kind and then
-// make `SsrNode` just an `enum {SsrElement, SsrText, ...}`?
-//
-// Then `AsRef<Node>` implementations would be weird without unsafe code.
-#[derive(Clone)]
+fn check_attr_name(name: &str) {
+    if name == "class" || name == "style" {
+        // Should be possible for `Element`, but not for `HtmlElement`.
+        // For `HtmlElement` those accesses should be rewritten to use style declaration or classlist.
+        panic!("unable to alter class/style attributes");
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct SsrElement(SsrNode);
+impl SsrElement {
+    fn borrow_element(&self) -> Ref<'_, SsrElementData> {
+        Ref::map(self.0 .0.borrow(), |node| match &node.kind {
+            SsrNodeKind::Element(ssr_element_data) => ssr_element_data,
+            SsrNodeKind::Text(_)
+            | SsrNodeKind::DocumentFragment { .. }
+            | SsrNodeKind::Comment(_) => {
+                unreachable!("invalid SsrElement: should be of Element node kind")
+            }
+        })
+    }
+    fn borrow_element_mut(&self) -> RefMut<'_, SsrElementData> {
+        RefMut::map(self.0 .0.borrow_mut(), |node| match &mut node.kind {
+            SsrNodeKind::Element(ssr_element_data) => ssr_element_data,
+            SsrNodeKind::Text(_)
+            | SsrNodeKind::DocumentFragment { .. }
+            | SsrNodeKind::Comment(_) => {
+                unreachable!("invalid SsrElement: should be of Element node kind")
+            }
+        })
+    }
+
+    pub fn class_list(&self) -> SsrClassList {
+        SsrClassList(self.clone())
+    }
+    pub fn get_attribute(&self, name: &str) -> Option<String> {
+        check_attr_name(name);
+        let element = self.borrow_element();
+
+        let (_, v) = element.attrs.iter().find(|(n, _)| n == name)?;
+        Some(v.to_owned())
+    }
+    pub fn set_attribute(&self, name: &str, value: &str) {
+        check_attr_name(name);
+        let mut element = self.borrow_element_mut();
+
+        if let Some((_, v)) = element.attrs.iter_mut().find(|(n, _)| n == name) {
+            *v = value.to_owned();
+        } else {
+            element.attrs.push((name.to_string(), value.to_string()));
+        }
+    }
+    pub fn remove_attribute(&self, name: &str) {
+        check_attr_name(name);
+        let mut element = self.borrow_element_mut();
+
+        if let Some(pos) = element.attrs.iter_mut().position(|(n, _)| n == name) {
+            element.attrs.remove(pos);
+        }
+    }
+    // TODO: Should conflicts be handled?
+    pub fn set_id(&self, id: &str) {
+        self.set_attribute("id", id);
+    }
+}
 impl AsRef<SsrNode> for SsrElement {
     fn as_ref(&self) -> &SsrNode {
         &self.0
@@ -335,6 +412,46 @@ impl Deref for SsrElement {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+pub struct SsrHtmlElement(SsrElement);
+impl SsrHtmlElement {
+    pub fn style(&self) -> SsrStyle {
+        SsrStyle(self.0.clone())
+    }
+    pub fn set_inner_text(&self, text: &str) {
+        self.set_text_content(Some(text));
+    }
+}
+impl AsRef<SsrNode> for SsrHtmlElement {
+    fn as_ref(&self) -> &SsrNode {
+        &self.0 .0
+    }
+}
+impl AsRef<SsrElement> for SsrHtmlElement {
+    fn as_ref(&self) -> &SsrElement {
+        &self.0
+    }
+}
+impl AsRef<SsrHtmlElement> for SsrHtmlElement {
+    fn as_ref(&self) -> &SsrHtmlElement {
+        self
+    }
+}
+impl Deref for SsrHtmlElement {
+    type Target = SsrElement;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+impl TryFrom<SsrElement> for SsrHtmlElement {
+    type Error = ();
+
+    fn try_from(value: SsrElement) -> Result<Self, Self::Error> {
+        // Nothing is done for non-html elements yet, all elements are html elements
+        Ok(Self(value))
     }
 }
 
@@ -462,71 +579,6 @@ impl SsrNode {
         // e.g by anchor url or startup script?
         Some(())
     }
-    // TODO: move this method to `Element`
-    pub fn get_attribute(&self, name: &str) -> Option<String> {
-        assert_ne!(name, "class");
-        let mut node = self.0.borrow_mut();
-        match &mut node.kind {
-            SsrNodeKind::Element { attrs, .. } => {
-                let (_, v) = attrs.iter().find(|(n, _)| n == name)?;
-                Some(v.to_owned())
-            }
-            SsrNodeKind::Comment(_)
-            | SsrNodeKind::Text(_)
-            | SsrNodeKind::DocumentFragment { .. } => {
-                panic!("text/comment have no attributes")
-            }
-        }
-    }
-    // TODO: move this method to `Element`
-    pub fn set_attribute(&self, name: &str, value: &str) {
-        assert_ne!(name, "class");
-        let mut node = self.0.borrow_mut();
-        match &mut node.kind {
-            SsrNodeKind::Element { attrs, .. } => {
-                if let Some((_, v)) = attrs.iter_mut().find(|(n, _)| n == name) {
-                    *v = value.to_owned();
-                } else {
-                    attrs.push((name.to_string(), value.to_string()));
-                }
-            }
-            SsrNodeKind::Comment(_)
-            | SsrNodeKind::Text(_)
-            | SsrNodeKind::DocumentFragment { .. } => {
-                panic!("text/comment have no attributes")
-            }
-        }
-    }
-    // TODO: move this method to `Element`
-    pub fn remove_attribute(&self, name: &str) {
-        assert_ne!(name, "class");
-        let mut node = self.0.borrow_mut();
-        match &mut node.kind {
-            SsrNodeKind::Element { attrs, .. } => {
-                if let Some(pos) = attrs.iter_mut().position(|(n, _)| n == name) {
-                    attrs.remove(pos);
-                }
-            }
-            SsrNodeKind::Comment(_)
-            | SsrNodeKind::Text(_)
-            | SsrNodeKind::DocumentFragment { .. } => {
-                panic!("text/comment have no attributes")
-            }
-        }
-    }
-    // TODO: move this method to `Element`
-    pub fn class_list(&self) -> SsrClassList {
-        let node = self.0.borrow();
-        match &node.kind {
-            SsrNodeKind::Element { classes, .. } => classes.clone(),
-            _ => unreachable!("non-elements have no classes"),
-        }
-    }
-    // TODO: Move to `Element`
-    // TODO: Should conflicts be handled?
-    pub fn set_id(&self, id: &str) {
-        self.set_attribute("id", id);
-    }
     pub fn parent_node(&self) -> Option<Node> {
         let node = self.0.borrow();
         let parent = node.parent.as_ref()?;
@@ -538,8 +590,10 @@ impl SsrNode {
     pub fn next_sibling(&self) -> Option<Node> {
         let v = self.parent_node()?;
         let node = v.0.borrow();
-        let SsrNodeKind::Element { children, .. } = &node.kind else {
-            unreachable!("parent might onjy be element");
+        let (SsrNodeKind::Element(SsrElementData { children, .. })
+        | SsrNodeKind::DocumentFragment { children }) = &node.kind
+        else {
+            unreachable!("parent might only be element or document fragment");
         };
         let pos = children
             .iter()
@@ -573,8 +627,8 @@ impl SsrNode {
                 // TODO: Error: Cannot add children to a Text
                 None
             }
-            SsrNodeKind::Element { children, .. }
-            | SsrNodeKind::DocumentFragment { children, .. } => {
+            SsrNodeKind::Element(SsrElementData { children, .. })
+            | SsrNodeKind::DocumentFragment { children } => {
                 // Find the insert position
                 let mut pos = if let Some(reference_node) = reference_node {
                     // TODO: Error: Child to insert before is not a child of this node
@@ -627,7 +681,8 @@ impl SsrNode {
         let mut node = self.0.borrow_mut();
         match &mut node.kind {
             SsrNodeKind::Text(_) | SsrNodeKind::Comment(_) => None,
-            SsrNodeKind::Element { children, .. } | SsrNodeKind::DocumentFragment { children } => {
+            SsrNodeKind::Element(SsrElementData { children, .. })
+            | SsrNodeKind::DocumentFragment { children } => {
                 let pos = children.iter().position(|el| Self::ptr_eq(el, child))?;
                 children.remove(pos);
                 drop(node);
@@ -637,17 +692,14 @@ impl SsrNode {
         }
     }
 
-    // TODO: Move to `Element`
-    pub fn set_inner_text(&self, text: &str) {
-        self.set_text_content(Some(text));
-    }
     pub fn set_text_content(&self, text: Option<&str>) {
         let mut node = self.0.borrow_mut();
         match &mut node.kind {
             SsrNodeKind::Text(v) | SsrNodeKind::Comment(v) => {
                 *v = text.unwrap_or_default().to_owned();
             }
-            SsrNodeKind::Element { children, .. } | SsrNodeKind::DocumentFragment { children } => {
+            SsrNodeKind::Element(SsrElementData { children, .. })
+            | SsrNodeKind::DocumentFragment { children } => {
                 let old_children = mem::take(children);
                 children.push(create_ssr_text(text.unwrap_or_default()).0);
                 drop(node);
@@ -744,19 +796,20 @@ impl SsrNode {
                 *last_is_text = false;
             }
             SsrNodeKind::Text(t) => {
-                if *last_is_text {
+                if *last_is_text && cfg!(feature = "hydrate") {
                     // For hydration - ensure text nodes are separated, as with real DOM building
                     write!(out, "<!--DUMMY TEXT SEP-->")?;
                 }
                 write!(out, "{}", Text(t))?;
                 *last_is_text = true;
             }
-            SsrNodeKind::Element {
+            SsrNodeKind::Element(SsrElementData{
                 name,
                 classes,
                 attrs,
                 children,
-            } => {
+                style,
+            }) => {
                 // TODO: Ensure there is nothing criminal in element name/attrs?
                 if !skipped {
                     out.push('<');
@@ -768,7 +821,6 @@ impl SsrNode {
                     // }
                     {
                         // TODO: Ensure added classes have no spaces in them?
-                        let classes = classes.0.borrow();
                         if !classes.is_empty() {
                             out.push_str(" class=\"");
                             for (i, ele) in classes.iter().enumerate() {
@@ -776,6 +828,17 @@ impl SsrNode {
                                     out.push(' ');
                                 }
                                 write!(out, "{}", AttrValue(ele))?;
+                            }
+                            out.push('"');
+                        }
+                    }
+                    {
+                        // TODO: Properties are usually processed by css parser, it would be pretty costly to do that
+                        // in SSR, implement some cheaper form of verification.
+                        if !style.is_empty() {
+                            out.push_str(" style=\"");
+                            for (k, v) in style.iter() {
+                                write!(out, "{k}: {v};")?;
                             }
                             out.push('"');
                         }
@@ -825,12 +888,13 @@ impl SsrNode {
 
 pub fn create_ssr_element(name: &str) -> SsrElement {
     SsrElement(SsrNode(Rc::new(RefCell::new(SsrNodeInner {
-        kind: SsrNodeKind::Element {
+        kind: SsrNodeKind::Element(SsrElementData {
             name: name.to_owned(),
             attrs: vec![],
             children: vec![],
-            classes: SsrClassList::default(),
-        },
+            classes: vec![],
+            style: vec![],
+        }),
         parent: None,
     }))))
 }

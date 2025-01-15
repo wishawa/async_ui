@@ -32,6 +32,11 @@ macro_rules! component_impl {
                     element: create_element($tag_name),
                 }
             }
+
+            #[doc(hidden)]
+            pub fn render_explicit_children<F: Future>(&self, c: F) -> ContainerNodeFuture<F> {
+                ContainerNodeFuture::new(c, AsRef::<Node>::as_ref(&self.element).clone())
+            }
         }
         impl Default for $ty {
             fn default() -> Self {
@@ -65,7 +70,7 @@ macro_rules! component_impl {
             #[doc = ""]
             #[doc = "This method should only be called once. It may misbehave otherwise."]
             pub fn render<F: Future>(&self, c: F) -> ContainerNodeFuture<F> {
-                ContainerNodeFuture::new(c, AsRef::<Node>::as_ref(&self.element).clone())
+                self.render_explicit_children(c)
             }
         }
     };
@@ -80,7 +85,7 @@ macro_rules! component_impl {
             #[doc = ""]
             #[doc = "This method should only be called once. It may misbehave otherwise."]
             pub fn render(&self) -> ContainerNodeFuture<Pending<()>> {
-                ContainerNodeFuture::new(pending(), AsRef::<Node>::as_ref(&self.element).clone())
+                self.render_explicit_children(pending())
             }
         }
     };
@@ -182,6 +187,6 @@ fn create_element<E: JsCast>(tag_name: &str) -> E {
 }
 
 #[cfg(any(feature = "ssr", not(feature = "csr")))]
-fn create_element<E: From<dom::Element>>(tag_name: &str) -> E {
-    E::from(dom::create_ssr_element(tag_name))
+fn create_element<E: TryFrom<dom::Element, Error = ()>>(tag_name: &str) -> E {
+    E::try_from(dom::create_ssr_element(tag_name)).expect("TODO: HtmlElement: TryFrom<Element> error")
 }

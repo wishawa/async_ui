@@ -1,15 +1,18 @@
 use async_ui_web::{
     event_traits::EmitElementEvent,
     html::{Button, Input},
-    join, mount, race,
+    join, race,
     shortcut_traits::{ShortcutRenderStr, UiFutureExt},
 };
 
 #[wasm_bindgen::prelude::wasm_bindgen(start)]
+#[cfg(feature = "csr")]
 pub fn run() {
+    use async_ui_web::mount;
     mount(app());
 }
 
+#[allow(dead_code)]
 async fn app() {
     match connector().await {
         Ok(data) => format!("the connector returned: {data}").render().await,
