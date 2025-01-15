@@ -2,17 +2,18 @@ use std::{cell::RefCell, collections::BTreeMap};
 
 use wasm_bindgen::UnwrapThrowExt;
 
+use crate::dom::Node;
 use crate::position::ChildPosition;
 
 pub(crate) enum DomContext<'p> {
     Container {
         group: &'p NodeGroup,
-        container: &'p web_sys::Node,
+        container: &'p Node,
     },
     Sibling {
         parent: &'p Self,
         group: &'p NodeGroup,
-        reference: &'p web_sys::Node,
+        reference: &'p Node,
     },
     Child {
         parent: &'p Self,
@@ -26,12 +27,12 @@ scoped_tls_hkt::scoped_thread_local!(
     pub(crate) static DOM_CONTEXT: for<'p> &'p DomContext<'p>
 );
 
-pub(crate) type NodeGroup = RefCell<BTreeMap<ChildPosition, web_sys::Node>>;
+pub(crate) type NodeGroup = RefCell<BTreeMap<ChildPosition, Node>>;
 
 impl<'p> DomContext<'p> {
     /// Get the HTML node where the current code would render in.
     /// This is used by [SiblingNodeFuture][crate::SiblingNodeFuture] to decide where to add children.
-    pub fn get_containing_node(&self) -> &web_sys::Node {
+    pub fn get_containing_node(&self) -> &Node {
         match self {
             DomContext::Container { container, .. } => container,
             DomContext::Child { parent, .. } | DomContext::Sibling { parent, .. } => {
@@ -42,7 +43,7 @@ impl<'p> DomContext<'p> {
         }
     }
     /// Add a new node `new_child` ordered relative to existing siblings according to the given [ChildPosition].
-    pub fn add_child(&self, mut position: ChildPosition, new_child: web_sys::Node) {
+    pub fn add_child(&self, mut position: ChildPosition, new_child: Node) {
         match self {
             DomContext::Container { group, container } => {
                 let mut group = group.borrow_mut();
@@ -99,9 +100,9 @@ impl<'p> DomContext<'p> {
 }
 
 fn remove_children_here(
-    tree: &mut BTreeMap<ChildPosition, web_sys::Node>,
+    tree: &mut BTreeMap<ChildPosition, Node>,
     position: ChildPosition,
-    container: &web_sys::Node,
+    container: &Node,
 ) {
     if position.is_root() {
         tree.values().for_each(|child| {
@@ -119,18 +120,23 @@ fn remove_children_here(
 }
 
 #[cfg(debug_assertions)]
-fn panic_if_duplicate_node(node: Option<web_sys::Node>) {
+fn panic_if_duplicate_node(node: Option<Node>) {
     if let Some(node) = node {
-        web_sys::console::error_2(
-            &"Attempted to insert two nodes at the same position.\n\
-            You probably either used a `join` implementation from outside Async UI,\
-            or tried to render something in a spawned Future.\n\
-            This message is only shown in debug builds.\n\
-            Check the code where you render this node:\
-            "
-            .into(),
-            node.as_ref(),
-        );
+        #[cfg(feature = "csr")]
+        {
+            web_sys::console::error_2(
+                &"Attempted to insert two nodes at the same position.\n\
+                You probably either used a `join` implementation from outside Async UI,\
+                or tried to render something in a spawned Future.\n\
+                This message is only shown in debug builds.\n\
+                Check the code where you render this node:\
+                "
+                .into(),
+                node.as_ref(),
+            );
+        }
+        drop(node);
+        // TODO: Message in SSR
         panic!()
     }
 }

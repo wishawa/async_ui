@@ -7,9 +7,7 @@ use std::{
 use pin_project::{pin_project, pinned_drop};
 
 use crate::{
-    context::{DomContext, NodeGroup, DOM_CONTEXT},
-    dropping::DetachmentBlocker,
-    position::ChildPosition,
+    context::{DomContext, NodeGroup, DOM_CONTEXT}, dom::Node, dropping::DetachmentBlocker, position::ChildPosition
 };
 
 /// Future wrapper where anything rendered in its child will appear as child of the node.
@@ -19,7 +17,7 @@ pub struct ContainerNodeFuture<C> {
     #[pin]
     child_future: C,
     group: NodeGroup,
-    container: web_sys::Node,
+    container: Node,
     add_self: AddSelfMode,
     drop: DetachmentBlocker,
 }
@@ -35,7 +33,7 @@ impl<C: Future> ContainerNodeFuture<C> {
     /// Return a future wrapping the given child future.
     /// Any node rendered by the child future will appear inside the given node.
     /// Upon first poll of the future `node` will be added to the parent.
-    pub fn new(child_future: C, node: web_sys::Node) -> Self {
+    pub fn new(child_future: C, node: Node) -> Self {
         Self {
             child_future,
             group: Default::default(),
@@ -45,7 +43,7 @@ impl<C: Future> ContainerNodeFuture<C> {
         }
     }
     /// Like `new` but `node` won't be added to the parent (do that manually).
-    pub fn new_root(child_future: C, node: web_sys::Node) -> Self {
+    pub fn new_root(child_future: C, node: Node) -> Self {
         Self {
             child_future,
             group: Default::default(),

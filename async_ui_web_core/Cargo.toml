@@ -21,6 +21,7 @@ async_ui_internal_utils = { version = "0.0.2", path = "../async_ui_internal_util
 
 [dependencies.web-sys]
 version = "0.3.64"
+optional = true
 features = [
 	'console',
 	'Node',
@@ -30,3 +31,8 @@ features = [
 
 [dev-dependencies]
 futures-lite = "1.13.0"
+
+[features]
+default = ["ssr"]
+csr = ["web-sys"]
+ssr = []

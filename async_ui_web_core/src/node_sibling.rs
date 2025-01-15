@@ -7,9 +7,7 @@ use std::{
 use pin_project::{pin_project, pinned_drop};
 
 use crate::{
-    context::{DomContext, NodeGroup, DOM_CONTEXT},
-    dropping::DetachmentBlocker,
-    position::ChildPosition,
+    context::{DomContext, NodeGroup, DOM_CONTEXT}, dom::Node, dropping::DetachmentBlocker, position::ChildPosition
 };
 
 /// Future wrapper where anything rendered in its child will appear as a sibling of a node.
@@ -21,12 +19,12 @@ pub struct SiblingNodeFuture<C> {
     #[pin]
     child_future: C,
     group: NodeGroup,
-    reference: web_sys::Node,
+    reference: Node,
     drop: DetachmentBlocker,
 }
 
 impl<C: Future> SiblingNodeFuture<C> {
-    pub fn new(child_future: C, sibling: web_sys::Node) -> Self {
+    pub fn new(child_future: C, sibling: Node) -> Self {
         Self {
             child_future,
             group: Default::default(),

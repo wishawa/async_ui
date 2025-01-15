@@ -1,6 +1,14 @@
 pub mod combinators;
+#[cfg(feature = "csr")]
 pub mod executor;
+#[cfg(feature = "csr")]
 pub mod window;
+
+#[cfg(feature = "csr")]
+pub mod dom;
+#[cfg(feature = "ssr")]
+#[path = "./dom_ssr.rs"]
+pub mod dom;
 
 mod context;
 mod dropping;

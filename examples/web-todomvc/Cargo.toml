@@ -5,8 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[lib]
-crate-type = ["cdylib"]
+# [lib]
+# crate-type = ["cdylib"]
+
+[[bin]]
+name = "ssr"
 
 [dependencies]
 async_ui_web = { path = "../../async_ui_web/" }

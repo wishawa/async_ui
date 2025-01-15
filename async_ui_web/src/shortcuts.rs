@@ -1,5 +1,6 @@
 use std::future::Pending;
 
+use async_ui_web_core::dom::Element;
 use async_ui_web_core::ContainerNodeFuture;
 use async_ui_web_html::nodes::Text;
 use js_sys::Array;
@@ -49,23 +50,33 @@ fn strs_to_js_array<'a>(values: impl Iterator<Item = &'a str>) -> Array {
     values.into_iter().map(JsValue::from_str).collect()
 }
 
-impl ShortcutClassList for web_sys::Element {
+impl ShortcutClassList for Element {
     fn add_class(&self, c: &str) {
         self.class_list().add_1(c).unwrap_throw();
     }
+    #[cfg(feature = "csr")]
     fn add_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
         self.class_list()
             .add(&strs_to_js_array(c.into_iter()))
             .unwrap_throw();
     }
+    #[cfg(feature = "ssr")]
+    fn add_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
+        self.class_list().add(c).unwrap_throw();
+    }
 
     fn del_class(&self, c: &str) {
         self.class_list().remove_1(c).unwrap();
     }
+    #[cfg(feature = "csr")]
     fn del_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
         self.class_list()
             .remove(&strs_to_js_array(c.into_iter()))
             .unwrap_throw();
+    }
+    #[cfg(feature = "ssr")]
+    fn del_classes<'a>(&self, c: impl IntoIterator<Item = &'a str>) {
+        self.class_list().remove(c).unwrap_throw();
     }
 
     fn set_class(&self, c: &str, included: bool) {
@@ -75,7 +86,7 @@ impl ShortcutClassList for web_sys::Element {
     }
 }
 
-pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
+pub trait ShortcutClassListBuilder: AsRef<Element> {
     /// Add a classname to the element and return reference to the input.
     ///
     /// This is for writing the UI "declaratively".
@@ -105,4 +116,4 @@ pub trait ShortcutClassListBuilder: AsRef<web_sys::Element> {
         self
     }
 }
-impl<T: AsRef<web_sys::Element>> ShortcutClassListBuilder for T {}
+impl<T: AsRef<Element>> ShortcutClassListBuilder for T {}

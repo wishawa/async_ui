@@ -27,6 +27,8 @@ scopeguard = "1.1.0"
 js-sys = "0.3.64"
 wasm-bindgen = "0.2.87"
 
+pin-project = "1.0"
+
 [dependencies.web-sys]
 version = "0.3.64"
 features = [
@@ -37,3 +39,8 @@ features = [
 	'IntersectionObserverEntry',
 	'console'
 ]
+
+[features]
+default = ["ssr"]
+csr = []
+ssr = []

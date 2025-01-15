@@ -32,3 +32,12 @@ pub fn get_executor() -> &'static LocalExecutor<'static> {
         })
     })
 }
+
+/// If something needs to be run to completion before sending user html - it needs to be wrapped in `run_loading` call.
+///
+/// let data = run_loading(load_data()).await;
+///
+/// DataDisplay::new(data).render().await
+pub async fn run_loading<V>(f: impl Future<Output = V>) -> V {
+    f.await
+}

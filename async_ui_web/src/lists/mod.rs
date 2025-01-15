@@ -58,9 +58,12 @@
 mod diffed_list;
 mod dynamic_list;
 mod modeled_list;
+// TODO: Somehow make its api SSR-friendly?
+#[cfg(feature = "csr")]
 mod virtualized_list;
 
 pub use diffed_list::DiffedList;
 pub use dynamic_list::DynamicList;
 pub use modeled_list::{ListModel, ModeledList};
+#[cfg(feature = "csr")]
 pub use virtualized_list::VirtualizedList;

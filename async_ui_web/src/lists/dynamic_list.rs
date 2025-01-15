@@ -8,13 +8,15 @@ use std::{
 };
 
 use async_executor::{LocalExecutor, Task};
-use async_ui_web_core::{ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture};
+use async_ui_web_core::{
+    dom::{Comment, DocumentFragment, Node},
+    ContainerNodeFuture, DetachmentBlocker, SiblingNodeFuture,
+};
 use wasm_bindgen::UnwrapThrowExt;
-use web_sys::{Comment, DocumentFragment};
 
 #[derive(Clone, Debug)]
 enum ContainingNode {
-    Real(web_sys::Node),
+    Real(Node),
     Fake(DocumentFragment),
 }
 
@@ -53,8 +55,8 @@ join((
 pub struct DynamicList<'c, K: Eq + Hash, F: Future + 'c> {
     inner: RefCell<DynamicListInner<K, F>>,
     executor: LocalExecutor<'c>,
-    list_end_marker: web_sys::Node,
-    list_start_marker: web_sys::Node,
+    list_end_marker: Node,
+    list_start_marker: Node,
     detachment_blocker: DetachmentBlocker,
 }
 
@@ -65,12 +67,12 @@ struct DynamicListInner<K: Eq + Hash, F: Future> {
 
 struct Stored<F: Future> {
     task: Task<F::Output>,
-    start_marker: web_sys::Node,
-    end_marker: web_sys::Node,
+    start_marker: Node,
+    end_marker: Node,
 }
 
 impl ContainingNode {
-    fn get(&self) -> &web_sys::Node {
+    fn get(&self) -> &Node {
         match self {
             ContainingNode::Real(real) => real,
             ContainingNode::Fake(fake) => fake,
@@ -122,8 +124,8 @@ impl<'c, K: Eq + Hash, F: Future + 'c> DynamicList<'c, K, F> {
     pub fn insert(&self, key: K, future: F, before: Option<&K>) -> bool {
         let mut inner = self.inner.borrow_mut();
         let container = inner.containing_node.get();
-        let start_marker: web_sys::Node = Comment::new().unwrap_throw().into();
-        let end_marker: web_sys::Node = Comment::new().unwrap_throw().into();
+        let start_marker: Node = Comment::new().unwrap_throw().into();
+        let end_marker: Node = Comment::new().unwrap_throw().into();
         let after = before
             .map(|k| &inner.items.get(k).unwrap().start_marker)
             .unwrap_or(&self.list_end_marker);
@@ -349,14 +351,17 @@ impl<'c, K: Eq + Hash, F: Future> Drop for DynamicList<'c, K, F> {
 /// Move `start_marker`, `end_marker`, and eveything between them
 /// into `container` at location before `after`.
 fn move_nodes_before(
-    container: &web_sys::Node,
-    start_marker: &web_sys::Node,
-    end_marker: &web_sys::Node,
-    after: Option<&web_sys::Node>,
+    container: &Node,
+    start_marker: &Node,
+    end_marker: &Node,
+    after: Option<&Node>,
 ) {
+    println!("MNB");
     let mut node = start_marker.clone();
     loop {
+        println!("loop!");
         let next_node = node.next_sibling();
+        assert!(!container.is_same_node(Some(&node)));
         container.insert_before(&node, after).unwrap_throw();
         if end_marker.is_same_node(Some(&node)) {
             break;

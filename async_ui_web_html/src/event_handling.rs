@@ -7,9 +7,9 @@ use std::{
 };
 
 use async_ui_internal_utils::dummy_waker::dummy_waker;
+use async_ui_web_core::dom::EventTarget;
 use futures_core::Stream;
-use wasm_bindgen::{prelude::Closure, JsCast, UnwrapThrowExt};
-use web_sys::{AddEventListenerOptions, EventTarget};
+use wasm_bindgen::JsCast;
 
 /// A struct implementing both [Future] and [Stream].
 /// Yields [Event][web_sys::Event] objects.
@@ -26,13 +26,33 @@ use web_sys::{AddEventListenerOptions, EventTarget};
 ///     in-between events.
 pub struct EventFutureStream<E> {
     target: EventTarget,
+
+    #[cfg(feature = "csr")]
     closure: Option<Closure<dyn Fn(web_sys::Event)>>,
+    #[cfg(feature = "ssr")]
+    closure: Option<()>,
+
     shared: Rc<RefCell<(Option<E>, Waker)>>,
-    options: Option<AddEventListenerOptions>,
+
+    #[cfg(feature = "csr")]
+    options: Option<web_sys::AddEventListenerOptions>,
+
     event_name: Cow<'static, str>,
 }
 
 impl<E: JsCast> EventFutureStream<E> {
+    #[cfg(feature = "ssr")]
+    pub fn new_dummy() -> Self {
+        use async_ui_web_core::dom;
+
+        Self {
+            target: dom::SsrEventTarget {},
+            closure: None,
+            shared: Rc::new(RefCell::new((None, dummy_waker()))),
+            event_name: Cow::Borrowed(""),
+        }
+    }
+
     /// Prefer to use [until_event][crate::events::EmitEvent::until_event] or other until_*
     /// methods instead of this.
     pub fn new(target: EventTarget, event_name: Cow<'static, str>) -> Self {
@@ -40,6 +60,7 @@ impl<E: JsCast> EventFutureStream<E> {
             target,
             closure: None,
             shared: Rc::new(RefCell::new((None, dummy_waker()))),
+            #[cfg(feature = "csr")]
             options: None,
             event_name,
         }
@@ -53,9 +74,13 @@ impl<E: JsCast> EventFutureStream<E> {
     ///
     /// This needs to be set *before* you first poll the stream.
     pub fn set_capture(&mut self, capture: bool) {
-        self.options
-            .get_or_insert_with(AddEventListenerOptions::new)
-            .capture(capture);
+        #[cfg(feature = "csr")]
+        {
+            self.options
+                .get_or_insert_with(web_sys::AddEventListenerOptions::new)
+                .capture(capture);
+        }
+        let _ = capture;
     }
     /// The `passive` option indicates that the function specified by listener
     /// will never call `preventDefault()`.
@@ -68,9 +93,13 @@ impl<E: JsCast> EventFutureStream<E> {
     ///
     /// This needs to be set *before* you first poll the stream.
     pub fn set_passive(&mut self, passive: bool) {
-        self.options
-            .get_or_insert_with(AddEventListenerOptions::new)
-            .passive(passive);
+        #[cfg(feature = "csr")]
+        {
+            self.options
+                .get_or_insert_with(web_sys::AddEventListenerOptions::new)
+                .passive(passive);
+        }
+        let _ = passive;
     }
 }
 
@@ -102,30 +131,39 @@ impl<E: JsCast + 'static> Stream for EventFutureStream<E> {
         }
 
         if this.closure.is_none() {
-            let shared_weak = Rc::downgrade(&this.shared);
-            let closure = Closure::new(move |ev: web_sys::Event| {
-                if let Some(strong) = shared_weak.upgrade() {
-                    let inner = &mut *strong.borrow_mut();
-                    inner.0 = Some(ev.unchecked_into());
-                    inner.1.wake_by_ref();
+            #[cfg(feature = "csr")]
+            {
+                let shared_weak = Rc::downgrade(&this.shared);
+                let closure = Closure::new(move |ev: web_sys::Event| {
+                    if let Some(strong) = shared_weak.upgrade() {
+                        let inner = &mut *strong.borrow_mut();
+                        inner.0 = Some(ev.unchecked_into());
+                        inner.1.wake_by_ref();
+                    }
+                    async_ui_web_core::executor::run_now();
+                });
+                let listener = closure.as_ref().unchecked_ref();
+                if let Some(options) = &this.options {
+                    this.target
+                        .add_event_listener_with_callback_and_add_event_listener_options(
+                            &this.event_name,
+                            listener,
+                            options,
+                        )
+                        .unwrap_throw();
+                } else {
+                    this.target
+                        .add_event_listener_with_callback(&this.event_name, listener)
+                        .unwrap_throw();
                 }
-                async_ui_web_core::executor::run_now();
-            });
-            let listener = closure.as_ref().unchecked_ref();
-            if let Some(options) = &this.options {
-                this.target
-                    .add_event_listener_with_callback_and_add_event_listener_options(
-                        &this.event_name,
-                        listener,
-                        options,
-                    )
-                    .unwrap_throw();
-            } else {
-                this.target
-                    .add_event_listener_with_callback(&this.event_name, listener)
-                    .unwrap_throw();
+                this.closure = Some(closure);
             }
-            this.closure = Some(closure);
+
+            #[cfg(feature = "ssr")]
+            {
+                this.target.event_subscribed(&this.event_name);
+                this.closure = Some(());
+            }
             Poll::Pending
         } else if let Some(ev) = this.shared.borrow_mut().0.take() {
             Poll::Ready(Some(ev))
@@ -159,12 +197,20 @@ impl EmitEvent for EventTarget {
 impl<E> Drop for EventFutureStream<E> {
     fn drop(&mut self) {
         if let Some(callback) = self.closure.take() {
-            self.target
-                .remove_event_listener_with_callback(
-                    &self.event_name,
-                    callback.as_ref().unchecked_ref(),
-                )
-                .unwrap_throw();
+            #[cfg(feature = "csr")]
+            {
+                self.target
+                    .remove_event_listener_with_callback(
+                        &self.event_name,
+                        callback.as_ref().unchecked_ref(),
+                    )
+                    .unwrap_throw();
+            }
+            #[cfg(feature = "ssr")]
+            {
+                self.target.event_unsubscribed(&self.event_name);
+                let _: () = callback;
+            }
         }
     }
 }
