@@ -9,24 +9,18 @@ use crate::executor;
 
 pub async fn render_to_string<F: Future + 'static>(child_future: F) -> String {
     let node = AsRef::<SsrNode>::as_ref(&create_ssr_element("#root")).clone();
-    let mut root_fut_own =
-        async_ui_web_core::ContainerNodeFuture::new_root(child_future, node.clone());
-    let mut root_fut = unsafe { Pin::new_unchecked(&mut root_fut_own) };
+    let mut root_fut =
+        pin!(async_ui_web_core::ContainerNodeFuture::new_root(child_future, node.clone()));
     executor::poll_until_loaded(async {
-        println!("Before");
         poll_fn(|cx| {
             ready!(root_fut.as_mut().poll(cx));
             Poll::Ready(Some(()))
         })
         .await;
-        println!("After");
+        unreachable!("no pending render futures, an empty app?\nassuming something is broken");
     })
     .await;
-    println!("serialize");
     // inner to strip outer <#root>
     let out = node.to_inner_html();
-    println!("done");
-    drop(root_fut_own);
-    println!("dropped fut");
     out
 }

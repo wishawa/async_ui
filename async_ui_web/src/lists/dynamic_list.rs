@@ -364,33 +364,9 @@ fn move_nodes_before(
     end_marker: &Node,
     after: Option<&Node>,
 ) {
-    #[cfg(feature = "ssr")]
-    {
-        println!(
-            "MNB\nC {}\nS {}\nE {}",
-            container.to_html(),
-            start_marker.to_html(),
-            end_marker.to_html()
-        );
-    }
-
-    #[cfg(feature = "ssr")]
-    if let Some(parent) = container.parent_node() {
-        println!("MNB parent\n{}", parent.to_html());
-    }
     let mut node = start_marker.clone();
     loop {
-        #[cfg(feature = "ssr")]
-        {
-            println!("loop!\n- {}", node.to_html());
-        }
         let next_node = node.next_sibling();
-        #[cfg(feature = "ssr")]
-        if container.is_same_node(Some(&node)) {
-            let c = container.to_html();
-
-            panic!("oopsie, wtf is with dom\ncontainer = {c}");
-        }
         container.insert_before(&node, after).unwrap_throw();
         if end_marker.is_same_node(Some(&node)) {
             break;

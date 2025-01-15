@@ -43,14 +43,14 @@ pub struct EventFutureStream<E> {
 
 impl<E: JsCast> EventFutureStream<E> {
     #[cfg(feature = "ssr")]
-    pub fn new_dummy() -> Self {
+    pub fn new_dummy(event_name: Cow<'static, str>) -> Self {
         use async_ui_web_core::dom;
 
         Self {
             target: dom::SsrEventTarget {},
             closure: None,
             shared: Rc::new(RefCell::new((None, dummy_waker()))),
-            event_name: Cow::Borrowed(""),
+            event_name,
         }
     }
 

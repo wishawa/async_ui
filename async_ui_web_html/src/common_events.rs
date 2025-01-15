@@ -19,7 +19,7 @@ macro_rules! make_event_impl {
             }
             #[cfg(feature = "ssr")]
             {
-                EventFutureStream::new_dummy()
+                EventFutureStream::new_dummy($ev_name.into())
             }
         }
     };

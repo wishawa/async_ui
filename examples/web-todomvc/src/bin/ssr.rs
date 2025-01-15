@@ -9,7 +9,6 @@ fn main() {
         let v = render_to_string(app());
 
         let v = futures_lite::future::block_on(v);
-        println!("block_on finished");
         println!("{v}");
     }
 }

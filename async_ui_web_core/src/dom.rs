@@ -1,3 +1,5 @@
+use wasm_bindgen::UnwrapThrowExt;
+
 pub type Node = web_sys::Node;
 pub type Element = web_sys::Element;
 pub type HtmlElement = web_sys::HtmlElement;

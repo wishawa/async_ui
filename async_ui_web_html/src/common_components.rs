@@ -65,7 +65,6 @@ macro_rules! component_impl {
             #[doc = ""]
             #[doc = "This method should only be called once. It may misbehave otherwise."]
             pub fn render<F: Future>(&self, c: F) -> ContainerNodeFuture<F> {
-                println!("Render!");
                 ContainerNodeFuture::new(c, AsRef::<Node>::as_ref(&self.element).clone())
             }
         }
@@ -81,7 +80,6 @@ macro_rules! component_impl {
             #[doc = ""]
             #[doc = "This method should only be called once. It may misbehave otherwise."]
             pub fn render(&self) -> ContainerNodeFuture<Pending<()>> {
-                println!("Render!");
                 ContainerNodeFuture::new(pending(), AsRef::<Node>::as_ref(&self.element).clone())
             }
         }

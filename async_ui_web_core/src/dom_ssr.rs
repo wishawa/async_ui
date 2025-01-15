@@ -20,10 +20,10 @@ impl SsrEventTarget {
         // I think it might be good to I.e disable checkboxes etc
         // in SSR when there is an event subscription created, making it impossible
         // to interact with such elements until client hydration is complete?
-        println!("event subscribed: {name}")
+        // println!("event subscribed: {name}")
     }
     pub fn event_unsubscribed(&self, name: &str) {
-        println!("event unsubscribed: {name}")
+        // println!("event unsubscribed: {name}")
     }
     pub fn to_owned(&self) -> Self {
         Self {}

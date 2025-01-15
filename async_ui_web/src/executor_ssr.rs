@@ -14,6 +14,7 @@ pub fn get_executor() -> &'static () {
 /// DataDisplay::new(data).render().await
 ///
 /// Future will be pooled until all run_loading futures are resolved
+// TODO: We also want user to be able to re-use loaded data during hydration, make an additional wrapper function, which will also feed frontend with serialized data version?
 pub async fn run_loading<V>(f: impl Future<Output = V>) -> V {
     CTX.with_borrow_mut(|ctx| {
         let ctx = ctx
@@ -50,7 +51,6 @@ impl<F: Future<Output = ()>> Future for UntilLoadedFuture<F> {
     type Output = ();
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        println!("POLL!");
         let project = self.project();
         let ctx = project
             .ctx
@@ -66,7 +66,6 @@ impl<F: Future<Output = ()>> Future for UntilLoadedFuture<F> {
         let ctx = CTX.with_borrow_mut(move |v| v.take().expect("nothing should retake our ctx"));
 
         if ctx.loading == 0 {
-            println!("Force ready!");
             // We don't care about everything not needed for first contentful load.
             return Poll::Ready(());
         }
